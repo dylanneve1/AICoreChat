@@ -40,28 +40,24 @@ fun MessageInput(
 
     Surface(
         modifier = modifier,
-        tonalElevation = 3.dp
+        tonalElevation = 6.dp
     ) {
-        // Add a Box to apply navigation bar padding.
-        // This ensures the TextField is lifted above the gesture navigation bar
-        // without re-introducing the keyboard padding issue.
         Box(modifier = Modifier.navigationBarsPadding()) {
             TextField(
                 value = text,
                 onValueChange = { text = it },
                 modifier = Modifier
                     .fillMaxWidth()
-                    // Add extra bottom padding to create a small gap above the active keyboard.
-                    .padding(start = 16.dp, end = 16.dp, top = 8.dp, bottom = 12.dp)
-                    .heightIn(min = 48.dp, max = 180.dp)
+                    .padding(start = 16.dp, end = 16.dp, top = 10.dp, bottom = 14.dp)
+                    .heightIn(min = 52.dp, max = 180.dp)
                     .border(
                         width = 1.dp,
                         color = MaterialTheme.colorScheme.outlineVariant,
-                        shape = RoundedCornerShape(24.dp)
+                        shape = RoundedCornerShape(28.dp)
                     ),
-                placeholder = { Text("Ask anything…") },
+                placeholder = { Text("Message", style = MaterialTheme.typography.bodyMedium.copy(color = MaterialTheme.colorScheme.onSurfaceVariant)) },
                 enabled = !isGenerating,
-                shape = RoundedCornerShape(24.dp),
+                shape = RoundedCornerShape(28.dp),
                 singleLine = false,
                 keyboardOptions = KeyboardOptions(imeAction = ImeAction.Send),
                 keyboardActions = KeyboardActions(
@@ -73,11 +69,16 @@ fun MessageInput(
                         }
                     }
                 ),
+                leadingIcon = {
+                    Icon(
+                        imageVector = Icons.Outlined.Send,
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f)
+                    )
+                },
                 trailingIcon = {
                     if (isGenerating) {
-                        IconButton(onClick = onStop) {
-                            Icon(Icons.Rounded.Stop, contentDescription = "Stop generation")
-                        }
+                        IconButton(onClick = onStop) { Icon(Icons.Rounded.Stop, contentDescription = "Stop generation") }
                     } else {
                         IconButton(
                             onClick = {
@@ -88,9 +89,7 @@ fun MessageInput(
                                 }
                             },
                             enabled = text.isNotBlank()
-                        ) {
-                            Icon(Icons.Outlined.Send, contentDescription = "Send")
-                        }
+                        ) { Icon(Icons.Outlined.Send, contentDescription = "Send") }
                     }
                 },
                 colors = TextFieldDefaults.colors(

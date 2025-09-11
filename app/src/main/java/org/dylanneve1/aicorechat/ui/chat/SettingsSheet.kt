@@ -13,7 +13,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.OpenInNew
-import androidx.compose.material3.Divider
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
@@ -68,10 +68,10 @@ fun SettingsSheet(
             Text(
                 text = "Model Settings",
                 style = MaterialTheme.typography.titleLarge,
-                modifier = Modifier.padding(bottom = 16.dp)
+                color = MaterialTheme.colorScheme.primary,
+                modifier = Modifier.padding(top = 12.dp, bottom = 16.dp)
             )
 
-            // Temperature Slider
             SettingSlider(
                 label = "Temperature",
                 value = temperature,
@@ -82,7 +82,6 @@ fun SettingsSheet(
 
             Spacer(modifier = Modifier.height(8.dp))
 
-            // Top-K Slider
             SettingSlider(
                 label = "Top-K",
                 value = topK.toFloat(),
@@ -91,7 +90,7 @@ fun SettingsSheet(
                 valueLabel = topK.toString()
             )
 
-            Divider(modifier = Modifier.padding(vertical = 24.dp))
+            HorizontalDivider(modifier = Modifier.padding(vertical = 24.dp), color = MaterialTheme.colorScheme.outlineVariant)
 
             Text(
                 text = "Personalization",
@@ -99,7 +98,6 @@ fun SettingsSheet(
                 modifier = Modifier.padding(bottom = 12.dp)
             )
 
-            // Name input
             OutlinedTextField(
                 value = userName,
                 onValueChange = onUserNameChange,
@@ -110,7 +108,6 @@ fun SettingsSheet(
 
             Spacer(modifier = Modifier.height(12.dp))
 
-            // Personal Context toggle
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 verticalAlignment = Alignment.CenterVertically,
@@ -120,13 +117,14 @@ fun SettingsSheet(
                     Text("Personal Context", style = MaterialTheme.typography.bodyLarge, fontWeight = FontWeight.Bold)
                     Text(
                         "Adds current time, device, locale, and (if permitted) location to the start of each chat to improve responses.",
-                        style = MaterialTheme.typography.bodySmall
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                 }
                 Switch(checked = personalContextEnabled, onCheckedChange = onPersonalContextToggle)
             }
 
-            Divider(modifier = Modifier.padding(vertical = 24.dp))
+            HorizontalDivider(modifier = Modifier.padding(vertical = 24.dp), color = MaterialTheme.colorScheme.outlineVariant)
 
             Text(
                 text = "Danger Zone",
@@ -142,9 +140,7 @@ fun SettingsSheet(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.End
             ) {
-                TextButton(onClick = { confirmWipe = true }) {
-                    Text("Wipe all chats", color = MaterialTheme.colorScheme.error)
-                }
+                TextButton(onClick = { confirmWipe = true }) { Text("Wipe all chats", color = MaterialTheme.colorScheme.error) }
             }
 
             if (confirmWipe) {
@@ -159,19 +155,16 @@ fun SettingsSheet(
                             onDismiss()
                         }) { Text("Wipe") }
                     },
-                    dismissButton = {
-                        TextButton(onClick = { confirmWipe = false }) { Text("Cancel") }
-                    }
+                    dismissButton = { TextButton(onClick = { confirmWipe = false }) { Text("Cancel") } }
                 )
             }
 
-            Divider(modifier = Modifier.padding(vertical = 24.dp))
+            HorizontalDivider(modifier = Modifier.padding(vertical = 24.dp), color = MaterialTheme.colorScheme.outlineVariant)
 
-            // About Section
             Text(
                 text = "About",
                 style = MaterialTheme.typography.titleLarge,
-                modifier = Modifier.padding(bottom = 16.dp)
+                modifier = Modifier.padding(bottom = 12.dp)
             )
             Text(
                 text = "AICore Chat demonstrates on-device Gemini Nano via the AICore SDK. Chats can be renamed, organized, and titled automatically.",
@@ -180,6 +173,7 @@ fun SettingsSheet(
             Text(
                 text = "Personal Context is optional and only used locally to help the model respond more accurately.",
                 style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
                 modifier = Modifier.padding(top = 4.dp)
             )
             TextButton(onClick = { context.startActivity(githubIntent) }) {
@@ -218,10 +212,6 @@ private fun SettingSlider(
                 color = MaterialTheme.colorScheme.primary
             )
         }
-        Slider(
-            value = value,
-            onValueChange = onValueChange,
-            valueRange = valueRange
-        )
+        Slider(value = value, onValueChange = onValueChange, valueRange = valueRange)
     }
 }

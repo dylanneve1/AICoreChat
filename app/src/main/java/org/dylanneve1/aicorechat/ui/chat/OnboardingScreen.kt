@@ -1,5 +1,6 @@
 package org.dylanneve1.aicorechat.ui.chat
 
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
@@ -20,11 +21,14 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.ColorFilter
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.dp
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.ui.platform.LocalContext
 import androidx.core.content.ContextCompat
+import org.dylanneve1.aicorechat.R
 
 @Composable
 fun OnboardingScreen(
@@ -38,9 +42,7 @@ fun OnboardingScreen(
     val context = LocalContext.current
     val permissionLauncher = rememberLauncherForActivityResult(
         ActivityResultContracts.RequestMultiplePermissions()
-    ) { _ ->
-        // No-op; location usage will be best-effort based on grant result
-    }
+    ) { _ -> }
 
     fun requestLocationIfNeeded() {
         val hasFine = ContextCompat.checkSelfPermission(context, android.Manifest.permission.ACCESS_FINE_LOCATION) == android.content.pm.PackageManager.PERMISSION_GRANTED
@@ -54,17 +56,21 @@ fun OnboardingScreen(
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(24.dp),
-            verticalArrangement = Arrangement.Center,
+                .padding(horizontal = 24.dp, vertical = 32.dp),
+            verticalArrangement = Arrangement.spacedBy(16.dp, Alignment.CenterVertically),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            Text("Welcome to AICore Chat", style = MaterialTheme.typography.headlineSmall)
-            Spacer(Modifier.height(12.dp))
-            Text(
-                "This app runs Gemini Nano on your device for fast, private chats. You can personalize responses by sharing limited context (time, device, locale, optional location).",
-                style = MaterialTheme.typography.bodyMedium
+            Image(
+                painter = painterResource(id = R.drawable.ic_launcher_foreground),
+                contentDescription = null,
+                colorFilter = ColorFilter.tint(MaterialTheme.colorScheme.primary)
             )
-            Spacer(Modifier.height(24.dp))
+            Text("Welcome to AICore Chat", style = MaterialTheme.typography.headlineSmall, color = MaterialTheme.colorScheme.primary)
+            Text(
+                "Private, on-device AI powered by Gemini Nano. Personalize with optional context for better responses.",
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
             OutlinedTextField(
                 value = name,
                 onValueChange = { name = it },
@@ -72,26 +78,16 @@ fun OnboardingScreen(
                 label = { Text("Your name (optional)") },
                 modifier = Modifier.fillMaxWidth()
             )
-            Spacer(Modifier.height(12.dp))
             RowWithSwitch(
                 title = "Enable Personal Context",
                 subtitle = "Adds time, device, locale, and (if permitted) location to chats.",
                 checked = enabled,
-                onCheckedChange = { checked ->
-                    if (checked) requestLocationIfNeeded()
-                    enabled = checked
-                }
+                onCheckedChange = { checked -> if (checked) requestLocationIfNeeded(); enabled = checked }
             )
-            Spacer(Modifier.height(24.dp))
             Button(
-                onClick = {
-                    if (enabled) requestLocationIfNeeded()
-                    onComplete(name.trim(), enabled)
-                },
+                onClick = { if (enabled) requestLocationIfNeeded(); onComplete(name.trim(), enabled) },
                 modifier = Modifier.fillMaxWidth()
-            ) {
-                Text("Get started")
-            }
+            ) { Text("Get started") }
         }
     }
 }
@@ -105,7 +101,7 @@ private fun RowWithSwitch(
 ) {
     Column(modifier = Modifier.fillMaxWidth()) {
         RowHorizontal(title = title, checked = checked, onCheckedChange = onCheckedChange)
-        Text(subtitle, style = MaterialTheme.typography.bodySmall, modifier = Modifier.padding(top = 4.dp))
+        Text(subtitle, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.padding(top = 4.dp))
     }
 }
 
