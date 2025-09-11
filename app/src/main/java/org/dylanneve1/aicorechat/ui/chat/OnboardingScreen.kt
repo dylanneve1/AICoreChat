@@ -21,6 +21,10 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.ui.platform.LocalContext
+import androidx.core.content.ContextCompat
 
 @Composable
 fun OnboardingScreen(
@@ -30,6 +34,21 @@ fun OnboardingScreen(
 ) {
     var name by remember { mutableStateOf(initialName) }
     var enabled by remember { mutableStateOf(initialPersonalContextEnabled) }
+
+    val context = LocalContext.current
+    val permissionLauncher = rememberLauncherForActivityResult(
+        ActivityResultContracts.RequestMultiplePermissions()
+    ) { _ ->
+        // No-op; location usage will be best-effort based on grant result
+    }
+
+    fun requestLocationIfNeeded() {
+        val hasFine = ContextCompat.checkSelfPermission(context, android.Manifest.permission.ACCESS_FINE_LOCATION) == android.content.pm.PackageManager.PERMISSION_GRANTED
+        val hasCoarse = ContextCompat.checkSelfPermission(context, android.Manifest.permission.ACCESS_COARSE_LOCATION) == android.content.pm.PackageManager.PERMISSION_GRANTED
+        if (!hasFine && !hasCoarse) {
+            permissionLauncher.launch(arrayOf(android.Manifest.permission.ACCESS_FINE_LOCATION, android.Manifest.permission.ACCESS_COARSE_LOCATION))
+        }
+    }
 
     Surface(modifier = Modifier.fillMaxSize()) {
         Column(
@@ -58,10 +77,19 @@ fun OnboardingScreen(
                 title = "Enable Personal Context",
                 subtitle = "Adds time, device, locale, and (if permitted) location to chats.",
                 checked = enabled,
-                onCheckedChange = { enabled = it }
+                onCheckedChange = { checked ->
+                    if (checked) requestLocationIfNeeded()
+                    enabled = checked
+                }
             )
             Spacer(Modifier.height(24.dp))
-            Button(onClick = { onComplete(name.trim(), enabled) }, modifier = Modifier.fillMaxWidth()) {
+            Button(
+                onClick = {
+                    if (enabled) requestLocationIfNeeded()
+                    onComplete(name.trim(), enabled)
+                },
+                modifier = Modifier.fillMaxWidth()
+            ) {
                 Text("Get started")
             }
         }
