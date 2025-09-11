@@ -75,6 +75,8 @@ import androidx.compose.foundation.Image
 import androidx.compose.ui.graphics.ColorFilter
 import androidx.compose.ui.res.painterResource
 import org.dylanneve1.aicorechat.R
+import androidx.compose.material3.Card
+import androidx.compose.material3.Switch
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalFoundationApi::class)
 @Composable
@@ -235,6 +237,7 @@ fun ChatScreen(viewModel: ChatViewModel) {
                         contentPadding = PaddingValues(start = 16.dp, end = 16.dp, top = 16.dp, bottom = 16.dp)
                     ) {
                         items(items = uiState.messages, key = { it.id }) { message ->
+                            val isLast = message.id == uiState.messages.lastOrNull()?.id
                             MessageRow(
                                 message = message,
                                 onCopy = { copiedText: String ->
@@ -244,7 +247,8 @@ fun ChatScreen(viewModel: ChatViewModel) {
                                             "Copied: \"$shortText${if (copiedText.length > 40) "…" else ""}\""
                                         )
                                     }
-                                }
+                                },
+                                isSearching = isLast && message.isStreaming && uiState.isSearchInProgress
                             )
                         }
                     }
@@ -359,6 +363,8 @@ fun ChatScreen(viewModel: ChatViewModel) {
                 }
                 viewModel.updatePersonalContextEnabled(enabled)
             },
+            webSearchEnabled = uiState.webSearchEnabled,
+            onWebSearchToggle = viewModel::updateWebSearchEnabled,
             onWipeAllChats = viewModel::wipeAllChats,
             onDismiss = { showSettingsSheet = false }
         )

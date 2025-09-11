@@ -42,7 +42,8 @@ import org.dylanneve1.aicorechat.data.ChatMessage
 @Composable
 fun MessageRow(
     message: ChatMessage,
-    onCopy: (String) -> Unit
+    onCopy: (String) -> Unit,
+    isSearching: Boolean = false
 ) {
     val clipboard: ClipboardManager = LocalClipboardManager.current
 
@@ -81,7 +82,7 @@ fun MessageRow(
                 modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp)
             ) {
                 if (message.isStreaming && message.text.isBlank()) {
-                    TypingIndicator(contentColor)
+                    if (isSearching) SearchingIndicator(contentColor) else TypingIndicator(contentColor)
                 } else {
                     Text(
                         text = message.text,
@@ -129,6 +130,22 @@ private fun TypingIndicator(color: Color) {
     }
     Text(
         text = "typing" + ".".repeat(dots),
+        color = color.copy(alpha = 0.7f),
+        style = MaterialTheme.typography.bodyLarge
+    )
+}
+
+@Composable
+private fun SearchingIndicator(color: Color) {
+    var dots by remember { mutableStateOf(1) }
+    LaunchedEffect(Unit) {
+        while (true) {
+            delay(350)
+            dots = if (dots >= 3) 1 else dots + 1
+        }
+    }
+    Text(
+        text = "Searching" + ".".repeat(dots),
         color = color.copy(alpha = 0.7f),
         style = MaterialTheme.typography.bodyLarge
     )

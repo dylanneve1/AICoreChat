@@ -34,10 +34,11 @@ import org.dylanneve1.aicorechat.R
 fun OnboardingScreen(
     initialName: String,
     initialPersonalContextEnabled: Boolean,
-    onComplete: (name: String, personalContextEnabled: Boolean) -> Unit
+    onComplete: (name: String, personalContextEnabled: Boolean, webSearchEnabled: Boolean) -> Unit
 ) {
     var name by remember { mutableStateOf(initialName) }
-    var enabled by remember { mutableStateOf(initialPersonalContextEnabled) }
+    var personalEnabled by remember { mutableStateOf(initialPersonalContextEnabled) }
+    var webSearchEnabled by remember { mutableStateOf(false) }
 
     val context = LocalContext.current
     val permissionLauncher = rememberLauncherForActivityResult(
@@ -81,11 +82,17 @@ fun OnboardingScreen(
             RowWithSwitch(
                 title = "Enable Personal Context",
                 subtitle = "Adds time, device, locale, and (if permitted) location to chats.",
-                checked = enabled,
-                onCheckedChange = { checked -> if (checked) requestLocationIfNeeded(); enabled = checked }
+                checked = personalEnabled,
+                onCheckedChange = { checked -> if (checked) requestLocationIfNeeded(); personalEnabled = checked }
+            )
+            RowWithSwitch(
+                title = "Enable Web Search",
+                subtitle = "Allow [SEARCH]...[/SEARCH] tool calls to fetch fresh info.",
+                checked = webSearchEnabled,
+                onCheckedChange = { webSearchEnabled = it }
             )
             Button(
-                onClick = { if (enabled) requestLocationIfNeeded(); onComplete(name.trim(), enabled) },
+                onClick = { if (personalEnabled) requestLocationIfNeeded(); onComplete(name.trim(), personalEnabled, webSearchEnabled) },
                 modifier = Modifier.fillMaxWidth()
             ) { Text("Get started") }
         }

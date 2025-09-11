@@ -47,6 +47,8 @@ fun SettingsSheet(
     personalContextEnabled: Boolean,
     onUserNameChange: (String) -> Unit,
     onPersonalContextToggle: (Boolean) -> Unit,
+    webSearchEnabled: Boolean,
+    onWebSearchToggle: (Boolean) -> Unit,
     onWipeAllChats: () -> Unit,
     onDismiss: () -> Unit
 ) {
@@ -122,6 +124,24 @@ fun SettingsSheet(
                     )
                 }
                 Switch(checked = personalContextEnabled, onCheckedChange = onPersonalContextToggle)
+            }
+
+            Spacer(Modifier.height(12.dp))
+
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.SpaceBetween
+            ) {
+                Column(modifier = Modifier.weight(1f)) {
+                    Text("Web Search", style = MaterialTheme.typography.bodyLarge, fontWeight = FontWeight.Bold)
+                    Text(
+                        "Allow the assistant to trigger a one-shot web search using [SEARCH]...[/SEARCH] tool calls.",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+                Switch(checked = webSearchEnabled, onCheckedChange = onWebSearchToggle)
             }
 
             HorizontalDivider(modifier = Modifier.padding(vertical = 24.dp), color = MaterialTheme.colorScheme.outlineVariant)

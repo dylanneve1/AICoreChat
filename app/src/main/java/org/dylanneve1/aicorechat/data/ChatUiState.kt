@@ -20,5 +20,8 @@ data class ChatUiState(
     val isTitleGenerating: Boolean = false,
     val isBulkTitleGenerating: Boolean = false,
     val userName: String = "",
-    val personalContextEnabled: Boolean = false
+    val personalContextEnabled: Boolean = false,
+    val webSearchEnabled: Boolean = false,
+    val isSearchInProgress: Boolean = false,
+    val currentSearchQuery: String? = null
 )

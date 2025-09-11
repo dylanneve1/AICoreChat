@@ -6,7 +6,7 @@ import android.location.Location
 import android.os.BatteryManager
 import android.os.Build
 import android.os.Environment
-import android.provider.Settings
+import android.os.SystemClock
 import android.util.Log
 import androidx.core.content.ContextCompat
 import androidx.lifecycle.AndroidViewModel
@@ -16,6 +16,8 @@ import com.google.ai.edge.aicore.generationConfig
 import com.google.android.gms.location.LocationServices
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -24,7 +26,10 @@ import kotlinx.coroutines.flow.onCompletion
 import kotlinx.coroutines.flow.onStart
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import java.net.HttpURLConnection
 import java.net.NetworkInterface
+import java.net.URLEncoder
+import java.net.URL
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
@@ -46,6 +51,7 @@ class ChatViewModel(application: Application) : AndroidViewModel(application) {
         const val KEY_TOP_K = "top_k"
         const val KEY_USER_NAME = "user_name"
         const val KEY_PERSONAL_CONTEXT = "personal_context"
+        const val KEY_WEB_SEARCH = "web_search"
     }
 
     init {
@@ -59,7 +65,8 @@ class ChatViewModel(application: Application) : AndroidViewModel(application) {
         val topK = sharedPreferences.getInt(KEY_TOP_K, 40)
         val userName = sharedPreferences.getString(KEY_USER_NAME, "") ?: ""
         val personalContextEnabled = sharedPreferences.getBoolean(KEY_PERSONAL_CONTEXT, false)
-        _uiState.update { it.copy(temperature = temperature, topK = topK, userName = userName, personalContextEnabled = personalContextEnabled) }
+        val webSearchEnabled = sharedPreferences.getBoolean(KEY_WEB_SEARCH, false)
+        _uiState.update { it.copy(temperature = temperature, topK = topK, userName = userName, personalContextEnabled = personalContextEnabled, webSearchEnabled = webSearchEnabled) }
     }
 
     fun updateUserName(name: String) {
@@ -70,6 +77,11 @@ class ChatViewModel(application: Application) : AndroidViewModel(application) {
     fun updatePersonalContextEnabled(enabled: Boolean) {
         sharedPreferences.edit().putBoolean(KEY_PERSONAL_CONTEXT, enabled).apply()
         _uiState.update { it.copy(personalContextEnabled = enabled) }
+    }
+
+    fun updateWebSearchEnabled(enabled: Boolean) {
+        sharedPreferences.edit().putBoolean(KEY_WEB_SEARCH, enabled).apply()
+        _uiState.update { it.copy(webSearchEnabled = enabled) }
     }
 
     private fun getBatteryPercent(): Int? {
@@ -422,9 +434,7 @@ class ChatViewModel(application: Application) : AndroidViewModel(application) {
         }
 
         val userMessage = ChatMessage(text = prompt, isFromUser = true)
-        _uiState.update {
-            it.copy(messages = it.messages + userMessage)
-        }
+        _uiState.update { it.copy(messages = it.messages + userMessage) }
         _uiState.value.currentSessionId?.let { repository.appendMessage(it, userMessage) }
 
         generationJob = viewModelScope.launch {
@@ -434,22 +444,23 @@ class ChatViewModel(application: Application) : AndroidViewModel(application) {
                     "You are a helpful AI assistant. Follow the user's instructions carefully.\n" +
                     "Always format the conversation with tags and ALWAYS end your reply with [/ASSISTANT].\n" +
                     "- User turns: wrap content in [USER] and [/USER].\n" +
-                    "- Assistant turns: wrap content in [ASSISTANT] and [/ASSISTANT].\n\n"
+                    "- Assistant turns: wrap content in [ASSISTANT] and [/ASSISTANT].\n"
                 )
-                // Few-shot example with explicit stop sequences
+                if (_uiState.value.webSearchEnabled) {
+                    promptBuilder.append("- Tool call: To request a web search, respond with [SEARCH]query[/SEARCH] as the first output and nothing else.\n\n")
+                } else {
+                    promptBuilder.append("\n")
+                }
+                // Example
                 promptBuilder.append("[USER]\nHello, who are you?\n[/USER]\n")
                 promptBuilder.append("[ASSISTANT]\nI am a helpful AI assistant built to answer your questions.\n[/ASSISTANT]\n\n")
                 prependPersonalContextIfNeeded(promptBuilder)
 
                 val history = _uiState.value.messages.takeLast(10)
-
                 history.forEach { message ->
                     if (message.id == userMessage.id) return@forEach
-                    if (message.isFromUser) {
-                        promptBuilder.append("[USER]\n${message.text}\n[/USER]\n")
-                    } else {
-                        promptBuilder.append("[ASSISTANT]\n${message.text}\n[/ASSISTANT]\n")
-                    }
+                    if (message.isFromUser) promptBuilder.append("[USER]\n${message.text}\n[/USER]\n")
+                    else promptBuilder.append("[ASSISTANT]\n${message.text}\n[/ASSISTANT]\n")
                 }
                 promptBuilder.append("[USER]\n$prompt\n[/USER]\n")
                 promptBuilder.append("[ASSISTANT]\n")
@@ -459,72 +470,126 @@ class ChatViewModel(application: Application) : AndroidViewModel(application) {
 
                 var fullResponse = ""
                 val stopTokens = listOf("[/ASSISTANT]", "[ASSISTANT]", "[/USER]", "[USER]")
+                var searchTriggered = false
+                var searchStartDetected = false
+                var searchStartIndex = -1
+                val streamStartMs = SystemClock.elapsedRealtime()
+
                 generativeModel!!
                     .generateContentStream(fullPrompt)
                     .onStart {
                         _uiState.update {
                             it.copy(
                                 isGenerating = true,
-                                messages = it.messages + ChatMessage(
-                                    text = "",
-                                    isFromUser = false,
-                                    isStreaming = true
-                                )
+                                // Add one assistant streaming bubble
+                                messages = it.messages + ChatMessage(text = "", isFromUser = false, isStreaming = true)
                             )
                         }
                     }
                     .onCompletion {
-                        Log.d("ChatViewModel", "Generation completed or cancelled.")
-                        _uiState.update { currentState ->
-                            val updatedMessages = currentState.messages.toMutableList()
-                            if (updatedMessages.isNotEmpty() && updatedMessages.last().isStreaming) {
-                                updatedMessages[updatedMessages.lastIndex] = updatedMessages.last().copy(isStreaming = false)
-                            }
-                            val newState = currentState.copy(isGenerating = false, messages = updatedMessages)
-                            newState
+                        if (searchStartDetected && !searchTriggered) {
+                            _uiState.update { it.copy(isSearchInProgress = false, currentSearchQuery = null) }
                         }
-                        _uiState.value.currentSessionId?.let { sid ->
-                            repository.replaceMessages(sid, _uiState.value.messages)
+                        if (!searchTriggered) {
+                            _uiState.update { currentState ->
+                                val updated = currentState.messages.toMutableList()
+                                if (updated.isNotEmpty() && updated.last().isStreaming) {
+                                    updated[updated.lastIndex] = updated.last().copy(isStreaming = false)
+                                }
+                                currentState.copy(isGenerating = false, messages = updated)
+                            }
+                            _uiState.value.currentSessionId?.let { sid -> repository.replaceMessages(sid, _uiState.value.messages) }
                         }
                     }
                     .catch { e ->
                         Log.e("ChatViewModel", "Error generating content", e)
                         _uiState.update { currentState ->
-                            val updatedMessages = currentState.messages.toMutableList()
-                            if (updatedMessages.isNotEmpty() && updatedMessages.last().isStreaming) {
-                                updatedMessages[updatedMessages.lastIndex] =
-                                    updatedMessages.last().copy(text = "Error: ${e.message}", isStreaming = false)
+                            val updated = currentState.messages.toMutableList()
+                            if (updated.isNotEmpty() && updated.last().isStreaming) {
+                                updated[updated.lastIndex] = updated.last().copy(text = "Error: ${e.message}", isStreaming = false)
                             }
-                            currentState.copy(isGenerating = false, messages = updatedMessages)
+                            currentState.copy(isGenerating = false, messages = updated)
                         }
-                        _uiState.value.currentSessionId?.let { sid ->
-                            repository.replaceMessages(sid, _uiState.value.messages)
-                        }
+                        _uiState.value.currentSessionId?.let { sid -> repository.replaceMessages(sid, _uiState.value.messages) }
                     }
                     .collect { chunk ->
                         fullResponse += chunk.text
+
+                        if (_uiState.value.webSearchEnabled) {
+                            val firstNonWs = fullResponse.indexOfFirst { !it.isWhitespace() }.let { if (it < 0) Int.MAX_VALUE else it }
+                            val searchToken = "[SEARCH]"
+                            if (!searchStartDetected && firstNonWs != Int.MAX_VALUE) {
+                                val after = fullResponse.substring(firstNonWs)
+                                if (after.isNotEmpty() && after.length < searchToken.length && searchToken.startsWith(after)) {
+                                    // Detected prefix of [SEARCH]; treat as tool-call start immediately
+                                    searchStartDetected = true
+                                    searchStartIndex = firstNonWs
+                                    _uiState.update { current ->
+                                        val updated = current.messages.toMutableList()
+                                        if (updated.isNotEmpty() && updated.last().isStreaming) {
+                                            updated[updated.lastIndex] = updated.last().copy(text = "")
+                                        }
+                                        current.copy(isSearchInProgress = true, currentSearchQuery = "", messages = updated)
+                                    }
+                                    return@collect
+                                }
+                            }
+                            val startIdx = fullResponse.indexOf(searchToken)
+                            if (!searchStartDetected && startIdx >= 0 && startIdx == firstNonWs) {
+                                searchStartDetected = true
+                                searchStartIndex = startIdx
+                                // Mark searching; clear bubble text so UI shows "Searching..."
+                                val partialQuery = if (fullResponse.length >= startIdx + searchToken.length) {
+                                    fullResponse.substring(startIdx + searchToken.length).substringBefore("[/SEARCH]").trim()
+                                } else ""
+                                _uiState.update { current ->
+                                    val updated = current.messages.toMutableList()
+                                    if (updated.isNotEmpty() && updated.last().isStreaming) {
+                                        updated[updated.lastIndex] = updated.last().copy(text = "")
+                                    }
+                                    current.copy(isSearchInProgress = true, currentSearchQuery = partialQuery, messages = updated)
+                                }
+                            }
+                            if (searchStartDetected) {
+                                val tokenEndBase = searchStartIndex + searchToken.length
+                                val partialQuery = if (fullResponse.length > tokenEndBase) fullResponse.substring(tokenEndBase).substringBefore("[/SEARCH]").trim() else ""
+                                _uiState.update { it.copy(currentSearchQuery = partialQuery) }
+                                val endIdx = if (fullResponse.length > tokenEndBase) fullResponse.indexOf("[/SEARCH]", tokenEndBase) else -1
+                                if (endIdx != -1 && !searchTriggered) {
+                                    searchTriggered = true
+                                    val query = fullResponse.substring(tokenEndBase, endIdx).trim()
+                                    // Start follow-up; cancel current stream to avoid rendering content
+                                    viewModelScope.launch { continueWithSearchResultsUsingExistingBubble(userMessage, query) }
+                                    generationJob?.cancel()
+                                    return@collect
+                                }
+                                // While waiting for closing tag, do not render stream content
+                                return@collect
+                            }
+                        }
+
+                        // Initial suppression window to hide partial tokens (e.g., "[SEAR")
+                        val elapsed = SystemClock.elapsedRealtime() - streamStartMs
+                        if (!searchStartDetected && elapsed < 300 && fullResponse.length < 24) {
+                            return@collect
+                        }
+
                         val earliestIndex = stopTokens
-                            .map { token -> fullResponse.indexOf(token).let { if (it >= 0) it else Int.MAX_VALUE } }
+                            .map { token -> fullResponse.indexOf(token).let { idx -> if (idx >= 0) idx else Int.MAX_VALUE } }
                             .minOrNull() ?: Int.MAX_VALUE
-
-                        // Small delay to coalesce chunks and avoid flashing partial tokens
                         delay(35)
-
                         _uiState.update { currentState ->
-                            val updatedMessages = currentState.messages.toMutableList()
-                            if (updatedMessages.isNotEmpty() && updatedMessages.last().isStreaming) {
-                                val displayText = if (earliestIndex != Int.MAX_VALUE) {
-                                    fullResponse.substring(0, earliestIndex)
-                                } else {
+                            val updated = currentState.messages.toMutableList()
+                            if (updated.isNotEmpty() && updated.last().isStreaming) {
+                                val displayText = if (earliestIndex != Int.MAX_VALUE) fullResponse.substring(0, earliestIndex) else {
                                     val holdBack = findPartialStopSuffixLength(fullResponse, stopTokens)
                                     if (holdBack > 0 && fullResponse.length > holdBack) fullResponse.dropLast(holdBack) else fullResponse
                                 }
-                                updatedMessages[updatedMessages.lastIndex] = updatedMessages.last().copy(text = displayText.trim())
+                                updated[updated.lastIndex] = updated.last().copy(text = displayText.trim())
                             }
-                            currentState.copy(messages = updatedMessages)
+                            currentState.copy(messages = updated)
                         }
                         if (earliestIndex != Int.MAX_VALUE) {
-                            Log.d("ChatViewModel", "Stop token detected. Cancelling job.")
                             generationJob?.cancel()
                         }
                     }
@@ -533,17 +598,114 @@ class ChatViewModel(application: Application) : AndroidViewModel(application) {
                     Log.d("ChatViewModel", "Job cancelled as expected.")
                 } else {
                     Log.e("ChatViewModel", "Exception during generation", e)
-                    _uiState.update {
-                        it.copy(
-                            isGenerating = false,
-                            messages = it.messages + ChatMessage(text = "Error: ${e.message}", isFromUser = false)
-                        )
-                    }
-                    _uiState.value.currentSessionId?.let { sid ->
-                        repository.replaceMessages(sid, _uiState.value.messages)
-                    }
+                    _uiState.update { it.copy(isGenerating = false, messages = it.messages + ChatMessage(text = "Error: ${e.message}", isFromUser = false)) }
+                    _uiState.value.currentSessionId?.let { sid -> repository.replaceMessages(sid, _uiState.value.messages) }
                 }
             }
+        }
+    }
+
+    private suspend fun continueWithSearchResultsUsingExistingBubble(userMessage: ChatMessage, query: String) {
+        try {
+            val results = performWebSearch(query)
+
+            val promptBuilder = StringBuilder()
+            promptBuilder.append(
+                "You are a helpful AI assistant. Follow the user's instructions carefully.\n" +
+                "Always end your reply with [/ASSISTANT].\n" +
+                "Use the following web results ONLY to inform the next answer.\n\n"
+            )
+            promptBuilder.append("[WEB_RESULTS]\n${results}\n[/WEB_RESULTS]\n\n")
+            // Build recent history WITHOUT any trailing streaming placeholder bubble (we never persisted it)
+            val recent = _uiState.value.messages.filter { !it.isStreaming }
+            (recent + userMessage).takeLast(10).forEach { m ->
+                if (m.isFromUser) promptBuilder.append("[USER]\n${m.text}\n[/USER]\n")
+                else promptBuilder.append("[ASSISTANT]\n${m.text}\n[/ASSISTANT]\n")
+            }
+            promptBuilder.append("[ASSISTANT]\n")
+
+            val fullPrompt = promptBuilder.toString()
+            Log.d("ChatViewModel", "Follow-up with web results (reuse bubble):\n$fullPrompt")
+
+            var fullResponse = ""
+            val stopTokens = listOf("[/ASSISTANT]", "[ASSISTANT]", "[/USER]", "[USER]")
+            val streamStartMs = SystemClock.elapsedRealtime()
+
+            generativeModel!!.generateContentStream(fullPrompt)
+                .onStart {
+                    // Hide searching flag and reuse the same streaming bubble
+                    _uiState.update { it.copy(isSearchInProgress = false, currentSearchQuery = null, isGenerating = true) }
+                }
+                .onCompletion {
+                    _uiState.update { current ->
+                        val updated = current.messages.toMutableList()
+                        if (updated.isNotEmpty() && updated.last().isStreaming) {
+                            updated[updated.lastIndex] = updated.last().copy(isStreaming = false)
+                        }
+                        current.copy(isGenerating = false, messages = updated)
+                    }
+                    _uiState.value.currentSessionId?.let { sid -> repository.replaceMessages(sid, _uiState.value.messages) }
+                }
+                .catch { e ->
+                    Log.e("ChatViewModel", "Error generating after search", e)
+                    _uiState.update { current ->
+                        val updated = current.messages.toMutableList()
+                        if (updated.isNotEmpty() && updated.last().isStreaming) {
+                            updated[updated.lastIndex] = updated.last().copy(text = "Error: ${e.message}", isStreaming = false)
+                        }
+                        current.copy(isGenerating = false, messages = updated)
+                    }
+                }
+                .collect { chunk ->
+                    fullResponse += chunk.text
+                    // Initial suppression window for follow-up, too
+                    val elapsed = SystemClock.elapsedRealtime() - streamStartMs
+                    if (elapsed < 300 && fullResponse.length < 24) {
+                        return@collect
+                    }
+                    val earliestIndex = stopTokens
+                        .map { token -> fullResponse.indexOf(token).let { idx -> if (idx >= 0) idx else Int.MAX_VALUE } }
+                        .minOrNull() ?: Int.MAX_VALUE
+                    delay(35)
+                    _uiState.update { current ->
+                        val updated = current.messages.toMutableList()
+                        if (updated.isNotEmpty() && updated.last().isStreaming) {
+                            val displayText = if (earliestIndex != Int.MAX_VALUE) fullResponse.substring(0, earliestIndex) else {
+                                val holdBack = findPartialStopSuffixLength(fullResponse, stopTokens)
+                                if (holdBack > 0 && fullResponse.length > holdBack) fullResponse.dropLast(holdBack) else fullResponse
+                            }
+                            updated[updated.lastIndex] = updated.last().copy(text = displayText.trim())
+                        }
+                        current.copy(messages = updated)
+                    }
+                    if (earliestIndex != Int.MAX_VALUE) {
+                        generationJob?.cancel()
+                    }
+                }
+        } catch (e: Exception) {
+            _uiState.update { it.copy(isSearchInProgress = false, currentSearchQuery = null, modelError = e.message) }
+        }
+    }
+
+    private suspend fun performWebSearch(query: String): String = withContext(Dispatchers.IO) {
+        try {
+            val encoded = URLEncoder.encode(query, "UTF-8")
+            val url = URL("https://duckduckgo.com/html/?q=$encoded")
+            val conn = (url.openConnection() as HttpURLConnection).apply {
+                requestMethod = "GET"
+                setRequestProperty("User-Agent", "Mozilla/5.0")
+                connectTimeout = 7000
+                readTimeout = 7000
+            }
+            conn.inputStream.bufferedReader().use { reader ->
+                val html = reader.readText()
+                // Very naive extraction of result titles
+                val regex = Regex("<a[^>]*class=\\\"result__a[^>]*>(.*?)</a>", RegexOption.IGNORE_CASE)
+                val titles = regex.findAll(html).map { it.groupValues[1].replace(Regex("<.*?>"), "").trim() }.take(5).toList()
+                if (titles.isEmpty()) "No results" else titles.withIndex().joinToString("\n") { (i, t) -> "${i + 1}. $t" }
+            }
+        } catch (e: Exception) {
+            "No results (error: ${e.message})"
         }
     }
 
