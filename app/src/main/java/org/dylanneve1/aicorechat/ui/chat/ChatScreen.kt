@@ -115,19 +115,9 @@ fun ChatScreen(viewModel: ChatViewModel) {
     val pickImageLauncher = rememberLauncherForActivityResult(PickVisualMedia()) { uri ->
         if (uri != null) {
             try {
-                val cr = context.contentResolver
-                val bitmap = if (Build.VERSION.SDK_INT >= 28) {
-                    val source = ImageDecoder.createSource(cr, uri)
-                    ImageDecoder.decodeBitmap(source)
-                } else {
-                    @Suppress("DEPRECATION")
-                    MediaStore.Images.Media.getBitmap(cr, uri)
-                }
-                viewModel.onImagePicked(bitmap)
+                viewModel.onImageSelected(uri)
             } catch (e: Exception) {
-                // Surface error via snackbar
-                // Use coroutine scope since this is not a @Composable context
-                scope.launch { snackbarHostState.showSnackbar(e.message ?: "Failed to load image") }
+                scope.launch { snackbarHostState.showSnackbar(e.message ?: "Failed to attach image") }
             }
         }
     }
@@ -225,7 +215,16 @@ fun ChatScreen(viewModel: ChatViewModel) {
                     onStop = viewModel::stopGeneration,
                     isGenerating = uiState.isGenerating,
                     onOpenTools = { showToolsSheet = true },
-                    onPickImage = { pickImageLauncher.launch(PickVisualMediaRequest(PickVisualMedia.ImageOnly)) }
+                    onPickImage = {
+                        if (!uiState.multimodalEnabled) {
+                            scope.launch { snackbarHostState.showSnackbar("Multimodal is disabled in Settings") }
+                        } else {
+                            pickImageLauncher.launch(PickVisualMediaRequest(PickVisualMedia.ImageOnly))
+                        }
+                    },
+                    attachmentUri = uiState.pendingImageUri,
+                    isDescribingImage = uiState.isDescribingImage,
+                    onRemoveImage = viewModel::clearPendingImage
                 )
             },
             floatingActionButton = {
@@ -402,6 +401,8 @@ fun ChatScreen(viewModel: ChatViewModel) {
             },
             webSearchEnabled = uiState.webSearchEnabled,
             onWebSearchToggle = viewModel::updateWebSearchEnabled,
+            multimodalEnabled = uiState.multimodalEnabled,
+            onMultimodalToggle = viewModel::updateMultimodalEnabled,
             onWipeAllChats = viewModel::wipeAllChats,
             onDismiss = { showSettingsSheet = false }
         )

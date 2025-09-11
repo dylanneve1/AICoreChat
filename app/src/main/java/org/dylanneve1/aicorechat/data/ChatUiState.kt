@@ -5,7 +5,8 @@ data class ChatMessage(
     val text: String,
     val isFromUser: Boolean,
     val isStreaming: Boolean = false,
-    val timestamp: Long = System.currentTimeMillis()
+    val timestamp: Long = System.currentTimeMillis(),
+    val imageUri: String? = null
 )
 
 data class ChatUiState(
@@ -25,5 +26,7 @@ data class ChatUiState(
     val isSearchInProgress: Boolean = false,
     val currentSearchQuery: String? = null,
     val isDescribingImage: Boolean = false,
-    val pendingImageDescription: String? = null
+    val pendingImageDescription: String? = null,
+    val pendingImageUri: String? = null,
+    val multimodalEnabled: Boolean = true
 )

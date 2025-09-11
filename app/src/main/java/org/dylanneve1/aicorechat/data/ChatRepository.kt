@@ -75,13 +75,15 @@ class ChatRepository(context: Context) {
             val messages = mutableListOf<ChatMessage>()
             for (j in 0 until messagesArr.length()) {
                 val m = messagesArr.getJSONObject(j)
+                val imageUri: String? = if (m.has("imageUri")) m.optString("imageUri") else null
                 messages.add(
                     ChatMessage(
                         id = m.optLong("id", System.nanoTime()),
                         text = m.getString("text"),
                         isFromUser = m.getBoolean("isFromUser"),
                         isStreaming = m.optBoolean("isStreaming", false),
-                        timestamp = m.optLong("timestamp", System.currentTimeMillis())
+                        timestamp = m.optLong("timestamp", System.currentTimeMillis()),
+                        imageUri = imageUri
                     )
                 )
             }
@@ -114,6 +116,7 @@ class ChatRepository(context: Context) {
                 mo.put("isFromUser", m.isFromUser)
                 mo.put("isStreaming", m.isStreaming)
                 mo.put("timestamp", m.timestamp)
+                if (m.imageUri != null) mo.put("imageUri", m.imageUri)
                 mArr.put(mo)
             }
             o.put("messages", mArr)

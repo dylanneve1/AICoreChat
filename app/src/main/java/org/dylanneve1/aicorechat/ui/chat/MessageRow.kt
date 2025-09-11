@@ -42,6 +42,8 @@ import org.dylanneve1.aicorechat.ui.chat.message.AssistantAvatar
 import org.dylanneve1.aicorechat.ui.chat.message.UserAvatar
 import org.dylanneve1.aicorechat.ui.chat.message.TypingIndicator
 import org.dylanneve1.aicorechat.ui.chat.message.SearchingIndicator
+import coil.compose.AsyncImage
+import androidx.core.net.toUri
 
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
@@ -86,6 +88,15 @@ fun MessageRow(
             Column(
                 modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp)
             ) {
+                if (message.imageUri != null) {
+                    AsyncImage(
+                        model = message.imageUri.toUri(),
+                        contentDescription = null,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(bottom = 8.dp)
+                    )
+                }
                 if (message.isStreaming && message.text.isBlank()) {
                     if (isSearching) SearchingIndicator(contentColor) else TypingIndicator(contentColor)
                 } else {

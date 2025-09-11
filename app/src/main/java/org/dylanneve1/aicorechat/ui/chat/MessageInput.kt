@@ -32,6 +32,13 @@ import androidx.compose.material.icons.outlined.Build
 import androidx.compose.material.icons.outlined.Add
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.width
+import coil.compose.AsyncImage
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material.icons.outlined.Close
+import androidx.compose.ui.Alignment
+import androidx.core.net.toUri
 
 @Composable
 fun MessageInput(
@@ -40,7 +47,10 @@ fun MessageInput(
     onStop: () -> Unit,
     isGenerating: Boolean,
     onOpenTools: () -> Unit = {},
-    onPickImage: () -> Unit = {}
+    onPickImage: () -> Unit = {},
+    attachmentUri: String? = null,
+    isDescribingImage: Boolean = false,
+    onRemoveImage: () -> Unit = {}
 ) {
     var text by remember { mutableStateOf("") }
 
@@ -78,7 +88,7 @@ fun MessageInput(
                 leadingIcon = {
                     Row {
                         IconButton(onClick = onOpenTools) { Icon(Icons.Outlined.Build, contentDescription = "Tools") }
-                        androidx.compose.foundation.layout.Spacer(Modifier.width(4.dp))
+                        Spacer(Modifier.width(2.dp))
                         IconButton(onClick = onPickImage) { Icon(Icons.Outlined.Add, contentDescription = "Add image") }
                     }
                 },
@@ -96,6 +106,29 @@ fun MessageInput(
                             },
                             enabled = text.isNotBlank()
                         ) { Icon(Icons.Outlined.Send, contentDescription = "Send") }
+                    }
+                },
+                supportingText = {
+                    if (attachmentUri != null) {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            AsyncImage(
+                                model = attachmentUri.toUri(),
+                                contentDescription = null,
+                                modifier = Modifier.size(32.dp)
+                            )
+                            Spacer(Modifier.width(8.dp))
+                            if (isDescribingImage) {
+                                Row(verticalAlignment = Alignment.CenterVertically) {
+                                    CircularProgressIndicator(modifier = Modifier.size(14.dp), strokeWidth = 2.dp)
+                                    Spacer(Modifier.width(6.dp))
+                                    Text("Generating image description…", style = MaterialTheme.typography.bodySmall)
+                                }
+                            } else {
+                                Text("Image attached", style = MaterialTheme.typography.bodySmall)
+                            }
+                            Spacer(Modifier.weight(1f))
+                            IconButton(onClick = onRemoveImage) { Icon(Icons.Outlined.Close, contentDescription = "Remove image") }
+                        }
                     }
                 },
                 colors = TextFieldDefaults.colors(

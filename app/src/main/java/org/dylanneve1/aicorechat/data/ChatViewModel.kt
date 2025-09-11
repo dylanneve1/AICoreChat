@@ -5,6 +5,7 @@ import android.content.Context
 import android.location.Location
 import android.net.ConnectivityManager
 import android.net.NetworkCapabilities
+import android.net.Uri
 import android.os.BatteryManager
 import android.os.Build
 import android.os.Environment
@@ -28,17 +29,12 @@ import kotlinx.coroutines.flow.onCompletion
 import kotlinx.coroutines.flow.onStart
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
-import java.net.HttpURLConnection
-import java.net.NetworkInterface
-import java.net.URLEncoder
-import java.net.URL
-import java.text.SimpleDateFormat
-import java.util.Date
-import java.util.Locale
-import java.util.TimeZone
 import org.dylanneve1.aicorechat.data.search.WebSearchService
 import org.dylanneve1.aicorechat.data.context.PersonalContextBuilder
 import org.dylanneve1.aicorechat.data.image.ImageDescriptionService
+import java.io.InputStream
+import android.graphics.ImageDecoder
+import android.provider.MediaStore
 
 /**
  * ChatViewModel orchestrates sessions, model streaming, tools, and persistence.
@@ -67,6 +63,7 @@ class ChatViewModel(application: Application) : AndroidViewModel(application) {
         const val KEY_USER_NAME = "user_name"
         const val KEY_PERSONAL_CONTEXT = "personal_context"
         const val KEY_WEB_SEARCH = "web_search"
+        const val KEY_MULTIMODAL = "multimodal"
     }
 
     private fun sanitizeAssistantText(text: String): String {
@@ -91,7 +88,8 @@ class ChatViewModel(application: Application) : AndroidViewModel(application) {
         val userName = sharedPreferences.getString(KEY_USER_NAME, "") ?: ""
         val personalContextEnabled = sharedPreferences.getBoolean(KEY_PERSONAL_CONTEXT, false)
         val webSearchEnabled = sharedPreferences.getBoolean(KEY_WEB_SEARCH, false)
-        _uiState.update { it.copy(temperature = temperature, topK = topK, userName = userName, personalContextEnabled = personalContextEnabled, webSearchEnabled = webSearchEnabled) }
+        val multimodalEnabled = sharedPreferences.getBoolean(KEY_MULTIMODAL, true)
+        _uiState.update { it.copy(temperature = temperature, topK = topK, userName = userName, personalContextEnabled = personalContextEnabled, webSearchEnabled = webSearchEnabled, multimodalEnabled = multimodalEnabled) }
     }
 
     fun updateUserName(name: String) {
@@ -109,6 +107,44 @@ class ChatViewModel(application: Application) : AndroidViewModel(application) {
         _uiState.update { it.copy(webSearchEnabled = enabled) }
     }
 
+    fun updateMultimodalEnabled(enabled: Boolean) {
+        sharedPreferences.edit().putBoolean(KEY_MULTIMODAL, enabled).apply()
+        _uiState.update { it.copy(multimodalEnabled = enabled) }
+        if (!enabled) {
+            _uiState.update { it.copy(pendingImageUri = null, pendingImageDescription = null, isDescribingImage = false) }
+        }
+    }
+
+    fun clearPendingImage() {
+        _uiState.update { it.copy(pendingImageUri = null, pendingImageDescription = null, isDescribingImage = false) }
+    }
+
+    fun onImageSelected(uri: Uri) {
+        if (!_uiState.value.multimodalEnabled) {
+            _uiState.update { it.copy(modelError = "Multimodal is disabled in Settings") }
+            return
+        }
+        _uiState.update { it.copy(pendingImageUri = uri.toString(), isDescribingImage = true, modelError = null) }
+        viewModelScope.launch {
+            try {
+                val bitmap = withContext(Dispatchers.IO) {
+                    val ctx = getApplication<Application>().applicationContext
+                    if (Build.VERSION.SDK_INT >= 28) {
+                        val src = ImageDecoder.createSource(ctx.contentResolver, uri)
+                        ImageDecoder.decodeBitmap(src)
+                    } else {
+                        @Suppress("DEPRECATION")
+                        MediaStore.Images.Media.getBitmap(ctx.contentResolver, uri)
+                    }
+                }
+                val desc = imageDescriptionService.describe(bitmap).trim()
+                _uiState.update { it.copy(isDescribingImage = false, pendingImageDescription = if (desc.isNotBlank()) desc else null) }
+            } catch (e: Exception) {
+                _uiState.update { it.copy(isDescribingImage = false, modelError = e.message ?: "Failed to describe image") }
+            }
+        }
+    }
+
     private fun getBatteryPercent(): Int? {
         val bm = getApplication<Application>().getSystemService(Context.BATTERY_SERVICE) as BatteryManager
         val level = bm.getIntProperty(BatteryManager.BATTERY_PROPERTY_CAPACITY)
@@ -117,13 +153,16 @@ class ChatViewModel(application: Application) : AndroidViewModel(application) {
 
     private fun getNetworkSummary(): String {
         return try {
-            val interfaces = NetworkInterface.getNetworkInterfaces().toList()
-            val hasWifi = interfaces.any { it.displayName.contains("wlan", true) || it.displayName.contains("wifi", true) }
-            val hasCell = interfaces.any { it.displayName.contains("rmnet", true) || it.displayName.contains("cell", true) }
-            val parts = mutableListOf<String>()
-            if (hasWifi) parts.add("Wi‑Fi")
-            if (hasCell) parts.add("Cellular")
-            if (parts.isEmpty()) "Offline/unknown" else parts.joinToString(", ")
+            val cm = getApplication<Application>().getSystemService(Context.CONNECTIVITY_SERVICE) as ConnectivityManager
+            val network = cm.activeNetwork
+            if (network == null) "Offline/unknown" else {
+                val caps = cm.getNetworkCapabilities(network)
+                val parts = mutableListOf<String>()
+                if (caps?.hasTransport(NetworkCapabilities.TRANSPORT_WIFI) == true) parts.add("Wi‑Fi")
+                if (caps?.hasTransport(NetworkCapabilities.TRANSPORT_CELLULAR) == true) parts.add("Cellular")
+                if (caps?.hasTransport(NetworkCapabilities.TRANSPORT_ETHERNET) == true) parts.add("Ethernet")
+                if (parts.isEmpty()) "Unknown" else parts.joinToString(", ")
+            }
         } catch (e: Exception) { "Unknown" }
     }
 
@@ -146,9 +185,9 @@ class ChatViewModel(application: Application) : AndroidViewModel(application) {
     }
 
     private suspend fun buildPersonalContext(): String {
-        val now = SimpleDateFormat("EEE, d MMM yyyy HH:mm z", Locale.getDefault()).format(Date())
+        val now = java.text.SimpleDateFormat("EEE, d MMM yyyy HH:mm z", java.util.Locale.getDefault()).format(java.util.Date())
         val device = "${Build.MANUFACTURER} ${Build.MODEL} (Android ${Build.VERSION.RELEASE})"
-        val locale = Locale.getDefault().toString()
+        val locale = java.util.Locale.getDefault().toString()
         val timeZone = java.util.TimeZone.getDefault().id
         val namePart = if (_uiState.value.userName.isNotBlank()) "User Name: ${_uiState.value.userName}\n" else ""
         val battery = getBatteryPercent()?.let { "Battery: ${it}%\n" } ?: ""
@@ -493,8 +532,9 @@ class ChatViewModel(application: Application) : AndroidViewModel(application) {
             return
         }
 
-        val userMessage = ChatMessage(text = prompt, isFromUser = true)
-        _uiState.update { it.copy(messages = it.messages + userMessage) }
+        val currentPendingUri = _uiState.value.pendingImageUri
+        val userMessage = ChatMessage(text = prompt, isFromUser = true, imageUri = currentPendingUri)
+        _uiState.update { it.copy(messages = it.messages + userMessage, pendingImageUri = null) }
         _uiState.value.currentSessionId?.let { repository.appendMessage(it, userMessage) }
 
         val pendingImageDesc = _uiState.value.pendingImageDescription
@@ -530,7 +570,7 @@ class ChatViewModel(application: Application) : AndroidViewModel(application) {
                 promptBuilder.append("[USER]\nHello, who are you?\n[/USER]\n")
                 promptBuilder.append("[ASSISTANT]\nI am a helpful AI assistant built to answer your questions.\n[/ASSISTANT]\n\n")
                 prependPersonalContextIfNeeded(promptBuilder)
-                if (!pendingImageDesc.isNullOrBlank()) {
+                if (!pendingImageDesc.isNullOrBlank() && _uiState.value.multimodalEnabled) {
                     promptBuilder.append("[IMAGE_DESCRIPTION]\n${pendingImageDesc}\n[/IMAGE_DESCRIPTION]\n\n")
                 }
 

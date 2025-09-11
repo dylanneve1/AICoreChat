@@ -49,6 +49,8 @@ fun SettingsSheet(
     onPersonalContextToggle: (Boolean) -> Unit,
     webSearchEnabled: Boolean,
     onWebSearchToggle: (Boolean) -> Unit,
+    multimodalEnabled: Boolean,
+    onMultimodalToggle: (Boolean) -> Unit,
     onWipeAllChats: () -> Unit,
     onDismiss: () -> Unit
 ) {
@@ -142,6 +144,24 @@ fun SettingsSheet(
                     )
                 }
                 Switch(checked = webSearchEnabled, onCheckedChange = onWebSearchToggle)
+            }
+
+            Spacer(Modifier.height(12.dp))
+
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.SpaceBetween
+            ) {
+                Column(modifier = Modifier.weight(1f)) {
+                    Text("Multimodal (images)", style = MaterialTheme.typography.bodyLarge, fontWeight = FontWeight.Bold)
+                    Text(
+                        "Generates short descriptions for attached images and adds them to the chat context.",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+                Switch(checked = multimodalEnabled, onCheckedChange = onMultimodalToggle)
             }
 
             HorizontalDivider(modifier = Modifier.padding(vertical = 24.dp), color = MaterialTheme.colorScheme.outlineVariant)
