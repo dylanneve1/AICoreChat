@@ -313,6 +313,7 @@ class ChatViewModel(application: Application) : AndroidViewModel(application) {
                         continue
                     }
                     if (s.messages.none { it.isFromUser }) continue
+                    if (s.name != "New Chat") continue
                     val sb = StringBuilder()
                     sb.append("You are to summarize the following chat into a very short, descriptive title.\n")
                     sb.append("Rules: 3-4 words max, no quotes, no punctuation, Title Case, be specific.\n\n")
