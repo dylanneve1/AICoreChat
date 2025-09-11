@@ -119,12 +119,6 @@ fun ChatScreen(viewModel: ChatViewModel) {
         ActivityResultContracts.RequestMultiplePermissions()
     ) { /* results ignored; ViewModel will use if granted */ }
 
-    val photoFile = remember {
-        val ctx = context.applicationContext
-        val dir = ctx.getExternalFilesDir(android.os.Environment.DIRECTORY_PICTURES)
-        val time = SimpleDateFormat("yyyyMMdd_HHmmss", Locale.US).format(Date())
-        File(dir, "IMG_${'$'}time.jpg")
-    }
     var pendingPhotoUri by remember { mutableStateOf(android.net.Uri.EMPTY) }
     val takePictureLauncher = rememberLauncherForActivityResult(TakePicture()) { success ->
         if (success && pendingPhotoUri != android.net.Uri.EMPTY) {
@@ -251,7 +245,10 @@ fun ChatScreen(viewModel: ChatViewModel) {
                         } else {
                             try {
                                 val ctx = context
-                                val uri = FileProvider.getUriForFile(ctx, ctx.packageName + ".fileprovider", photoFile)
+                                val dir = ctx.getExternalFilesDir(android.os.Environment.DIRECTORY_PICTURES)
+                                val time = java.text.SimpleDateFormat("yyyyMMdd_HHmmss", java.util.Locale.US).format(java.util.Date())
+                                val newFile = java.io.File(dir, "IMG_${time}.jpg")
+                                val uri = FileProvider.getUriForFile(ctx, ctx.packageName + ".fileprovider", newFile)
                                 pendingPhotoUri = uri
                                 takePictureLauncher.launch(uri)
                             } catch (e: Exception) {
