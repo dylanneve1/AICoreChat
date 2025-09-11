@@ -2,13 +2,18 @@ package org.dylanneve1.aicorechat.data
 
 import android.app.Application
 import android.content.Context
+import android.location.Location
+import android.os.BatteryManager
 import android.os.Build
+import android.os.Environment
 import android.provider.Settings
 import android.util.Log
+import androidx.core.content.ContextCompat
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.google.ai.edge.aicore.GenerativeModel
 import com.google.ai.edge.aicore.generationConfig
+import com.google.android.gms.location.LocationServices
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -18,6 +23,7 @@ import kotlinx.coroutines.flow.onCompletion
 import kotlinx.coroutines.flow.onStart
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import java.net.NetworkInterface
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
@@ -65,18 +71,66 @@ class ChatViewModel(application: Application) : AndroidViewModel(application) {
         _uiState.update { it.copy(personalContextEnabled = enabled) }
     }
 
-    private fun buildPersonalContext(): String {
-        val ctx = getApplication<Application>().applicationContext
+    private fun getBatteryPercent(): Int? {
+        val bm = getApplication<Application>().getSystemService(Context.BATTERY_SERVICE) as BatteryManager
+        val level = bm.getIntProperty(BatteryManager.BATTERY_PROPERTY_CAPACITY)
+        return if (level in 1..100) level else null
+    }
+
+    private fun getNetworkSummary(): String {
+        return try {
+            val interfaces = NetworkInterface.getNetworkInterfaces().toList()
+            val hasWifi = interfaces.any { it.displayName.contains("wlan", true) || it.displayName.contains("wifi", true) }
+            val hasCell = interfaces.any { it.displayName.contains("rmnet", true) || it.displayName.contains("cell", true) }
+            val parts = mutableListOf<String>()
+            if (hasWifi) parts.add("Wi‑Fi")
+            if (hasCell) parts.add("Cellular")
+            if (parts.isEmpty()) "Offline/unknown" else parts.joinToString(", ")
+        } catch (e: Exception) { "Unknown" }
+    }
+
+    private suspend fun getLastKnownLocation(): Location? {
+        return try {
+            val ctx = getApplication<Application>().applicationContext
+            val fused = LocationServices.getFusedLocationProviderClient(ctx)
+            val hasFine = ContextCompat.checkSelfPermission(ctx, android.Manifest.permission.ACCESS_FINE_LOCATION) == android.content.pm.PackageManager.PERMISSION_GRANTED
+            val hasCoarse = ContextCompat.checkSelfPermission(ctx, android.Manifest.permission.ACCESS_COARSE_LOCATION) == android.content.pm.PackageManager.PERMISSION_GRANTED
+            if (!hasFine && !hasCoarse) return null
+            kotlinx.coroutines.suspendCancellableCoroutine { cont ->
+                fused.lastLocation.addOnSuccessListener { cont.resume(it, onCancellation = null) }
+                    .addOnFailureListener { cont.resume(null, onCancellation = null) }
+            }
+        } catch (e: Exception) { null }
+    }
+
+    private fun formatLatLon(loc: Location?): String {
+        return if (loc == null) "(not granted)" else "${"%.5f".format(loc.latitude)}, ${"%.5f".format(loc.longitude)}"
+    }
+
+    private suspend fun buildPersonalContext(): String {
         val now = SimpleDateFormat("EEE, d MMM yyyy HH:mm z", Locale.getDefault()).format(Date())
         val device = "${Build.MANUFACTURER} ${Build.MODEL} (Android ${Build.VERSION.RELEASE})"
         val locale = Locale.getDefault().toString()
         val timeZone = java.util.TimeZone.getDefault().id
         val namePart = if (_uiState.value.userName.isNotBlank()) "User Name: ${_uiState.value.userName}\n" else ""
-        val location = "Location: (not granted)\n"
-        return "[PERSONAL_CONTEXT]\n${namePart}Current Time: ${now}\nDevice: ${device}\nLocale: ${locale}\nTime Zone: ${timeZone}\n${location}\n[/PERSONAL_CONTEXT]\n\n"
+        val battery = getBatteryPercent()?.let { "Battery: ${it}%\n" } ?: ""
+        val storageStat = try {
+            val stat = android.os.StatFs(Environment.getDataDirectory().path)
+            val free = stat.availableBytes / (1024 * 1024)
+            val total = stat.totalBytes / (1024 * 1024)
+            "Storage: ${free}MB free / ${total}MB total\n"
+        } catch (e: Exception) { "" }
+        val appVersion = try {
+            val pm = getApplication<Application>().packageManager
+            val pInfo = pm.getPackageInfo(getApplication<Application>().packageName, 0)
+            "App Version: ${pInfo.versionName} (${pInfo.longVersionCode})\n"
+        } catch (e: Exception) { "" }
+        val network = "Network: ${getNetworkSummary()}\n"
+        val location = "Location: ${formatLatLon(getLastKnownLocation())}\n"
+        return "[PERSONAL_CONTEXT]\n${namePart}Current Time: ${now}\nDevice: ${device}\nLocale: ${locale}\nTime Zone: ${timeZone}\n${battery}${network}${storageStat}${appVersion}${location}[/PERSONAL_CONTEXT]\n\n"
     }
 
-    private fun prependPersonalContextIfNeeded(promptBuilder: StringBuilder) {
+    private suspend fun prependPersonalContextIfNeeded(promptBuilder: StringBuilder) {
         if (_uiState.value.personalContextEnabled) {
             promptBuilder.append(buildPersonalContext())
         }

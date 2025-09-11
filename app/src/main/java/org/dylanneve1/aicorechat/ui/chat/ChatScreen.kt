@@ -67,6 +67,10 @@ import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.ui.platform.LocalContext
+import androidx.core.content.ContextCompat
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalFoundationApi::class)
 @Composable
@@ -83,6 +87,11 @@ fun ChatScreen(viewModel: ChatViewModel) {
     var showRenameDialog by remember { mutableStateOf<Pair<Long, String>?>(null) }
     var showDeleteDialog by remember { mutableStateOf<Long?>(null) }
     var renameTitleDialog by remember { mutableStateOf(false) }
+
+    val context = LocalContext.current
+    val locationPermissionLauncher = rememberLauncherForActivityResult(
+        ActivityResultContracts.RequestMultiplePermissions()
+    ) { /* results ignored; ViewModel will use if granted */ }
 
     LaunchedEffect(drawerState.currentValue) {
         if (drawerState.currentValue == DrawerValue.Open) {
@@ -129,7 +138,6 @@ fun ChatScreen(viewModel: ChatViewModel) {
                             scope.launch { drawerState.close() }
                         },
                         onLongPress = {
-                            // Open rename dialog; delete is available from that dialog
                             showRenameDialog = meta.id to meta.name
                         }
                     )
@@ -140,9 +148,7 @@ fun ChatScreen(viewModel: ChatViewModel) {
                     modifier = Modifier
                         .padding(16.dp)
                         .fillMaxWidth()
-                ) {
-                    Text("Generate titles for all chats")
-                }
+                ) { Text("Generate titles for all chats") }
             }
         }
     ) {
@@ -187,13 +193,9 @@ fun ChatScreen(viewModel: ChatViewModel) {
                 ) {
                     FloatingActionButton(
                         onClick = {
-                            scope.launch {
-                                listState.animateScrollToItem(uiState.messages.size - 1)
-                            }
+                            scope.launch { listState.animateScrollToItem(uiState.messages.size - 1) }
                         }
-                    ) {
-                        Icon(Icons.Outlined.ArrowDownward, contentDescription = "Scroll to bottom")
-                    }
+                    ) { Icon(Icons.Outlined.ArrowDownward, contentDescription = "Scroll to bottom") }
                 }
             },
             snackbarHost = { SnackbarHost(hostState = snackbarHostState) },
@@ -204,17 +206,9 @@ fun ChatScreen(viewModel: ChatViewModel) {
                         .fillMaxSize()
                         .padding(innerPadding),
                     verticalArrangement = Arrangement.spacedBy(12.dp),
-                    contentPadding = PaddingValues(
-                        start = 16.dp,
-                        end = 16.dp,
-                        top = 16.dp,
-                        bottom = 16.dp
-                    )
+                    contentPadding = PaddingValues(start = 16.dp, end = 16.dp, top = 16.dp, bottom = 16.dp)
                 ) {
-                    items(
-                        items = uiState.messages,
-                        key = { it.id }
-                    ) { message ->
+                    items(items = uiState.messages, key = { it.id }) { message ->
                         MessageRow(
                             message = message,
                             onCopy = { copiedText: String ->
@@ -272,12 +266,7 @@ fun ChatScreen(viewModel: ChatViewModel) {
             title = { Text("Chat options") },
             text = {
                 Column {
-                    OutlinedTextField(
-                        value = name,
-                        onValueChange = { name = it },
-                        singleLine = true,
-                        label = { Text("Rename chat") }
-                    )
+                    OutlinedTextField(value = name, onValueChange = { name = it }, singleLine = true, label = { Text("Rename chat") })
                     Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
                         TextButton(onClick = {
                             val trimmed = name.trim().ifEmpty { "New Chat" }
@@ -285,17 +274,12 @@ fun ChatScreen(viewModel: ChatViewModel) {
                             showRenameDialog = null
                         }) { Text("Save") }
                         Spacer(Modifier.width(8.dp))
-                        TextButton(onClick = {
-                            showRenameDialog = null
-                            showDeleteDialog = id
-                        }) { Text("Delete", color = MaterialTheme.colorScheme.error) }
+                        TextButton(onClick = { showRenameDialog = null; showDeleteDialog = id }) { Text("Delete", color = MaterialTheme.colorScheme.error) }
                     }
                 }
             },
             confirmButton = {},
-            dismissButton = {
-                TextButton(onClick = { showRenameDialog = null }) { Text("Close") }
-            }
+            dismissButton = { TextButton(onClick = { showRenameDialog = null }) { Text("Close") } }
         )
     }
 
@@ -305,15 +289,8 @@ fun ChatScreen(viewModel: ChatViewModel) {
             onDismissRequest = { showDeleteDialog = null },
             title = { Text("Delete chat?") },
             text = { Text("This will permanently remove this chat.") },
-            confirmButton = {
-                TextButton(onClick = {
-                    viewModel.deleteChat(deleteId)
-                    showDeleteDialog = null
-                }) { Text("Delete", color = MaterialTheme.colorScheme.error) }
-            },
-            dismissButton = {
-                TextButton(onClick = { showDeleteDialog = null }) { Text("Cancel") }
-            }
+            confirmButton = { TextButton(onClick = { viewModel.deleteChat(deleteId); showDeleteDialog = null }) { Text("Delete", color = MaterialTheme.colorScheme.error) } },
+            dismissButton = { TextButton(onClick = { showDeleteDialog = null }) { Text("Cancel") } }
         )
     }
 
@@ -322,23 +299,9 @@ fun ChatScreen(viewModel: ChatViewModel) {
         AlertDialog(
             onDismissRequest = { renameTitleDialog = false },
             title = { Text("Rename chat") },
-            text = {
-                OutlinedTextField(
-                    value = name,
-                    onValueChange = { name = it },
-                    singleLine = true
-                )
-            },
-            confirmButton = {
-                TextButton(onClick = {
-                    val trimmed = name.trim().ifEmpty { "New Chat" }
-                    viewModel.renameCurrentChat(trimmed)
-                    renameTitleDialog = false
-                }) { Text("Save") }
-            },
-            dismissButton = {
-                TextButton(onClick = { renameTitleDialog = false }) { Text("Cancel") }
-            }
+            text = { OutlinedTextField(value = name, onValueChange = { name = it }, singleLine = true) },
+            confirmButton = { TextButton(onClick = { val t = name.trim().ifEmpty { "New Chat" }; viewModel.renameCurrentChat(t); renameTitleDialog = false }) { Text("Save") } },
+            dismissButton = { TextButton(onClick = { renameTitleDialog = false }) { Text("Cancel") } }
         )
     }
 
@@ -347,19 +310,14 @@ fun ChatScreen(viewModel: ChatViewModel) {
             onDismissRequest = { showClearDialog = false },
             title = { Text("Clear conversation?") },
             text = { Text("This will remove this chat completely and start a new one.") },
-            confirmButton = {
-                TextButton(onClick = {
-                    viewModel.clearChat()
-                    showClearDialog = false
-                }) { Text("Delete chat") }
-            },
-            dismissButton = {
-                TextButton(onClick = { showClearDialog = false }) { Text("Cancel") }
-            }
+            confirmButton = { TextButton(onClick = { viewModel.clearChat(); showClearDialog = false }) { Text("Delete chat") } },
+            dismissButton = { TextButton(onClick = { showClearDialog = false }) { Text("Cancel") } }
         )
     }
 
     if (showSettingsSheet) {
+        val hasFine = ContextCompat.checkSelfPermission(context, android.Manifest.permission.ACCESS_FINE_LOCATION) == android.content.pm.PackageManager.PERMISSION_GRANTED
+        val hasCoarse = ContextCompat.checkSelfPermission(context, android.Manifest.permission.ACCESS_COARSE_LOCATION) == android.content.pm.PackageManager.PERMISSION_GRANTED
         SettingsSheet(
             temperature = uiState.temperature,
             topK = uiState.topK,
@@ -368,7 +326,12 @@ fun ChatScreen(viewModel: ChatViewModel) {
             userName = uiState.userName,
             personalContextEnabled = uiState.personalContextEnabled,
             onUserNameChange = viewModel::updateUserName,
-            onPersonalContextToggle = viewModel::updatePersonalContextEnabled,
+            onPersonalContextToggle = { enabled ->
+                if (enabled && !hasFine && !hasCoarse) {
+                    locationPermissionLauncher.launch(arrayOf(android.Manifest.permission.ACCESS_FINE_LOCATION, android.Manifest.permission.ACCESS_COARSE_LOCATION))
+                }
+                viewModel.updatePersonalContextEnabled(enabled)
+            },
             onWipeAllChats = viewModel::wipeAllChats,
             onDismiss = { showSettingsSheet = false }
         )
