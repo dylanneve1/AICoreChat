@@ -54,6 +54,16 @@ class ChatViewModel(application: Application) : AndroidViewModel(application) {
         const val KEY_WEB_SEARCH = "web_search"
     }
 
+    private fun sanitizeAssistantText(text: String): String {
+        return text
+            .replace("[WEB_RESULTS]", "")
+            .replace("[/WEB_RESULTS]", "")
+            .replace("[SEARCH]", "")
+            .replace("[/SEARCH]", "")
+            .replace(Regex("\n{3,}"), "\n\n")
+            .trim()
+    }
+
     init {
         loadSettings()
         initOrStartNewSession()
@@ -444,7 +454,8 @@ class ChatViewModel(application: Application) : AndroidViewModel(application) {
                     "You are a helpful AI assistant. Follow the user's instructions carefully.\n" +
                     "Always format the conversation with tags and ALWAYS end your reply with [/ASSISTANT].\n" +
                     "- User turns: wrap content in [USER] and [/USER].\n" +
-                    "- Assistant turns: wrap content in [ASSISTANT] and [/ASSISTANT].\n"
+                    "- Assistant turns: wrap content in [ASSISTANT] and [/ASSISTANT].\n" +
+                    "- Never mention tools or web results in your reply. Do NOT include [WEB_RESULTS] or citations, links, or attributions.\n"
                 )
                 if (_uiState.value.webSearchEnabled) {
                     promptBuilder.append("- Tool call: To request a web search, respond with [SEARCH]query[/SEARCH] as the first output and nothing else.\n\n")
@@ -581,11 +592,12 @@ class ChatViewModel(application: Application) : AndroidViewModel(application) {
                         _uiState.update { currentState ->
                             val updated = currentState.messages.toMutableList()
                             if (updated.isNotEmpty() && updated.last().isStreaming) {
-                                val displayText = if (earliestIndex != Int.MAX_VALUE) fullResponse.substring(0, earliestIndex) else {
+                                val displayTextRaw = if (earliestIndex != Int.MAX_VALUE) fullResponse.substring(0, earliestIndex) else {
                                     val holdBack = findPartialStopSuffixLength(fullResponse, stopTokens)
                                     if (holdBack > 0 && fullResponse.length > holdBack) fullResponse.dropLast(holdBack) else fullResponse
                                 }
-                                updated[updated.lastIndex] = updated.last().copy(text = displayText.trim())
+                                val displayText = sanitizeAssistantText(displayTextRaw)
+                                updated[updated.lastIndex] = updated.last().copy(text = displayText)
                             }
                             currentState.copy(messages = updated)
                         }
@@ -613,7 +625,9 @@ class ChatViewModel(application: Application) : AndroidViewModel(application) {
             promptBuilder.append(
                 "You are a helpful AI assistant. Follow the user's instructions carefully.\n" +
                 "Always end your reply with [/ASSISTANT].\n" +
-                "Use the following web results ONLY to inform the next answer.\n\n"
+                "Use the following web results ONLY to inform the next answer.\n" +
+                "Do NOT mention or cite the web results, and do NOT include [WEB_RESULTS] in your reply.\n" +
+                "Do NOT include URLs or sources; write the answer directly.\n\n"
             )
             promptBuilder.append("[WEB_RESULTS]\n${results}\n[/WEB_RESULTS]\n\n")
             // Build recent history WITHOUT any trailing streaming placeholder bubble (we never persisted it)
@@ -670,11 +684,12 @@ class ChatViewModel(application: Application) : AndroidViewModel(application) {
                     _uiState.update { current ->
                         val updated = current.messages.toMutableList()
                         if (updated.isNotEmpty() && updated.last().isStreaming) {
-                            val displayText = if (earliestIndex != Int.MAX_VALUE) fullResponse.substring(0, earliestIndex) else {
+                            val displayTextRaw = if (earliestIndex != Int.MAX_VALUE) fullResponse.substring(0, earliestIndex) else {
                                 val holdBack = findPartialStopSuffixLength(fullResponse, stopTokens)
                                 if (holdBack > 0 && fullResponse.length > holdBack) fullResponse.dropLast(holdBack) else fullResponse
                             }
-                            updated[updated.lastIndex] = updated.last().copy(text = displayText.trim())
+                            val displayText = sanitizeAssistantText(displayTextRaw)
+                            updated[updated.lastIndex] = updated.last().copy(text = displayText)
                         }
                         current.copy(messages = updated)
                     }
