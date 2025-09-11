@@ -37,7 +37,6 @@ import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.unit.dp
 import kotlinx.coroutines.delay
 import org.dylanneve1.aicorechat.data.ChatMessage
-import org.dylanneve1.aicorechat.util.timeAgoShort
 
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
@@ -89,17 +88,6 @@ fun MessageRow(
                         color = contentColor,
                         style = MaterialTheme.typography.bodyLarge
                     )
-                }
-
-                if (message.text.isNotBlank()) {
-                    Box(modifier = Modifier.align(Alignment.End)) {
-                        Text(
-                            text = timeAgoShort(message.timestamp),
-                            style = MaterialTheme.typography.labelSmall,
-                            color = contentColor.copy(alpha = 0.7f),
-                            modifier = Modifier.padding(top = 4.dp)
-                        )
-                    }
                 }
             }
         }
