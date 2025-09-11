@@ -71,6 +71,10 @@ import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.ui.platform.LocalContext
 import androidx.core.content.ContextCompat
+import androidx.compose.foundation.Image
+import androidx.compose.ui.graphics.ColorFilter
+import androidx.compose.ui.res.painterResource
+import org.dylanneve1.aicorechat.R
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalFoundationApi::class)
 @Composable
@@ -200,26 +204,49 @@ fun ChatScreen(viewModel: ChatViewModel) {
             },
             snackbarHost = { SnackbarHost(hostState = snackbarHostState) },
             content = { innerPadding ->
-                LazyColumn(
-                    state = listState,
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .padding(innerPadding),
-                    verticalArrangement = Arrangement.spacedBy(12.dp),
-                    contentPadding = PaddingValues(start = 16.dp, end = 16.dp, top = 16.dp, bottom = 16.dp)
-                ) {
-                    items(items = uiState.messages, key = { it.id }) { message ->
-                        MessageRow(
-                            message = message,
-                            onCopy = { copiedText: String ->
-                                scope.launch {
-                                    val shortText = copiedText.take(40).replace("\n", " ")
-                                    snackbarHostState.showSnackbar(
-                                        "Copied: \"$shortText${if (copiedText.length > 40) "…" else ""}\""
-                                    )
-                                }
-                            }
+                if (uiState.messages.isEmpty()) {
+                    Column(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .padding(innerPadding),
+                        verticalArrangement = Arrangement.Center,
+                        horizontalAlignment = Alignment.CenterHorizontally
+                    ) {
+                        Image(
+                            painter = painterResource(id = R.drawable.ic_launcher_foreground),
+                            contentDescription = null,
+                            colorFilter = ColorFilter.tint(MaterialTheme.colorScheme.primary)
                         )
+                        Spacer(Modifier.width(8.dp))
+                        Text(
+                            "Ask anything, powered by Gemini Nano",
+                            style = MaterialTheme.typography.bodyLarge,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            modifier = Modifier.padding(top = 12.dp)
+                        )
+                    }
+                } else {
+                    LazyColumn(
+                        state = listState,
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .padding(innerPadding),
+                        verticalArrangement = Arrangement.spacedBy(12.dp),
+                        contentPadding = PaddingValues(start = 16.dp, end = 16.dp, top = 16.dp, bottom = 16.dp)
+                    ) {
+                        items(items = uiState.messages, key = { it.id }) { message ->
+                            MessageRow(
+                                message = message,
+                                onCopy = { copiedText: String ->
+                                    scope.launch {
+                                        val shortText = copiedText.take(40).replace("\n", " ")
+                                        snackbarHostState.showSnackbar(
+                                            "Copied: \"$shortText${if (copiedText.length > 40) "…" else ""}\""
+                                        )
+                                    }
+                                }
+                            )
+                        }
                     }
                 }
             }

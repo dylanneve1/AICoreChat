@@ -69,13 +69,6 @@ fun MessageInput(
                         }
                     }
                 ),
-                leadingIcon = {
-                    Icon(
-                        imageVector = Icons.Outlined.Send,
-                        contentDescription = null,
-                        tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f)
-                    )
-                },
                 trailingIcon = {
                     if (isGenerating) {
                         IconButton(onClick = onStop) { Icon(Icons.Rounded.Stop, contentDescription = "Stop generation") }
