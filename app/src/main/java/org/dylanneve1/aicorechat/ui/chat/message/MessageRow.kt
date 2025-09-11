@@ -26,6 +26,9 @@ import org.dylanneve1.aicorechat.data.ChatMessage
 import com.mikepenz.markdown.m3.Markdown
 import coil.compose.AsyncImage
 import androidx.core.net.toUri
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.layout.ContentScale
 
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
@@ -51,45 +54,51 @@ fun MessageRow(
         val contentColor = if (message.isFromUser) MaterialTheme.colorScheme.onPrimary
         else MaterialTheme.colorScheme.onSurface
 
-        MessageBubble(
-            isFromUser = message.isFromUser,
-            backgroundColor = bubbleColor,
-            modifier = Modifier
-                .widthIn(max = 320.dp)
-                .animateContentSize()
-                .combinedClickable(
-                    onClick = {},
-                    onLongClick = {
-                        if (message.text.isNotBlank()) {
-                            clipboard.setText(AnnotatedString(message.text))
-                            onCopy(message.text)
-                        }
-                    }
+        // Stack the (optional) image above the bubble for user messages
+        Column(horizontalAlignment = Alignment.End) {
+            if (message.isFromUser && message.imageUri != null) {
+                AsyncImage(
+                    model = message.imageUri.toUri(),
+                    contentDescription = null,
+                    contentScale = ContentScale.Crop,
+                    modifier = Modifier
+                        .size(128.dp)
+                        .clip(RoundedCornerShape(12.dp))
+                        .padding(bottom = 6.dp)
                 )
-        ) {
-            Column(
-                modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp)
-            ) {
-                if (message.imageUri != null) {
-                    AsyncImage(
-                        model = message.imageUri.toUri(),
-                        contentDescription = null,
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(bottom = 8.dp)
+            }
+
+            MessageBubble(
+                isFromUser = message.isFromUser,
+                backgroundColor = bubbleColor,
+                modifier = Modifier
+                    .widthIn(max = 320.dp)
+                    .animateContentSize()
+                    .combinedClickable(
+                        onClick = {},
+                        onLongClick = {
+                            if (message.text.isNotBlank()) {
+                                clipboard.setText(AnnotatedString(message.text))
+                                onCopy(message.text)
+                            }
+                        }
                     )
-                }
-                if (message.isStreaming && message.text.isBlank()) {
-                    if (isSearching) SearchingIndicator(contentColor) else TypingIndicator(contentColor)
-                } else {
-                    if (message.isFromUser) {
-                        Text(
-                            text = message.text,
-                            color = contentColor,
-                            style = MaterialTheme.typography.bodyLarge
-                        )
+            ) {
+                Column(
+                    modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp)
+                ) {
+                    if (message.isStreaming && message.text.isBlank()) {
+                        if (isSearching) SearchingIndicator(contentColor) else TypingIndicator(contentColor)
                     } else {
-                        Markdown(content = message.text)
+                        if (message.isFromUser) {
+                            Text(
+                                text = message.text,
+                                color = contentColor,
+                                style = MaterialTheme.typography.bodyLarge
+                            )
+                        } else {
+                            Markdown(content = message.text)
+                        }
                     }
                 }
             }
