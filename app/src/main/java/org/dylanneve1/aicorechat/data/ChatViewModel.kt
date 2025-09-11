@@ -451,14 +451,16 @@ class ChatViewModel(application: Application) : AndroidViewModel(application) {
             try {
                 val promptBuilder = StringBuilder()
                 promptBuilder.append(
-                    "You are a helpful AI assistant. Follow the user's instructions carefully.\n" +
+                    "You are a helpful AI assistant powered by Gemini Nano, created by the Google Deepmind team. Follow the user's instructions carefully.\n" +
                     "Always format the conversation with tags and ALWAYS end your reply with [/ASSISTANT].\n" +
                     "- User turns: wrap content in [USER] and [/USER].\n" +
                     "- Assistant turns: wrap content in [ASSISTANT] and [/ASSISTANT].\n" +
                     "- Never mention tools or web results in your reply. Do NOT include [WEB_RESULTS] or citations, links, or attributions.\n"
                 )
                 if (_uiState.value.webSearchEnabled) {
-                    promptBuilder.append("- Tool call: To request a web search, respond with [SEARCH]query[/SEARCH] as the first output and nothing else.\n\n")
+                    promptBuilder.append(
+                        "- Tool call: To request a web search, respond with [SEARCH]query[/SEARCH] as the first output and nothing else.\n" +
+                        "-  For questions about up to date events or for any query you feel fresh information would be useful, always use the search tool")
                 } else {
                     promptBuilder.append("\n")
                 }
