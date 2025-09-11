@@ -77,6 +77,9 @@ import androidx.compose.ui.res.painterResource
 import org.dylanneve1.aicorechat.R
 import androidx.compose.material3.Card
 import androidx.compose.material3.Switch
+import androidx.compose.material3.ModalBottomSheet
+import androidx.compose.material3.rememberModalBottomSheetState
+import androidx.compose.material3.HorizontalDivider
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalFoundationApi::class)
 @Composable
@@ -87,6 +90,7 @@ fun ChatScreen(viewModel: ChatViewModel) {
     val scope = rememberCoroutineScope()
     var showClearDialog by remember { mutableStateOf(false) }
     var showSettingsSheet by remember { mutableStateOf(false) }
+    var showToolsSheet by remember { mutableStateOf(false) }
     val scrollBehavior = TopAppBarDefaults.pinnedScrollBehavior()
 
     val drawerState = rememberDrawerState(DrawerValue.Closed)
@@ -190,7 +194,8 @@ fun ChatScreen(viewModel: ChatViewModel) {
                 MessageInput(
                     onSendMessage = viewModel::sendMessage,
                     onStop = viewModel::stopGeneration,
-                    isGenerating = uiState.isGenerating
+                    isGenerating = uiState.isGenerating,
+                    onOpenTools = { showToolsSheet = true }
                 )
             },
             floatingActionButton = {
@@ -370,6 +375,46 @@ fun ChatScreen(viewModel: ChatViewModel) {
             onWipeAllChats = viewModel::wipeAllChats,
             onDismiss = { showSettingsSheet = false }
         )
+    }
+
+    if (showToolsSheet) {
+        val sheetState = rememberModalBottomSheetState()
+        ModalBottomSheet(onDismissRequest = { showToolsSheet = false }, sheetState = sheetState) {
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 24.dp, vertical = 16.dp),
+                verticalArrangement = Arrangement.spacedBy(16.dp)
+            ) {
+                Text("Tools", style = MaterialTheme.typography.titleLarge, color = MaterialTheme.colorScheme.primary)
+                ElevatedCard(modifier = Modifier.fillMaxWidth()) {
+                    Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                        Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
+                            Column(modifier = Modifier.weight(1f)) {
+                                Text("Web Search", style = MaterialTheme.typography.titleMedium)
+                                Text("Enable the assistant to fetch fresh information from the web when helpful.", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                            }
+                            Switch(checked = uiState.webSearchEnabled, onCheckedChange = viewModel::updateWebSearchEnabled)
+                        }
+                        HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
+                        Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
+                            Column(modifier = Modifier.weight(1f)) {
+                                Text("Personal Context", style = MaterialTheme.typography.titleMedium)
+                                Text("Optionally include device/time and (if permitted) location to improve responses.", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                            }
+                            Switch(checked = uiState.personalContextEnabled, onCheckedChange = { enabled ->
+                                val hasFine = ContextCompat.checkSelfPermission(context, android.Manifest.permission.ACCESS_FINE_LOCATION) == android.content.pm.PackageManager.PERMISSION_GRANTED
+                                val hasCoarse = ContextCompat.checkSelfPermission(context, android.Manifest.permission.ACCESS_COARSE_LOCATION) == android.content.pm.PackageManager.PERMISSION_GRANTED
+                                if (enabled && !hasFine && !hasCoarse) {
+                                    locationPermissionLauncher.launch(arrayOf(android.Manifest.permission.ACCESS_FINE_LOCATION, android.Manifest.permission.ACCESS_COARSE_LOCATION))
+                                }
+                                viewModel.updatePersonalContextEnabled(enabled)
+                            })
+                        }
+                    }
+                }
+            }
+        }
     }
 }
 

@@ -28,13 +28,15 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.unit.dp
+import androidx.compose.material.icons.outlined.Build
 
 @Composable
 fun MessageInput(
     modifier: Modifier = Modifier,
     onSendMessage: (String) -> Unit,
     onStop: () -> Unit,
-    isGenerating: Boolean
+    isGenerating: Boolean,
+    onOpenTools: () -> Unit = {}
 ) {
     var text by remember { mutableStateOf("") }
 
@@ -69,6 +71,11 @@ fun MessageInput(
                         }
                     }
                 ),
+                leadingIcon = {
+                    IconButton(onClick = onOpenTools) {
+                        Icon(Icons.Outlined.Build, contentDescription = "Tools")
+                    }
+                },
                 trailingIcon = {
                     if (isGenerating) {
                         IconButton(onClick = onStop) { Icon(Icons.Rounded.Stop, contentDescription = "Stop generation") }
