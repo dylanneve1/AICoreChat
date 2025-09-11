@@ -18,5 +18,7 @@ data class ChatUiState(
     val currentSessionId: Long? = null,
     val currentSessionName: String = "New Chat",
     val isTitleGenerating: Boolean = false,
-    val isBulkTitleGenerating: Boolean = false
+    val isBulkTitleGenerating: Boolean = false,
+    val userName: String = "",
+    val personalContextEnabled: Boolean = false
 )

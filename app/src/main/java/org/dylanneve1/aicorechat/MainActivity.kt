@@ -16,6 +16,7 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.compose.runtime.*
 import org.dylanneve1.aicorechat.data.ChatViewModel
 import org.dylanneve1.aicorechat.ui.chat.ChatScreen
+import org.dylanneve1.aicorechat.ui.chat.OnboardingScreen
 import org.dylanneve1.aicorechat.ui.chat.UnsupportedDeviceScreen
 import org.dylanneve1.aicorechat.ui.theme.AICoreChatTheme
 import org.dylanneve1.aicorechat.util.DeviceSupportStatus
@@ -45,13 +46,33 @@ class MainActivity : ComponentActivity() {
                             Box(
                                 modifier = Modifier.fillMaxSize(),
                                 contentAlignment = Alignment.Center
-                            ) {
-                                CircularProgressIndicator()
-                            }
+                            ) { CircularProgressIndicator() }
                         }
                         is DeviceSupportStatus.Supported -> {
                             val chatViewModel: ChatViewModel = viewModel()
-                            ChatScreen(viewModel = chatViewModel)
+
+                            var onboardingShown by remember {
+                                mutableStateOf(
+                                    getSharedPreferences("AICoreChatPrefs", MODE_PRIVATE)
+                                        .getBoolean("onboarding_shown", false)
+                                )
+                            }
+
+                            if (!onboardingShown) {
+                                OnboardingScreen(
+                                    initialName = chatViewModel.uiState.collectAsState().value.userName,
+                                    initialPersonalContextEnabled = chatViewModel.uiState.collectAsState().value.personalContextEnabled,
+                                    onComplete = { name, enabled ->
+                                        chatViewModel.updateUserName(name)
+                                        chatViewModel.updatePersonalContextEnabled(enabled)
+                                        getSharedPreferences("AICoreChatPrefs", MODE_PRIVATE)
+                                            .edit().putBoolean("onboarding_shown", true).apply()
+                                        onboardingShown = true
+                                    }
+                                )
+                            } else {
+                                ChatScreen(viewModel = chatViewModel)
+                            }
                         }
                         is DeviceSupportStatus.AICoreMissing -> {
                             UnsupportedDeviceScreen(

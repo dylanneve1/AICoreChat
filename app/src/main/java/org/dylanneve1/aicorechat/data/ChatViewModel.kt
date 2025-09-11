@@ -2,6 +2,8 @@ package org.dylanneve1.aicorechat.data
 
 import android.app.Application
 import android.content.Context
+import android.os.Build
+import android.provider.Settings
 import android.util.Log
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
@@ -16,6 +18,9 @@ import kotlinx.coroutines.flow.onCompletion
 import kotlinx.coroutines.flow.onStart
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import java.text.SimpleDateFormat
+import java.util.Date
+import java.util.Locale
 
 class ChatViewModel(application: Application) : AndroidViewModel(application) {
     private val _uiState = MutableStateFlow(ChatUiState())
@@ -32,6 +37,8 @@ class ChatViewModel(application: Application) : AndroidViewModel(application) {
     companion object {
         const val KEY_TEMPERATURE = "temperature"
         const val KEY_TOP_K = "top_k"
+        const val KEY_USER_NAME = "user_name"
+        const val KEY_PERSONAL_CONTEXT = "personal_context"
     }
 
     init {
@@ -43,7 +50,37 @@ class ChatViewModel(application: Application) : AndroidViewModel(application) {
     private fun loadSettings() {
         val temperature = sharedPreferences.getFloat(KEY_TEMPERATURE, 0.3f)
         val topK = sharedPreferences.getInt(KEY_TOP_K, 40)
-        _uiState.update { it.copy(temperature = temperature, topK = topK) }
+        val userName = sharedPreferences.getString(KEY_USER_NAME, "") ?: ""
+        val personalContextEnabled = sharedPreferences.getBoolean(KEY_PERSONAL_CONTEXT, false)
+        _uiState.update { it.copy(temperature = temperature, topK = topK, userName = userName, personalContextEnabled = personalContextEnabled) }
+    }
+
+    fun updateUserName(name: String) {
+        sharedPreferences.edit().putString(KEY_USER_NAME, name).apply()
+        _uiState.update { it.copy(userName = name) }
+    }
+
+    fun updatePersonalContextEnabled(enabled: Boolean) {
+        sharedPreferences.edit().putBoolean(KEY_PERSONAL_CONTEXT, enabled).apply()
+        _uiState.update { it.copy(personalContextEnabled = enabled) }
+    }
+
+    private fun buildPersonalContext(): String {
+        val ctx = getApplication<Application>().applicationContext
+        val now = SimpleDateFormat("EEE, d MMM yyyy HH:mm z", Locale.getDefault()).format(Date())
+        val device = "${Build.MANUFACTURER} ${Build.MODEL} (Android ${Build.VERSION.RELEASE})"
+        val locale = Locale.getDefault().toString()
+        val timeZone = java.util.TimeZone.getDefault().id
+        val namePart = if (_uiState.value.userName.isNotBlank()) "User Name: ${_uiState.value.userName}\n" else ""
+        // Note: For location, proper runtime permissions and APIs are needed. Placeholder here.
+        val location = "Location: (not granted)\n"
+        return "[PERSONAL_CONTEXT]\n${namePart}Current Time: ${now}\nDevice: ${device}\nLocale: ${locale}\nTime Zone: ${timeZone}\n${location}\n[/PERSONAL_CONTEXT]\n\n"
+    }
+
+    private fun prependPersonalContextIfNeeded(promptBuilder: StringBuilder) {
+        if (_uiState.value.personalContextEnabled) {
+            promptBuilder.append(buildPersonalContext())
+        }
     }
 
     private fun initOrStartNewSession() {
@@ -108,7 +145,6 @@ class ChatViewModel(application: Application) : AndroidViewModel(application) {
                 messages = selected.messages.toList()
             )
         }
-        // After switching, if previous chat existed and was empty (no user messages), delete it
         if (prevId != null && prevId != sessionId && prevMessages.none { it.isFromUser }) {
             repository.deleteSession(prevId)
             val refreshed = repository.loadSessions()
@@ -162,7 +198,6 @@ class ChatViewModel(application: Application) : AndroidViewModel(application) {
     }
 
     fun purgeEmptyChats() {
-        // Delete any sessions without at least one user message, except current
         val currentId = _uiState.value.currentSessionId
         val sessions = repository.loadSessions()
         var changed = false
@@ -256,7 +291,6 @@ class ChatViewModel(application: Application) : AndroidViewModel(application) {
     }
 
     fun clearChat() {
-        // Delete current chat session entirely and start a new one
         _uiState.value.currentSessionId?.let { repository.deleteSession(it) }
         newChat()
     }
@@ -345,6 +379,7 @@ class ChatViewModel(application: Application) : AndroidViewModel(application) {
                 promptBuilder.append("You are a helpful AI assistant. Follow the user's instructions carefully.\n\n")
                 promptBuilder.append("[USER]\nHello, who are you?\n")
                 promptBuilder.append("[ASSISTANT]\nI am a helpful AI assistant built to answer your questions.\n\n")
+                prependPersonalContextIfNeeded(promptBuilder)
 
                 val history = _uiState.value.messages.takeLast(10)
 

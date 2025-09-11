@@ -232,7 +232,6 @@ fun ChatScreen(viewModel: ChatViewModel) {
         )
     }
 
-    // Single chat title generation modal
     if (uiState.isTitleGenerating) {
         AlertDialog(
             onDismissRequest = { /* not dismissible */ },
@@ -249,7 +248,6 @@ fun ChatScreen(viewModel: ChatViewModel) {
         )
     }
 
-    // Bulk title generation progress popup
     if (uiState.isBulkTitleGenerating) {
         AlertDialog(
             onDismissRequest = { /* not dismissible */ },
@@ -266,7 +264,6 @@ fun ChatScreen(viewModel: ChatViewModel) {
         )
     }
 
-    // Rename from drawer long-press
     if (showRenameDialog != null) {
         val (id, currentName) = showRenameDialog!!
         var name by remember(currentName) { mutableStateOf(currentName) }
@@ -320,7 +317,6 @@ fun ChatScreen(viewModel: ChatViewModel) {
         )
     }
 
-    // Rename on title long-press
     if (renameTitleDialog) {
         var name by remember(uiState.currentSessionName) { mutableStateOf(uiState.currentSessionName) }
         AlertDialog(
@@ -369,6 +365,10 @@ fun ChatScreen(viewModel: ChatViewModel) {
             topK = uiState.topK,
             onTemperatureChange = viewModel::updateTemperature,
             onTopKChange = viewModel::updateTopK,
+            userName = uiState.userName,
+            personalContextEnabled = uiState.personalContextEnabled,
+            onUserNameChange = viewModel::updateUserName,
+            onPersonalContextToggle = viewModel::updatePersonalContextEnabled,
             onWipeAllChats = viewModel::wipeAllChats,
             onDismiss = { showSettingsSheet = false }
         )

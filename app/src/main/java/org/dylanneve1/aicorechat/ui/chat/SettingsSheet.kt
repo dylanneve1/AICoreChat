@@ -18,7 +18,9 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
+import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Slider
+import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.rememberModalBottomSheetState
@@ -41,6 +43,10 @@ fun SettingsSheet(
     topK: Int,
     onTemperatureChange: (Float) -> Unit,
     onTopKChange: (Int) -> Unit,
+    userName: String,
+    personalContextEnabled: Boolean,
+    onUserNameChange: (String) -> Unit,
+    onPersonalContextToggle: (Boolean) -> Unit,
     onWipeAllChats: () -> Unit,
     onDismiss: () -> Unit
 ) {
@@ -84,6 +90,41 @@ fun SettingsSheet(
                 onValueChange = { onTopKChange(it.roundToInt()) },
                 valueLabel = topK.toString()
             )
+
+            Divider(modifier = Modifier.padding(vertical = 24.dp))
+
+            Text(
+                text = "Personalization",
+                style = MaterialTheme.typography.titleLarge,
+                modifier = Modifier.padding(bottom = 12.dp)
+            )
+
+            // Name input
+            OutlinedTextField(
+                value = userName,
+                onValueChange = onUserNameChange,
+                label = { Text("Your name") },
+                singleLine = true,
+                modifier = Modifier.fillMaxWidth()
+            )
+
+            Spacer(modifier = Modifier.height(12.dp))
+
+            // Personal Context toggle
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.SpaceBetween
+            ) {
+                Column(modifier = Modifier.weight(1f)) {
+                    Text("Personal Context", style = MaterialTheme.typography.bodyLarge, fontWeight = FontWeight.Bold)
+                    Text(
+                        "Adds current time, device, locale, and (if permitted) location to the start of each chat to improve responses.",
+                        style = MaterialTheme.typography.bodySmall
+                    )
+                }
+                Switch(checked = personalContextEnabled, onCheckedChange = onPersonalContextToggle)
+            }
 
             Divider(modifier = Modifier.padding(vertical = 24.dp))
 
@@ -133,8 +174,13 @@ fun SettingsSheet(
                 modifier = Modifier.padding(bottom = 16.dp)
             )
             Text(
-                text = "This app was created by Dylan Neve.",
+                text = "AICore Chat demonstrates on-device Gemini Nano via the AICore SDK. Chats can be renamed, organized, and titled automatically.",
                 style = MaterialTheme.typography.bodyMedium
+            )
+            Text(
+                text = "Personal Context is optional and only used locally to help the model respond more accurately.",
+                style = MaterialTheme.typography.bodySmall,
+                modifier = Modifier.padding(top = 4.dp)
             )
             TextButton(onClick = { context.startActivity(githubIntent) }) {
                 Text("Source Code on GitHub")
