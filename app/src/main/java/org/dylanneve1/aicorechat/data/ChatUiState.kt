@@ -23,5 +23,7 @@ data class ChatUiState(
     val personalContextEnabled: Boolean = false,
     val webSearchEnabled: Boolean = false,
     val isSearchInProgress: Boolean = false,
-    val currentSearchQuery: String? = null
+    val currentSearchQuery: String? = null,
+    val isDescribingImage: Boolean = false,
+    val pendingImageDescription: String? = null
 )

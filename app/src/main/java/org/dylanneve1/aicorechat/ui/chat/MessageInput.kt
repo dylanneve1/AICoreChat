@@ -29,6 +29,9 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.unit.dp
 import androidx.compose.material.icons.outlined.Build
+import androidx.compose.material.icons.outlined.Add
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.width
 
 @Composable
 fun MessageInput(
@@ -36,7 +39,8 @@ fun MessageInput(
     onSendMessage: (String) -> Unit,
     onStop: () -> Unit,
     isGenerating: Boolean,
-    onOpenTools: () -> Unit = {}
+    onOpenTools: () -> Unit = {},
+    onPickImage: () -> Unit = {}
 ) {
     var text by remember { mutableStateOf("") }
 
@@ -72,8 +76,10 @@ fun MessageInput(
                     }
                 ),
                 leadingIcon = {
-                    IconButton(onClick = onOpenTools) {
-                        Icon(Icons.Outlined.Build, contentDescription = "Tools")
+                    Row {
+                        IconButton(onClick = onOpenTools) { Icon(Icons.Outlined.Build, contentDescription = "Tools") }
+                        androidx.compose.foundation.layout.Spacer(Modifier.width(4.dp))
+                        IconButton(onClick = onPickImage) { Icon(Icons.Outlined.Add, contentDescription = "Add image") }
                     }
                 },
                 trailingIcon = {

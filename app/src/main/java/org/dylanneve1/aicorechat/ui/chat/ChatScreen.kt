@@ -84,6 +84,11 @@ import org.dylanneve1.aicorechat.ui.chat.tools.ToolsSheet
 import org.dylanneve1.aicorechat.ui.chat.drawer.DrawerHeader
 import org.dylanneve1.aicorechat.ui.chat.drawer.SessionItem
 import org.dylanneve1.aicorechat.ui.chat.topbar.AICoreChatTopAppBar
+import android.graphics.ImageDecoder
+import android.os.Build
+import android.provider.MediaStore
+import androidx.activity.result.PickVisualMediaRequest
+import androidx.activity.result.contract.ActivityResultContracts.PickVisualMedia
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalFoundationApi::class)
 @Composable
@@ -106,6 +111,26 @@ fun ChatScreen(viewModel: ChatViewModel) {
     val locationPermissionLauncher = rememberLauncherForActivityResult(
         ActivityResultContracts.RequestMultiplePermissions()
     ) { /* results ignored; ViewModel will use if granted */ }
+
+    val pickImageLauncher = rememberLauncherForActivityResult(PickVisualMedia()) { uri ->
+        if (uri != null) {
+            try {
+                val cr = context.contentResolver
+                val bitmap = if (Build.VERSION.SDK_INT >= 28) {
+                    val source = ImageDecoder.createSource(cr, uri)
+                    ImageDecoder.decodeBitmap(source)
+                } else {
+                    @Suppress("DEPRECATION")
+                    MediaStore.Images.Media.getBitmap(cr, uri)
+                }
+                viewModel.onImagePicked(bitmap)
+            } catch (e: Exception) {
+                // Surface error via snackbar
+                // Use coroutine scope since this is not a @Composable context
+                scope.launch { snackbarHostState.showSnackbar(e.message ?: "Failed to load image") }
+            }
+        }
+    }
 
     LaunchedEffect(drawerState.currentValue) {
         if (drawerState.currentValue == DrawerValue.Open) {
@@ -199,7 +224,8 @@ fun ChatScreen(viewModel: ChatViewModel) {
                     onSendMessage = viewModel::sendMessage,
                     onStop = viewModel::stopGeneration,
                     isGenerating = uiState.isGenerating,
-                    onOpenTools = { showToolsSheet = true }
+                    onOpenTools = { showToolsSheet = true },
+                    onPickImage = { pickImageLauncher.launch(PickVisualMediaRequest(PickVisualMedia.ImageOnly)) }
                 )
             },
             floatingActionButton = {

@@ -38,6 +38,7 @@ import java.util.Locale
 import java.util.TimeZone
 import org.dylanneve1.aicorechat.data.search.WebSearchService
 import org.dylanneve1.aicorechat.data.context.PersonalContextBuilder
+import org.dylanneve1.aicorechat.data.image.ImageDescriptionService
 
 /**
  * ChatViewModel orchestrates sessions, model streaming, tools, and persistence.
@@ -58,6 +59,7 @@ class ChatViewModel(application: Application) : AndroidViewModel(application) {
     // Services
     private val webSearchService = WebSearchService(application)
     private val personalContextBuilder = PersonalContextBuilder(application)
+    private val imageDescriptionService = ImageDescriptionService(application)
 
     companion object {
         const val KEY_TEMPERATURE = "temperature"
@@ -467,6 +469,22 @@ class ChatViewModel(application: Application) : AndroidViewModel(application) {
         } catch (e: Exception) { false }
     }
 
+    fun onImagePicked(bitmap: android.graphics.Bitmap) {
+        viewModelScope.launch {
+            _uiState.update { it.copy(isDescribingImage = true, modelError = null) }
+            try {
+                val desc = imageDescriptionService.describe(bitmap).trim()
+                if (desc.isNotBlank()) {
+                    _uiState.update { it.copy(isDescribingImage = false, pendingImageDescription = desc) }
+                } else {
+                    _uiState.update { it.copy(isDescribingImage = false, modelError = "Could not describe image.") }
+                }
+            } catch (e: Exception) {
+                _uiState.update { it.copy(isDescribingImage = false, modelError = e.message) }
+            }
+        }
+    }
+
     fun sendMessage(prompt: String) {
         generationJob?.cancel()
 
@@ -479,6 +497,11 @@ class ChatViewModel(application: Application) : AndroidViewModel(application) {
         _uiState.update { it.copy(messages = it.messages + userMessage) }
         _uiState.value.currentSessionId?.let { repository.appendMessage(it, userMessage) }
 
+        val pendingImageDesc = _uiState.value.pendingImageDescription
+        if (!pendingImageDesc.isNullOrBlank()) {
+            _uiState.update { it.copy(pendingImageDescription = null) }
+        }
+
         generationJob = viewModelScope.launch {
             try {
                 val promptBuilder = StringBuilder()
@@ -488,6 +511,7 @@ class ChatViewModel(application: Application) : AndroidViewModel(application) {
                     "Always format the conversation with tags and ALWAYS end your reply with [/ASSISTANT].\n" +
                     "- User turns: wrap content in [USER] and [/USER].\n" +
                     "- Assistant turns: wrap content in [ASSISTANT] and [/ASSISTANT].\n" +
+                    "- If an [IMAGE_DESCRIPTION] block is present, treat it as the user's attached image description and use it to inform the reply. Do not repeat or quote the block.\n" +
                     "- Never mention tools or web results in your reply. Do NOT include [WEB_RESULTS] or citations, links, or attributions.\n"
                 )
                 if (allowSearchThisTurn) {
@@ -506,6 +530,9 @@ class ChatViewModel(application: Application) : AndroidViewModel(application) {
                 promptBuilder.append("[USER]\nHello, who are you?\n[/USER]\n")
                 promptBuilder.append("[ASSISTANT]\nI am a helpful AI assistant built to answer your questions.\n[/ASSISTANT]\n\n")
                 prependPersonalContextIfNeeded(promptBuilder)
+                if (!pendingImageDesc.isNullOrBlank()) {
+                    promptBuilder.append("[IMAGE_DESCRIPTION]\n${pendingImageDesc}\n[/IMAGE_DESCRIPTION]\n\n")
+                }
 
                 val history = _uiState.value.messages.takeLast(10)
                 history.forEach { message ->
@@ -754,5 +781,6 @@ class ChatViewModel(application: Application) : AndroidViewModel(application) {
         super.onCleared()
         generationJob?.cancel()
         generativeModel?.close()
+        imageDescriptionService.close()
     }
 }

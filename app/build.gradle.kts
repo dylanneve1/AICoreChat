@@ -57,6 +57,10 @@ dependencies {
     // Markdown renderer for Compose Material 3
     implementation("com.mikepenz:multiplatform-markdown-renderer-m3:0.26.0")
 
+    // ML Kit GenAI Image Description
+    implementation("com.google.mlkit:genai-image-description:1.0.0-beta1")
+    implementation("org.jetbrains.kotlinx:kotlinx-coroutines-play-services:1.7.3")
+
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)
     androidTestImplementation(libs.androidx.espresso.core)
