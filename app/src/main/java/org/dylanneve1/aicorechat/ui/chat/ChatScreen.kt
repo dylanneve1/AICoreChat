@@ -135,20 +135,22 @@ fun ChatScreen(viewModel: ChatViewModel) {
                         scope.launch { drawerState.close() }
                     }
                 )
-                uiState.sessions.forEach { meta ->
-                    SessionItem(
-                        meta = meta,
-                        isSelected = meta.id == uiState.currentSessionId,
-                        onClick = {
-                            viewModel.selectChat(meta.id)
-                            scope.launch { drawerState.close() }
-                        },
-                        onLongPress = {
-                            showRenameDialog = meta.id to meta.name
-                        }
-                    )
+                LazyColumn(
+                    modifier = Modifier.weight(1f, fill = true),
+                    contentPadding = PaddingValues(vertical = 8.dp)
+                ) {
+                    items(uiState.sessions, key = { it.id }) { meta ->
+                        SessionItem(
+                            meta = meta,
+                            isSelected = meta.id == uiState.currentSessionId,
+                            onClick = {
+                                viewModel.selectChat(meta.id)
+                                scope.launch { drawerState.close() }
+                            },
+                            onLongPress = { showRenameDialog = meta.id to meta.name }
+                        )
+                    }
                 }
-                Spacer(Modifier.width(8.dp))
                 FilledTonalButton(
                     onClick = { viewModel.generateTitlesForAllChats() },
                     modifier = Modifier
