@@ -136,7 +136,7 @@ fun SettingsSheet(
                 Column(modifier = Modifier.weight(1f)) {
                     Text("Web Search", style = MaterialTheme.typography.bodyLarge, fontWeight = FontWeight.Bold)
                     Text(
-                        "Allow the assistant to trigger a one-shot web search using [SEARCH]...[/SEARCH] tool calls.",
+                        "Allow the assistant to trigger a one-shot web search using tool calls.",
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )

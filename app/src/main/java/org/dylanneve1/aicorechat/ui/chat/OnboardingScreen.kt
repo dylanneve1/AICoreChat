@@ -87,7 +87,7 @@ fun OnboardingScreen(
             )
             RowWithSwitch(
                 title = "Enable Web Search",
-                subtitle = "Allow [SEARCH]...[/SEARCH] tool calls to fetch fresh info.",
+                subtitle = "Allow tool calls to fetch fresh info.",
                 checked = webSearchEnabled,
                 onCheckedChange = { webSearchEnabled = it }
             )

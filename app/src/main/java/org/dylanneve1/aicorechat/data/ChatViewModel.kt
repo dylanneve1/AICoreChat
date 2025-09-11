@@ -160,11 +160,17 @@ class ChatViewModel(application: Application) : AndroidViewModel(application) {
     }
 
     private fun initOrStartNewSession() {
-        val sessions = repository.loadSessions()
+        // Purge all empty chats on app open
+        runCatching {
+            val existing = repository.loadSessions()
+            existing.filter { s -> s.messages.none { it.isFromUser } }
+                .forEach { s -> repository.deleteSession(s.id) }
+        }
+        val sessionsAfterPurge = repository.loadSessions()
         val session = repository.createNewSession()
         _uiState.update {
             it.copy(
-                sessions = sessions.map { s -> ChatSessionMeta(s.id, s.name) }.let { existing ->
+                sessions = sessionsAfterPurge.map { s -> ChatSessionMeta(s.id, s.name) }.let { existing ->
                     listOf(ChatSessionMeta(session.id, session.name)) + existing
                 },
                 currentSessionId = session.id,
