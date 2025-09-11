@@ -36,6 +36,7 @@ import java.net.URLDecoder
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
+import java.util.TimeZone
 
 class ChatViewModel(application: Application) : AndroidViewModel(application) {
     private val _uiState = MutableStateFlow(ChatUiState())
@@ -771,7 +772,36 @@ class ChatViewModel(application: Application) : AndroidViewModel(application) {
         } catch (e: Exception) { url }
     }
 
-    private suspend fun fetchMetaDescription(targetUrl: String): Pair<String?, String?> = withContext(Dispatchers.IO) {
+    private fun parseDateToIso(dateRaw: String): String? {
+        val candidates = listOf(
+            "yyyy-MM-dd'T'HH:mm:ss'Z'",
+            "yyyy-MM-dd'T'HH:mm:ssXXX",
+            "EEE, dd MMM yyyy HH:mm:ss zzz",
+            "EEE, d MMM yyyy HH:mm:ss zzz",
+            "EEE, d MMM yyyy HH:mm zzz",
+            "yyyy-MM-dd",
+            "dd MMM yyyy",
+            "d MMM yyyy",
+            "MMM d, yyyy",
+            "MMMM d, yyyy"
+        )
+        for (p in candidates) {
+            try {
+                val fmt = SimpleDateFormat(p, Locale.US)
+                // Many meta dates are in UTC
+                if (p.contains("'Z'")) fmt.timeZone = TimeZone.getTimeZone("UTC")
+                val d = fmt.parse(dateRaw)
+                if (d != null) {
+                    val out = SimpleDateFormat("yyyy-MM-dd", Locale.US)
+                    out.timeZone = TimeZone.getTimeZone("UTC")
+                    return out.format(d)
+                }
+            } catch (_: Exception) { }
+        }
+        return null
+    }
+
+    private suspend fun fetchMeta(targetUrl: String): Triple<String?, String?, String?> = withContext(Dispatchers.IO) {
         return@withContext try {
             val u = URL(targetUrl)
             val c = (u.openConnection() as HttpURLConnection).apply {
@@ -789,15 +819,24 @@ class ChatViewModel(application: Application) : AndroidViewModel(application) {
                     if (n <= 0) break
                     sb.append(String(buf, 0, n))
                     total += n
-                    if (total > 32_000) break
+                    if (total > 48_000) break
                 }
             }
             val html = sb.toString()
             val title = Regex("<title>(.*?)</title>", RegexOption.IGNORE_CASE).find(html)?.groupValues?.get(1)
             val metaDesc = Regex("""<meta[^>]*name="description"[^>]*content="(.*?)"[^>]*>""", RegexOption.IGNORE_CASE).find(html)?.groupValues?.get(1)
                 ?: Regex("""<meta[^>]*property="og:description"[^>]*content="(.*?)"[^>]*>""", RegexOption.IGNORE_CASE).find(html)?.groupValues?.get(1)
-            Pair(title?.let { htmlDecode(it.replace(Regex("<.*?>"), "").trim()) }, metaDesc?.let { htmlDecode(it.trim()) })
-        } catch (e: Exception) { Pair(null, null) }
+            val metaDate = Regex("""<meta[^>]*property="article:published_time"[^>]*content="(.*?)"[^>]*>""", RegexOption.IGNORE_CASE).find(html)?.groupValues?.get(1)
+                ?: Regex("""<meta[^>]*name="pubdate"[^>]*content="(.*?)"[^>]*>""", RegexOption.IGNORE_CASE).find(html)?.groupValues?.get(1)
+                ?: Regex("""<meta[^>]*name="date"[^>]*content="(.*?)"[^>]*>""", RegexOption.IGNORE_CASE).find(html)?.groupValues?.get(1)
+                ?: Regex("""<meta[^>]*itemprop="datePublished"[^>]*content="(.*?)"[^>]*>""", RegexOption.IGNORE_CASE).find(html)?.groupValues?.get(1)
+                ?: Regex("""<meta[^>]*property="og:updated_time"[^>]*content="(.*?)"[^>]*>""", RegexOption.IGNORE_CASE).find(html)?.groupValues?.get(1)
+            Triple(
+                title?.let { htmlDecode(it.replace(Regex("<.*?>"), "").trim()) },
+                metaDesc?.let { htmlDecode(it.trim()) },
+                metaDate?.let { parseDateToIso(it.trim()) }
+            )
+        } catch (e: Exception) { Triple(null, null, null) }
     }
 
     private suspend fun performWebSearch(query: String): String = withContext(Dispatchers.IO) {
@@ -828,6 +867,7 @@ class ChatViewModel(application: Application) : AndroidViewModel(application) {
                     pattern = """(?:class="result__snippet[^"]*"[^>]*>(.*?)</(?:a|span|div)>)""",
                     options = setOf(RegexOption.IGNORE_CASE, RegexOption.DOT_MATCHES_ALL)
                 )
+                val ddgTimeRegex = Regex("""class="result__timestamp"[^>]*>(.*?)<""", RegexOption.IGNORE_CASE)
                 val items = itemRegex.findAll(html).take(5).map { it.value }.toList()
                 if (items.isEmpty()) return@use "No results"
                 val lines = mutableListOf<String>()
@@ -835,17 +875,25 @@ class ChatViewModel(application: Application) : AndroidViewModel(application) {
                     val rawTitle = titleRegex.find(block)?.groupValues?.get(1).orEmpty()
                     val rawHref = hrefRegex.find(block)?.groupValues?.get(1).orEmpty()
                     val rawSnippet = snippetRegex.find(block)?.groupValues?.get(1).orEmpty()
+                    val ddgTime = ddgTimeRegex.find(block)?.groupValues?.get(1)?.let { htmlDecode(it).trim() }.orEmpty()
                     val realUrl = decodeDuckRedirect(htmlDecode(rawHref))
                     val host = hostname(realUrl)
                     var title = htmlDecode(rawTitle.replace(Regex("<.*?>"), "").trim())
                     var snippet = htmlDecode(rawSnippet.replace(Regex("<.*?>"), " ").replace("\n", " ").replace(" +".toRegex(), " ").trim())
-                    if (snippet.isBlank() || snippet.length < 24) {
-                        val (t, d) = fetchMetaDescription(realUrl)
-                        if (!d.isNullOrBlank()) snippet = d
-                        if (!t.isNullOrBlank() && title.isBlank()) title = t
+                    var dateIso: String? = null
+                    // Fetch meta if snippet missing/short or if we want the date
+                    val (t, d, metaDate) = fetchMeta(realUrl)
+                    if (!d.isNullOrBlank() && (snippet.isBlank() || snippet.length < 48)) snippet = d
+                    if (!t.isNullOrBlank() && title.isBlank()) title = t
+                    if (!metaDate.isNullOrBlank()) dateIso = metaDate else {
+                        // Try to parse ddg relative timestamp only if it looks like an absolute date
+                        if (!ddgTime.contains("ago", ignoreCase = true)) {
+                            parseDateToIso(ddgTime)?.let { dateIso = it }
+                        }
                     }
                     if (title.isBlank() && snippet.isBlank()) continue
-                    lines.add("${idx + 1}. ${host} — ${title}\n- ${snippet}")
+                    val header = if (!dateIso.isNullOrBlank()) "${dateIso} — ${host} — ${title}" else "${host} — ${title}"
+                    lines.add("${idx + 1}. ${header}\n- ${snippet}")
                 }
                 if (lines.isEmpty()) "No results" else lines.joinToString("\n\n")
             }
