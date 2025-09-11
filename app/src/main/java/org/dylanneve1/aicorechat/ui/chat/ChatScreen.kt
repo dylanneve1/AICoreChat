@@ -5,24 +5,35 @@ import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.slideInVertically
 import androidx.compose.animation.slideOutVertically
+import androidx.compose.foundation.ExperimentalFoundationApi
+import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.ArrowDownward
 import androidx.compose.material.icons.outlined.Delete
+import androidx.compose.material.icons.outlined.Menu
 import androidx.compose.material.icons.outlined.Settings
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.CenterAlignedTopAppBar
+import androidx.compose.material3.DrawerValue
+import androidx.compose.material3.ElevatedCard
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.ModalNavigationDrawer
+import androidx.compose.material3.ModalDrawerSheet
+import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
@@ -30,6 +41,7 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.material3.TopAppBarScrollBehavior
+import androidx.compose.material3.rememberDrawerState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
@@ -39,15 +51,20 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.unit.dp
 import kotlinx.coroutines.launch
+import org.dylanneve1.aicorechat.data.ChatSessionMeta
 import org.dylanneve1.aicorechat.data.ChatViewModel
 import kotlin.math.max
 import androidx.compose.foundation.layout.imePadding
+import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.ui.platform.LocalLayoutDirection
+import androidx.compose.ui.unit.LayoutDirection
 
-@OptIn(ExperimentalMaterial3Api::class)
+@OptIn(ExperimentalMaterial3Api::class, ExperimentalFoundationApi::class)
 @Composable
 fun ChatScreen(viewModel: ChatViewModel) {
     val uiState by viewModel.uiState.collectAsState()
@@ -57,6 +74,9 @@ fun ChatScreen(viewModel: ChatViewModel) {
     var showClearDialog by remember { mutableStateOf(false) }
     var showSettingsSheet by remember { mutableStateOf(false) }
     val scrollBehavior = TopAppBarDefaults.pinnedScrollBehavior()
+
+    val drawerState = rememberDrawerState(DrawerValue.Closed)
+    var showRenameDialog by remember { mutableStateOf<Pair<Long, String>?>(null) }
 
     LaunchedEffect(uiState.messages.size) {
         if (uiState.messages.isNotEmpty()) {
@@ -77,77 +97,133 @@ fun ChatScreen(viewModel: ChatViewModel) {
         }
     }
 
-    Scaffold(
-        modifier = Modifier
-            .fillMaxSize()
-            .nestedScroll(scrollBehavior.nestedScrollConnection)
-            .imePadding(),
-        topBar = {
-            AICoreChatTopAppBar(
-                scrollBehavior = scrollBehavior,
-                isChatNotEmpty = uiState.messages.isNotEmpty(),
-                onClearClick = { showClearDialog = true },
-                onSettingsClick = { showSettingsSheet = true }
-            )
-        },
-        bottomBar = {
-            MessageInput(
-                onSendMessage = viewModel::sendMessage,
-                onStop = viewModel::stopGeneration,
-                isGenerating = uiState.isGenerating
-            )
-        },
-        floatingActionButton = {
-            AnimatedVisibility(
-                visible = showScrollToBottom,
-                enter = fadeIn() + slideInVertically { it },
-                exit = fadeOut() + slideOutVertically { it },
-            ) {
-                FloatingActionButton(
-                    onClick = {
-                        scope.launch {
-                            listState.animateScrollToItem(uiState.messages.size - 1)
-                        }
+    ModalNavigationDrawer(
+        drawerState = drawerState,
+        gesturesEnabled = true,
+        drawerContent = {
+            ModalDrawerSheet {
+                DrawerHeader(
+                    onNewChat = {
+                        viewModel.newChat()
+                        scope.launch { drawerState.close() }
                     }
-                ) {
-                    Icon(Icons.Outlined.ArrowDownward, contentDescription = "Scroll to bottom")
-                }
-            }
-        },
-        snackbarHost = { SnackbarHost(hostState = snackbarHostState) },
-        content = { innerPadding ->
-            LazyColumn(
-                state = listState,
-                modifier = Modifier
-                    .fillMaxSize()
-                    .padding(innerPadding),
-                verticalArrangement = Arrangement.spacedBy(12.dp),
-                contentPadding = PaddingValues(
-                    start = 16.dp,
-                    end = 16.dp,
-                    top = 16.dp,
-                    bottom = 16.dp
                 )
-            ) {
-                items(
-                    items = uiState.messages,
-                    key = { it.id }
-                ) { message ->
-                    MessageRow(
-                        message = message,
-                        onCopy = { copiedText: String ->
-                            scope.launch {
-                                val shortText = copiedText.take(40).replace("\n", " ")
-                                snackbarHostState.showSnackbar(
-                                    "Copied: \"$shortText${if (copiedText.length > 40) "…" else ""}\""
-                                )
-                            }
+                uiState.sessions.forEach { meta ->
+                    SessionItem(
+                        meta = meta,
+                        isSelected = meta.id == uiState.currentSessionId,
+                        onClick = {
+                            viewModel.selectChat(meta.id)
+                            scope.launch { drawerState.close() }
+                        },
+                        onLongPress = {
+                            showRenameDialog = meta.id to meta.name
                         }
                     )
                 }
             }
         }
-    )
+    ) {
+        Scaffold(
+            modifier = Modifier
+                .fillMaxSize()
+                .nestedScroll(scrollBehavior.nestedScrollConnection)
+                .imePadding(),
+            topBar = {
+                AICoreChatTopAppBar(
+                    scrollBehavior = scrollBehavior,
+                    isChatNotEmpty = uiState.messages.isNotEmpty(),
+                    onClearClick = { showClearDialog = true },
+                    onSettingsClick = { showSettingsSheet = true },
+                    onMenuClick = { scope.launch { drawerState.open() } },
+                    title = uiState.currentSessionName
+                )
+            },
+            bottomBar = {
+                MessageInput(
+                    onSendMessage = viewModel::sendMessage,
+                    onStop = viewModel::stopGeneration,
+                    isGenerating = uiState.isGenerating
+                )
+            },
+            floatingActionButton = {
+                AnimatedVisibility(
+                    visible = showScrollToBottom,
+                    enter = fadeIn() + slideInVertically { it },
+                    exit = fadeOut() + slideOutVertically { it },
+                ) {
+                    FloatingActionButton(
+                        onClick = {
+                            scope.launch {
+                                listState.animateScrollToItem(uiState.messages.size - 1)
+                            }
+                        }
+                    ) {
+                        Icon(Icons.Outlined.ArrowDownward, contentDescription = "Scroll to bottom")
+                    }
+                }
+            },
+            snackbarHost = { SnackbarHost(hostState = snackbarHostState) },
+            content = { innerPadding ->
+                LazyColumn(
+                    state = listState,
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .padding(innerPadding),
+                    verticalArrangement = Arrangement.spacedBy(12.dp),
+                    contentPadding = PaddingValues(
+                        start = 16.dp,
+                        end = 16.dp,
+                        top = 16.dp,
+                        bottom = 16.dp
+                    )
+                ) {
+                    items(
+                        items = uiState.messages,
+                        key = { it.id }
+                    ) { message ->
+                        MessageRow(
+                            message = message,
+                            onCopy = { copiedText: String ->
+                                scope.launch {
+                                    val shortText = copiedText.take(40).replace("\n", " ")
+                                    snackbarHostState.showSnackbar(
+                                        "Copied: \"$shortText${if (copiedText.length > 40) "…" else ""}\""
+                                    )
+                                }
+                            }
+                        )
+                    }
+                }
+            }
+        )
+    }
+
+    if (showRenameDialog != null) {
+        val (id, currentName) = showRenameDialog!!
+        var name by remember(currentName) { mutableStateOf(currentName) }
+        AlertDialog(
+            onDismissRequest = { showRenameDialog = null },
+            title = { Text("Rename chat") },
+            text = {
+                OutlinedTextField(
+                    value = name,
+                    onValueChange = { name = it },
+                    singleLine = true
+                )
+            },
+            confirmButton = {
+                TextButton(onClick = {
+                    val trimmed = name.trim().ifEmpty { "New Chat" }
+                    viewModel.renameChat(id, trimmed)
+                    showRenameDialog = null
+                }) { Text("Save") }
+            },
+            dismissButton = {
+                TextButton(onClick = { showRenameDialog = null }) { Text("Cancel") }
+            }
+        )
+    }
 
     if (showClearDialog) {
         AlertDialog(
@@ -177,6 +253,46 @@ fun ChatScreen(viewModel: ChatViewModel) {
     }
 }
 
+@Composable
+private fun DrawerHeader(onNewChat: () -> Unit) {
+    ElevatedCard(
+        modifier = Modifier
+            .padding(horizontal = 16.dp, vertical = 12.dp)
+    ) {
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            modifier = Modifier.padding(12.dp)
+        ) {
+            Text("Chats", style = MaterialTheme.typography.titleMedium)
+            Spacer(Modifier.width(12.dp))
+            TextButton(onClick = onNewChat) { Text("New chat") }
+        }
+    }
+}
+
+@OptIn(ExperimentalFoundationApi::class)
+@Composable
+private fun SessionItem(
+    meta: ChatSessionMeta,
+    isSelected: Boolean,
+    onClick: () -> Unit,
+    onLongPress: () -> Unit,
+) {
+    val containerColor = if (isSelected) MaterialTheme.colorScheme.surfaceContainerHigh else MaterialTheme.colorScheme.surface
+    ElevatedCard(
+        modifier = Modifier
+            .padding(horizontal = 16.dp, vertical = 6.dp)
+            .combinedClickable(onClick = onClick, onLongClick = onLongPress),
+        colors = androidx.compose.material3.CardDefaults.elevatedCardColors(containerColor = containerColor)
+    ) {
+        Text(
+            text = meta.name,
+            style = MaterialTheme.typography.bodyLarge,
+            modifier = Modifier.padding(horizontal = 16.dp, vertical = 12.dp)
+        )
+    }
+}
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun AICoreChatTopAppBar(
@@ -184,33 +300,42 @@ private fun AICoreChatTopAppBar(
     isChatNotEmpty: Boolean,
     onClearClick: () -> Unit,
     onSettingsClick: () -> Unit,
+    onMenuClick: () -> Unit,
+    title: String,
 ) {
-    CenterAlignedTopAppBar(
-        title = {
-            Text(
-                "AICore Chat",
-                style = MaterialTheme.typography.titleLarge.copy(
-                    fontWeight = androidx.compose.ui.text.font.FontWeight.SemiBold
+    CompositionLocalProvider(LocalLayoutDirection provides LayoutDirection.Ltr) {
+        CenterAlignedTopAppBar(
+            title = {
+                Text(
+                    title,
+                    style = MaterialTheme.typography.titleLarge.copy(
+                        fontWeight = androidx.compose.ui.text.font.FontWeight.SemiBold
+                    )
                 )
+            },
+            navigationIcon = {
+                IconButton(onClick = onMenuClick) {
+                    Icon(imageVector = Icons.Outlined.Menu, contentDescription = "Menu")
+                }
+            },
+            actions = {
+                IconButton(onClick = onClearClick, enabled = isChatNotEmpty) {
+                    Icon(
+                        imageVector = Icons.Outlined.Delete,
+                        contentDescription = "Clear chat"
+                    )
+                }
+                IconButton(onClick = onSettingsClick) {
+                    Icon(
+                        imageVector = Icons.Outlined.Settings,
+                        contentDescription = "Settings"
+                    )
+                }
+            },
+            scrollBehavior = scrollBehavior,
+            colors = TopAppBarDefaults.centerAlignedTopAppBarColors(
+                scrolledContainerColor = MaterialTheme.colorScheme.surfaceContainerHigh
             )
-        },
-        actions = {
-            IconButton(onClick = onClearClick, enabled = isChatNotEmpty) {
-                Icon(
-                    imageVector = Icons.Outlined.Delete,
-                    contentDescription = "Clear chat"
-                )
-            }
-            IconButton(onClick = onSettingsClick) {
-                Icon(
-                    imageVector = Icons.Outlined.Settings,
-                    contentDescription = "Settings"
-                )
-            }
-        },
-        scrollBehavior = scrollBehavior,
-        colors = TopAppBarDefaults.centerAlignedTopAppBarColors(
-            scrolledContainerColor = MaterialTheme.colorScheme.surfaceContainerHigh
         )
-    )
+    }
 }

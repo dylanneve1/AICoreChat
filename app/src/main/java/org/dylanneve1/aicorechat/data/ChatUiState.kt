@@ -13,5 +13,8 @@ data class ChatUiState(
     val isGenerating: Boolean = false,
     val modelError: String? = null,
     val temperature: Float = 0.3f,
-    val topK: Int = 40
+    val topK: Int = 40,
+    val sessions: List<ChatSessionMeta> = emptyList(),
+    val currentSessionId: Long? = null,
+    val currentSessionName: String = "New Chat"
 )

@@ -27,6 +27,8 @@ class ChatViewModel(application: Application) : AndroidViewModel(application) {
     private val sharedPreferences =
         application.getSharedPreferences("AICoreChatPrefs", Context.MODE_PRIVATE)
 
+    private val repository = ChatRepository(application.applicationContext)
+
     companion object {
         const val KEY_TEMPERATURE = "temperature"
         const val KEY_TOP_K = "top_k"
@@ -34,6 +36,7 @@ class ChatViewModel(application: Application) : AndroidViewModel(application) {
 
     init {
         loadSettings()
+        initOrStartNewSession()
         reinitializeModel()
     }
 
@@ -43,11 +46,26 @@ class ChatViewModel(application: Application) : AndroidViewModel(application) {
         _uiState.update { it.copy(temperature = temperature, topK = topK) }
     }
 
+    private fun initOrStartNewSession() {
+        val sessions = repository.loadSessions()
+        val session = repository.createNewSession()
+        _uiState.update {
+            it.copy(
+                sessions = sessions.map { s -> ChatSessionMeta(s.id, s.name) }.let { existing ->
+                    listOf(ChatSessionMeta(session.id, session.name)) + existing
+                },
+                currentSessionId = session.id,
+                currentSessionName = session.name,
+                messages = emptyList()
+            )
+        }
+    }
+
     private fun reinitializeModel() {
         viewModelScope.launch {
             try {
                 _uiState.update { it.copy(modelError = "Initializing model…") }
-                generativeModel?.close() // Clean up the old model if it exists
+                generativeModel?.close()
 
                 val config = generationConfig {
                     context = getApplication<Application>().applicationContext
@@ -65,6 +83,51 @@ class ChatViewModel(application: Application) : AndroidViewModel(application) {
         }
     }
 
+    fun newChat() {
+        val session = repository.createNewSession()
+        val updatedSessions = listOf(ChatSessionMeta(session.id, session.name)) + _uiState.value.sessions
+        _uiState.update {
+            it.copy(
+                sessions = updatedSessions,
+                currentSessionId = session.id,
+                currentSessionName = session.name,
+                messages = emptyList()
+            )
+        }
+    }
+
+    fun selectChat(sessionId: Long) {
+        val sessions = repository.loadSessions()
+        val selected = sessions.find { it.id == sessionId } ?: return
+        _uiState.update {
+            it.copy(
+                currentSessionId = selected.id,
+                currentSessionName = selected.name,
+                messages = selected.messages.toList()
+            )
+        }
+    }
+
+    fun renameCurrentChat(newName: String) {
+        val sessionId = _uiState.value.currentSessionId ?: return
+        repository.renameSession(sessionId, newName)
+        val updatedSessions = _uiState.value.sessions.map {
+            if (it.id == sessionId) it.copy(name = newName) else it
+        }
+        _uiState.update { it.copy(currentSessionName = newName, sessions = updatedSessions) }
+    }
+
+    fun renameChat(sessionId: Long, newName: String) {
+        repository.renameSession(sessionId, newName)
+        val updatedSessions = _uiState.value.sessions.map {
+            if (it.id == sessionId) it.copy(name = newName) else it
+        }
+        _uiState.update { state ->
+            val currentName = if (state.currentSessionId == sessionId) newName else state.currentSessionName
+            state.copy(currentSessionName = currentName, sessions = updatedSessions)
+        }
+    }
+
     fun updateTemperature(temperature: Float) {
         sharedPreferences.edit().putFloat(KEY_TEMPERATURE, temperature).apply()
         _uiState.update { it.copy(temperature = temperature) }
@@ -79,6 +142,7 @@ class ChatViewModel(application: Application) : AndroidViewModel(application) {
 
     fun clearChat() {
         _uiState.update { it.copy(messages = emptyList(), modelError = null) }
+        _uiState.value.currentSessionId?.let { repository.replaceMessages(it, emptyList()) }
     }
 
     fun stopGeneration() {
@@ -97,6 +161,7 @@ class ChatViewModel(application: Application) : AndroidViewModel(application) {
         _uiState.update {
             it.copy(messages = it.messages + userMessage)
         }
+        _uiState.value.currentSessionId?.let { repository.appendMessage(it, userMessage) }
 
         generationJob = viewModelScope.launch {
             try {
@@ -143,7 +208,11 @@ class ChatViewModel(application: Application) : AndroidViewModel(application) {
                             if (updatedMessages.isNotEmpty() && updatedMessages.last().isStreaming) {
                                 updatedMessages[updatedMessages.lastIndex] = updatedMessages.last().copy(isStreaming = false)
                             }
-                            currentState.copy(isGenerating = false, messages = updatedMessages)
+                            val newState = currentState.copy(isGenerating = false, messages = updatedMessages)
+                            newState
+                        }
+                        _uiState.value.currentSessionId?.let { sid ->
+                            repository.replaceMessages(sid, _uiState.value.messages)
                         }
                     }
                     .catch { e ->
@@ -156,6 +225,9 @@ class ChatViewModel(application: Application) : AndroidViewModel(application) {
                             }
                             currentState.copy(isGenerating = false, messages = updatedMessages)
                         }
+                        _uiState.value.currentSessionId?.let { sid ->
+                            repository.replaceMessages(sid, _uiState.value.messages)
+                        }
                     }
                     .collect { chunk ->
                         fullResponse += chunk.text
@@ -165,7 +237,11 @@ class ChatViewModel(application: Application) : AndroidViewModel(application) {
                                 val cleanedText = fullResponse.substringBefore("[USER]").trim()
                                 updatedMessages[updatedMessages.lastIndex] = updatedMessages.last().copy(text = cleanedText)
                             }
-                            currentState.copy(messages = updatedMessages)
+                            val newState = currentState.copy(messages = updatedMessages)
+                            newState
+                        }
+                        _uiState.value.currentSessionId?.let { sid ->
+                            repository.replaceMessages(sid, _uiState.value.messages)
                         }
 
                         if (fullResponse.contains("[USER]")) {
@@ -183,6 +259,9 @@ class ChatViewModel(application: Application) : AndroidViewModel(application) {
                             isGenerating = false,
                             messages = it.messages + ChatMessage(text = "Error: ${e.message}", isFromUser = false)
                         )
+                    }
+                    _uiState.value.currentSessionId?.let { sid ->
+                        repository.replaceMessages(sid, _uiState.value.messages)
                     }
                 }
             }
