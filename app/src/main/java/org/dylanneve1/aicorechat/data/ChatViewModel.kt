@@ -32,6 +32,7 @@ import java.net.HttpURLConnection
 import java.net.NetworkInterface
 import java.net.URLEncoder
 import java.net.URL
+import java.net.URLDecoder
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
@@ -725,6 +726,80 @@ class ChatViewModel(application: Application) : AndroidViewModel(application) {
         }
     }
 
+    private fun htmlDecode(input: String): String {
+        var s = input
+            .replace("&amp;", "&")
+            .replace("&quot;", "\"")
+            .replace("&apos;", "'")
+            .replace("&lt;", "<")
+            .replace("&gt;", ">")
+            .replace("&nbsp;", " ")
+        // Numeric entities
+        val dec = Regex("&#(\\d+);")
+        s = dec.replace(s) { m ->
+            val code = m.groupValues[1].toIntOrNull() ?: return@replace m.value
+            code.toChar().toString()
+        }
+        val hex = Regex("&#x([0-9a-fA-F]+);")
+        s = hex.replace(s) { m ->
+            val code = m.groupValues[1].toIntOrNull(16) ?: return@replace m.value
+            code.toChar().toString()
+        }
+        return s
+    }
+
+    private fun decodeDuckRedirect(href: String): String {
+        return try {
+            val h = if (href.startsWith("//")) "https:$href" else href
+            if (h.startsWith("http")) {
+                // Extract uddg when present
+                val idx = h.indexOf("uddg=")
+                if (idx != -1) {
+                    val start = idx + 5
+                    val end = h.indexOf('&', start).let { if (it == -1) h.length else it }
+                    val enc = h.substring(start, end)
+                    URLDecoder.decode(enc, "UTF-8")
+                } else h
+            } else h
+        } catch (e: Exception) { href }
+    }
+
+    private fun hostname(url: String): String {
+        return try {
+            val u = URL(if (url.startsWith("http")) url else "https://$url")
+            u.host.removePrefix("www.")
+        } catch (e: Exception) { url }
+    }
+
+    private suspend fun fetchMetaDescription(targetUrl: String): Pair<String?, String?> = withContext(Dispatchers.IO) {
+        return@withContext try {
+            val u = URL(targetUrl)
+            val c = (u.openConnection() as HttpURLConnection).apply {
+                requestMethod = "GET"
+                setRequestProperty("User-Agent", "Mozilla/5.0")
+                connectTimeout = 4000
+                readTimeout = 4000
+            }
+            val sb = StringBuilder()
+            c.inputStream.buffered().use { input ->
+                val buf = ByteArray(8192)
+                var total = 0
+                while (true) {
+                    val n = input.read(buf)
+                    if (n <= 0) break
+                    sb.append(String(buf, 0, n))
+                    total += n
+                    if (total > 32_000) break
+                }
+            }
+            val html = sb.toString()
+            val title = Regex("<title>(.*?)</title>", RegexOption.IGNORE_CASE).find(html)?.groupValues?.get(1)
+            val metaDesc = Regex("""<meta[^>]*name="description"[^>]*content="(.*?)"[^>]*>""", RegexOption.IGNORE_CASE).find(html)?.groupValues?.get(1)
+                ?: Regex("""<meta[^>]*property="og:description"[^>]*content="(.*?)"[^>]*>""", RegexOption.IGNORE_CASE).find(html)?.groupValues?.get(1)
+            Pair(title?.let { htmlDecode(it.replace(Regex("<.*?>"), "").trim()) }, metaDesc?.let { htmlDecode(it.trim()) })
+        } catch (e: Exception) { Pair(null, null) }
+    }
+
     private suspend fun performWebSearch(query: String): String = withContext(Dispatchers.IO) {
         try {
             val encoded = URLEncoder.encode(query, "UTF-8")
@@ -750,20 +825,29 @@ class ChatViewModel(application: Application) : AndroidViewModel(application) {
                     option = RegexOption.IGNORE_CASE
                 )
                 val snippetRegex = Regex(
-                    pattern = """(?:<a[^>]*class="result__snippet[^"]*"[^>]*>(.*?)</a>|<span[^>]*class="result__snippet[^"]*"[^>]*>(.*?)</span>)""",
-                    option = RegexOption.IGNORE_CASE
+                    pattern = """(?:class="result__snippet[^"]*"[^>]*>(.*?)</(?:a|span|div)>)""",
+                    options = setOf(RegexOption.IGNORE_CASE, RegexOption.DOT_MATCHES_ALL)
                 )
                 val items = itemRegex.findAll(html).take(5).map { it.value }.toList()
                 if (items.isEmpty()) return@use "No results"
-                val lines = items.mapIndexed { idx, block ->
-                    val title = titleRegex.find(block)?.groupValues?.get(1)?.replace(Regex("<.*?>"), "")?.trim().orEmpty()
-                    val href = hrefRegex.find(block)?.groupValues?.get(1)?.trim().orEmpty()
-                    val snippetMatch = snippetRegex.find(block)
-                    val snippetRaw = (snippetMatch?.groupValues?.getOrNull(1) ?: snippetMatch?.groupValues?.getOrNull(2)) ?: ""
-                    val snippet = snippetRaw.replace(Regex("<.*?>"), "").replace("\n", " ").trim()
-                    "${idx + 1}. ${title}\n- ${snippet}\n- ${href}"
+                val lines = mutableListOf<String>()
+                for ((idx, block) in items.withIndex()) {
+                    val rawTitle = titleRegex.find(block)?.groupValues?.get(1).orEmpty()
+                    val rawHref = hrefRegex.find(block)?.groupValues?.get(1).orEmpty()
+                    val rawSnippet = snippetRegex.find(block)?.groupValues?.get(1).orEmpty()
+                    val realUrl = decodeDuckRedirect(htmlDecode(rawHref))
+                    val host = hostname(realUrl)
+                    var title = htmlDecode(rawTitle.replace(Regex("<.*?>"), "").trim())
+                    var snippet = htmlDecode(rawSnippet.replace(Regex("<.*?>"), " ").replace("\n", " ").replace(" +".toRegex(), " ").trim())
+                    if (snippet.isBlank() || snippet.length < 24) {
+                        val (t, d) = fetchMetaDescription(realUrl)
+                        if (!d.isNullOrBlank()) snippet = d
+                        if (!t.isNullOrBlank() && title.isBlank()) title = t
+                    }
+                    if (title.isBlank() && snippet.isBlank()) continue
+                    lines.add("${idx + 1}. ${host} — ${title}\n- ${snippet}")
                 }
-                lines.joinToString("\n\n")
+                if (lines.isEmpty()) "No results" else lines.joinToString("\n\n")
             }
         } catch (e: Exception) {
             "No results (error: ${e.message})"
