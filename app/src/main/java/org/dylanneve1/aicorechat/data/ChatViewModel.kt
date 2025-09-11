@@ -35,6 +35,7 @@ import org.dylanneve1.aicorechat.data.image.ImageDescriptionService
 import java.io.InputStream
 import android.graphics.ImageDecoder
 import android.provider.MediaStore
+import org.dylanneve1.aicorechat.data.prompt.PromptTemplates
 
 /**
  * ChatViewModel orchestrates sessions, model streaming, tools, and persistence.
@@ -544,36 +545,18 @@ class ChatViewModel(application: Application) : AndroidViewModel(application) {
 
         generationJob = viewModelScope.launch {
             try {
-                val promptBuilder = StringBuilder()
                 val allowSearchThisTurn = _uiState.value.webSearchEnabled && webSearchService.isOnline()
-                promptBuilder.append(
-                    "You are a helpful AI assistant powered by Gemini Nano, created by the Google Deepmind team. Follow the user's instructions carefully.\n" +
-                    "Always format the conversation with tags and ALWAYS end your reply with [/ASSISTANT].\n" +
-                    "- User turns: wrap content in [USER] and [/USER].\n" +
-                    "- Assistant turns: wrap content in [ASSISTANT] and [/ASSISTANT].\n" +
-                    "- If an [IMAGE_DESCRIPTION] block is present, treat it as the user's attached image description and use it to inform the reply. Do not repeat or quote the block.\n" +
-                    "- Never mention tools or web results in your reply. Do NOT include [WEB_RESULTS] or citations, links, or attributions.\n"
-                )
+                val offlineNotice = _uiState.value.webSearchEnabled && !allowSearchThisTurn
+                val promptBuilder = StringBuilder()
+                promptBuilder.append(PromptTemplates.systemPreamble(allowSearch = allowSearchThisTurn, offlineNotice = offlineNotice))
+                promptBuilder.append(PromptTemplates.fewShotGeneral())
                 if (allowSearchThisTurn) {
-                    promptBuilder.append(
-                        "- Tool call: To request a web search, respond with [SEARCH]query[/SEARCH] as the first output and nothing else.\n" +
-                        "- For up-to-date or factual queries where fresh info helps, prefer the search tool.\n\n"
-                    )
-                } else if (_uiState.value.webSearchEnabled) {
-                    promptBuilder.append(
-                        "- Search unavailable this turn (device offline). Do not attempt to use any tools. Answer based on known information.\n\n"
-                    )
-                } else {
-                    promptBuilder.append("\n")
+                    promptBuilder.append(PromptTemplates.fewShotSearch())
                 }
-                // Example
-                promptBuilder.append("[USER]\nHello, who are you?\n[/USER]\n")
-                promptBuilder.append("[ASSISTANT]\nI am a helpful AI assistant built to answer your questions.\n[/ASSISTANT]\n\n")
                 prependPersonalContextIfNeeded(promptBuilder)
                 if (!pendingImageDesc.isNullOrBlank() && _uiState.value.multimodalEnabled) {
                     promptBuilder.append("[IMAGE_DESCRIPTION]\n${pendingImageDesc}\n[/IMAGE_DESCRIPTION]\n\n")
                 }
-
                 val history = _uiState.value.messages.takeLast(10)
                 history.forEach { message ->
                     if (message.id == userMessage.id) return@forEach
@@ -723,13 +706,7 @@ class ChatViewModel(application: Application) : AndroidViewModel(application) {
             val results = webSearchService.search(query)
 
             val promptBuilder = StringBuilder()
-            promptBuilder.append(
-                "You are a helpful AI assistant. Follow the user's instructions carefully.\n" +
-                "Always end your reply with [/ASSISTANT].\n" +
-                "Use the following web results ONLY to inform the next answer.\n" +
-                "Do NOT mention or cite the web results, and do NOT include [WEB_RESULTS] in your reply.\n" +
-                "Do NOT include URLs or sources; write the answer directly.\n\n"
-            )
+            promptBuilder.append(PromptTemplates.postSearchPreamble())
             promptBuilder.append("[WEB_RESULTS]\n${results}\n[/WEB_RESULTS]\n\n")
             // Build recent history WITHOUT any trailing streaming placeholder bubble (we never persisted it)
             val recent = _uiState.value.messages.filter { !it.isStreaming }
