@@ -68,8 +68,11 @@ import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.PickVisualMediaRequest
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.activity.result.contract.ActivityResultContracts.PickVisualMedia
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalFocusManager
 import androidx.core.content.ContextCompat
 import androidx.compose.foundation.Image
 import androidx.compose.ui.graphics.ColorFilter
@@ -84,12 +87,8 @@ import org.dylanneve1.aicorechat.ui.chat.tools.ToolsSheet
 import org.dylanneve1.aicorechat.ui.chat.drawer.DrawerHeader
 import org.dylanneve1.aicorechat.ui.chat.drawer.SessionItem
 import org.dylanneve1.aicorechat.ui.chat.topbar.AICoreChatTopAppBar
-import android.graphics.ImageDecoder
-import android.os.Build
-import android.provider.MediaStore
-import androidx.activity.result.PickVisualMediaRequest
-import androidx.activity.result.contract.ActivityResultContracts.PickVisualMedia
-import androidx.compose.ui.platform.LocalFocusManager
+import org.dylanneve1.aicorechat.ui.chat.message.MessageRow
+import org.dylanneve1.aicorechat.ui.chat.message.MessageInput
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalFoundationApi::class)
 @Composable
@@ -389,7 +388,7 @@ fun ChatScreen(viewModel: ChatViewModel) {
     if (showSettingsSheet) {
         val hasFine = ContextCompat.checkSelfPermission(context, android.Manifest.permission.ACCESS_FINE_LOCATION) == android.content.pm.PackageManager.PERMISSION_GRANTED
         val hasCoarse = ContextCompat.checkSelfPermission(context, android.Manifest.permission.ACCESS_COARSE_LOCATION) == android.content.pm.PackageManager.PERMISSION_GRANTED
-        SettingsSheet(
+        SettingsScreen(
             temperature = uiState.temperature,
             topK = uiState.topK,
             onTemperatureChange = viewModel::updateTemperature,

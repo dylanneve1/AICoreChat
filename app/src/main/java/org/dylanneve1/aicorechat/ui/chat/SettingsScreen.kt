@@ -45,7 +45,7 @@ import kotlin.math.roundToInt
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun SettingsSheet(
+fun SettingsScreen(
     temperature: Float,
     topK: Int,
     onTemperatureChange: (Float) -> Unit,

@@ -1,4 +1,4 @@
-package org.dylanneve1.aicorechat.ui.chat
+package org.dylanneve1.aicorechat.ui.chat.message
 
 import androidx.compose.animation.animateContentSize
 import androidx.compose.foundation.ExperimentalFoundationApi
@@ -13,35 +13,17 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
-import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.outlined.Person
-import androidx.compose.material.icons.outlined.SmartToy
-import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.ClipboardManager
 import androidx.compose.ui.platform.LocalClipboardManager
 import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.unit.dp
-import kotlinx.coroutines.delay
 import org.dylanneve1.aicorechat.data.ChatMessage
 import com.mikepenz.markdown.m3.Markdown
-import org.dylanneve1.aicorechat.ui.chat.message.AssistantAvatar
-import org.dylanneve1.aicorechat.ui.chat.message.UserAvatar
-import org.dylanneve1.aicorechat.ui.chat.message.TypingIndicator
-import org.dylanneve1.aicorechat.ui.chat.message.SearchingIndicator
 import coil.compose.AsyncImage
 import androidx.core.net.toUri
 
@@ -118,4 +100,4 @@ fun MessageRow(
             UserAvatar()
         }
     }
-}
+} 

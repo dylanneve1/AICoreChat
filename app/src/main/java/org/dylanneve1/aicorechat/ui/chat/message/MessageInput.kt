@@ -1,4 +1,4 @@
-package org.dylanneve1.aicorechat.ui.chat
+package org.dylanneve1.aicorechat.ui.chat.message
 
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Box
@@ -143,4 +143,4 @@ fun MessageInput(
             )
         }
     }
-}
+} 

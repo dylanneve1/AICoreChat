@@ -1,10 +1,8 @@
-package org.dylanneve1.aicorechat.ui.chat
+package org.dylanneve1.aicorechat.ui.chat.message
 
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.Animatable
-import androidx.compose.animation.core.AnimationVector1D
 import androidx.compose.animation.core.FastOutSlowInEasing
-import androidx.compose.animation.core.LinearEasing
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
@@ -34,7 +32,6 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.graphics.drawscope.clipPath
-import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 
 @Composable
@@ -46,12 +43,10 @@ fun MessageBubble(
     content: @Composable () -> Unit,
 ) {
     var isVisible by remember { mutableStateOf(!isNewMessage) }
-    
-    // Animation state for new messages
+
     val scaleAnim = remember { Animatable(if (isNewMessage) 0.8f else 1f) }
     val alphaAnim = remember { Animatable(if (isNewMessage) 0f else 1f) }
-    
-    // Launch animation for new messages
+
     LaunchedEffect(isNewMessage) {
         if (isNewMessage) {
             isVisible = true
@@ -71,7 +66,7 @@ fun MessageBubble(
             )
         }
     }
-    
+
     AnimatedVisibility(
         visible = isVisible,
         enter = if (isNewMessage) {
@@ -105,10 +100,10 @@ fun MessageBubble(
                 end = Offset(0f, Float.POSITIVE_INFINITY)
             )
         }
-        
+
         val cornerRadius = 20.dp
         val tailSize = 12.dp
-        
+
         Box(
             modifier = modifier
                 .drawBehind {
@@ -149,8 +144,7 @@ private fun DrawScope.drawMessageBubble(
     val width = size.width
     val height = size.height
     val bodyHeight = height - tailSize
-    
-    // Create the main bubble body
+
     path.addRoundRect(
         roundRect = androidx.compose.ui.geometry.RoundRect(
             left = 0f,
@@ -160,36 +154,30 @@ private fun DrawScope.drawMessageBubble(
             cornerRadius = CornerRadius(cornerRadius)
         )
     )
-    
-    // Draw the tail triangle
+
     val tailPath = Path()
     if (isFromUser) {
-        // Position the tail at the bottom-right
         val tailStartX = width - cornerRadius * 1.5f
         val tailBottomY = height
-        
+
         tailPath.moveTo(tailStartX, bodyHeight)
         tailPath.lineTo(width - tailSize, tailBottomY)
         tailPath.lineTo(width - cornerRadius, bodyHeight)
         tailPath.close()
     } else {
-        // Position the tail at the bottom-left
         val tailStartX = cornerRadius * 1.5f
-        
+
         tailPath.moveTo(tailStartX, bodyHeight)
         tailPath.lineTo(tailSize, height)
         tailPath.lineTo(cornerRadius, bodyHeight)
         tailPath.close()
     }
-    
-    // Combine paths
+
     path.addPath(tailPath)
-    
-    // Draw with alpha for fade-in effect
+
     drawPath(
         path = path,
         brush = brush,
         alpha = alpha
     )
-    
-}
+} 
