@@ -45,6 +45,7 @@ import androidx.compose.ui.unit.dp
 import kotlinx.coroutines.launch
 import org.dylanneve1.aicorechat.data.ChatViewModel
 import kotlin.math.max
+import androidx.compose.foundation.layout.imePadding
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -79,7 +80,8 @@ fun ChatScreen(viewModel: ChatViewModel) {
     Scaffold(
         modifier = Modifier
             .fillMaxSize()
-            .nestedScroll(scrollBehavior.nestedScrollConnection),
+            .nestedScroll(scrollBehavior.nestedScrollConnection)
+            .imePadding(),
         topBar = {
             AICoreChatTopAppBar(
                 scrollBehavior = scrollBehavior,
@@ -124,7 +126,7 @@ fun ChatScreen(viewModel: ChatViewModel) {
                     start = 16.dp,
                     end = 16.dp,
                     top = 16.dp,
-                    bottom = 16.dp // Removed incorrect manual padding calculation
+                    bottom = 16.dp
                 )
             ) {
                 items(
@@ -147,7 +149,6 @@ fun ChatScreen(viewModel: ChatViewModel) {
         }
     )
 
-    // Clear chat dialog
     if (showClearDialog) {
         AlertDialog(
             onDismissRequest = { showClearDialog = false },
@@ -165,7 +166,6 @@ fun ChatScreen(viewModel: ChatViewModel) {
         )
     }
 
-    // Settings sheet
     if (showSettingsSheet) {
         SettingsSheet(
             temperature = uiState.temperature,
