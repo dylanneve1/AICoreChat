@@ -79,7 +79,7 @@ fun MessageInput(
                 keyboardActions = KeyboardActions(
                     onSend = {
                         val trimmed = text.trim()
-                        if (trimmed.isNotEmpty() && !isGenerating) {
+                        if (trimmed.isNotEmpty() && !isGenerating && !isDescribingImage) {
                             onSendMessage(trimmed)
                             text = ""
                         }
@@ -88,7 +88,6 @@ fun MessageInput(
                 leadingIcon = {
                     Row {
                         IconButton(onClick = onOpenTools) { Icon(Icons.Outlined.Build, contentDescription = "Tools") }
-                        Spacer(Modifier.width(2.dp))
                         IconButton(onClick = onPickImage) { Icon(Icons.Outlined.Add, contentDescription = "Add image") }
                     }
                 },
@@ -99,12 +98,12 @@ fun MessageInput(
                         IconButton(
                             onClick = {
                                 val trimmed = text.trim()
-                                if (trimmed.isNotEmpty()) {
+                                if (trimmed.isNotEmpty() && !isDescribingImage) {
                                     onSendMessage(trimmed)
                                     text = ""
                                 }
                             },
-                            enabled = text.isNotBlank()
+                            enabled = text.isNotBlank() && !isDescribingImage
                         ) { Icon(Icons.Outlined.Send, contentDescription = "Send") }
                     }
                 },
