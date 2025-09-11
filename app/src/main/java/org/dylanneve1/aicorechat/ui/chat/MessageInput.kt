@@ -87,10 +87,10 @@ fun MessageInput(
                     }
                 ),
                 leadingIcon = {
-                    Row {
-                        IconButton(onClick = onOpenTools, modifier = Modifier.size(28.dp)) { Icon(Icons.Outlined.Build, contentDescription = "Tools", modifier = Modifier.size(18.dp)) }
+                    Row(modifier = Modifier.padding(start = 8.dp)) {
+                        IconButton(onClick = onOpenTools, modifier = Modifier.size(34.dp)) { Icon(Icons.Outlined.Build, contentDescription = "Tools", modifier = Modifier.size(24.dp)) }
                         if (showPlus) {
-                            IconButton(onClick = onPickImage, modifier = Modifier.size(28.dp)) { Icon(Icons.Outlined.Add, contentDescription = "Add image", modifier = Modifier.size(18.dp)) }
+                            IconButton(onClick = onPickImage, modifier = Modifier.size(34.dp)) { Icon(Icons.Outlined.Add, contentDescription = "Add image", modifier = Modifier.size(24.dp)) }
                         }
                     }
                 },
