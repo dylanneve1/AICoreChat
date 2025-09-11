@@ -60,6 +60,7 @@ dependencies {
     // ML Kit GenAI Image Description
     implementation("com.google.mlkit:genai-image-description:1.0.0-beta1")
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-play-services:1.7.3")
+    implementation("org.jetbrains.kotlinx:kotlinx-coroutines-guava:1.7.3")
 
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)
