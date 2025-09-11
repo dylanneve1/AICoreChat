@@ -224,7 +224,8 @@ fun ChatScreen(viewModel: ChatViewModel) {
                     },
                     attachmentUri = uiState.pendingImageUri,
                     isDescribingImage = uiState.isDescribingImage,
-                    onRemoveImage = viewModel::clearPendingImage
+                    onRemoveImage = viewModel::clearPendingImage,
+                    showPlus = uiState.multimodalEnabled
                 )
             },
             floatingActionButton = {

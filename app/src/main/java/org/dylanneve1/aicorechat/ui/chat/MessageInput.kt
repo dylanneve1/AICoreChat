@@ -50,7 +50,8 @@ fun MessageInput(
     onPickImage: () -> Unit = {},
     attachmentUri: String? = null,
     isDescribingImage: Boolean = false,
-    onRemoveImage: () -> Unit = {}
+    onRemoveImage: () -> Unit = {},
+    showPlus: Boolean = true
 ) {
     var text by remember { mutableStateOf("") }
 
@@ -88,7 +89,9 @@ fun MessageInput(
                 leadingIcon = {
                     Row {
                         IconButton(onClick = onOpenTools) { Icon(Icons.Outlined.Build, contentDescription = "Tools") }
-                        IconButton(onClick = onPickImage) { Icon(Icons.Outlined.Add, contentDescription = "Add image") }
+                        if (showPlus) {
+                            IconButton(onClick = onPickImage) { Icon(Icons.Outlined.Add, contentDescription = "Add image") }
+                        }
                     }
                 },
                 trailingIcon = {

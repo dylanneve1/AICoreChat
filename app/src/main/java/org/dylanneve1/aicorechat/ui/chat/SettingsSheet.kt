@@ -6,24 +6,30 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.outlined.Close
 import androidx.compose.material.icons.outlined.OpenInNew
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Slider
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
-import androidx.compose.material3.rememberModalBottomSheetState
+import androidx.compose.material3.TopAppBar
+import androidx.compose.material3.Surface
+import androidx.compose.material3.Scaffold
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -54,179 +60,188 @@ fun SettingsSheet(
     onWipeAllChats: () -> Unit,
     onDismiss: () -> Unit
 ) {
-    val sheetState = rememberModalBottomSheetState()
     val context = LocalContext.current
     val githubUrl = "https://github.com/dylanneve1/AICoreChat"
     val githubIntent = remember { Intent(Intent.ACTION_VIEW, Uri.parse(githubUrl)) }
     var confirmWipe by remember { mutableStateOf(false) }
 
-    ModalBottomSheet(
-        onDismissRequest = onDismiss,
-        sheetState = sheetState,
-    ) {
-        Column(
-            modifier = Modifier
-                .padding(horizontal = 24.dp)
-                .navigationBarsPadding()
-        ) {
-            Text(
-                text = "Model Settings",
-                style = MaterialTheme.typography.titleLarge,
-                color = MaterialTheme.colorScheme.primary,
-                modifier = Modifier.padding(top = 12.dp, bottom = 16.dp)
-            )
-
-            SettingSlider(
-                label = "Temperature",
-                value = temperature,
-                valueRange = 0f..1f,
-                onValueChange = onTemperatureChange,
-                valueLabel = "%.2f".format(temperature)
-            )
-
-            Spacer(modifier = Modifier.height(8.dp))
-
-            SettingSlider(
-                label = "Top-K",
-                value = topK.toFloat(),
-                valueRange = 1f..100f,
-                onValueChange = { onTopKChange(it.roundToInt()) },
-                valueLabel = topK.toString()
-            )
-
-            HorizontalDivider(modifier = Modifier.padding(vertical = 24.dp), color = MaterialTheme.colorScheme.outlineVariant)
-
-            Text(
-                text = "Personalization",
-                style = MaterialTheme.typography.titleLarge,
-                modifier = Modifier.padding(bottom = 12.dp)
-            )
-
-            OutlinedTextField(
-                value = userName,
-                onValueChange = onUserNameChange,
-                label = { Text("Your name") },
-                singleLine = true,
-                modifier = Modifier.fillMaxWidth()
-            )
-
-            Spacer(modifier = Modifier.height(12.dp))
-
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.SpaceBetween
-            ) {
-                Column(modifier = Modifier.weight(1f)) {
-                    Text("Personal Context", style = MaterialTheme.typography.bodyLarge, fontWeight = FontWeight.Bold)
-                    Text(
-                        "Adds current time, device, locale, and (if permitted) location to the start of each chat to improve responses.",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                }
-                Switch(checked = personalContextEnabled, onCheckedChange = onPersonalContextToggle)
-            }
-
-            Spacer(Modifier.height(12.dp))
-
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.SpaceBetween
-            ) {
-                Column(modifier = Modifier.weight(1f)) {
-                    Text("Web Search", style = MaterialTheme.typography.bodyLarge, fontWeight = FontWeight.Bold)
-                    Text(
-                        "Allow the assistant to trigger a one-shot web search using tool calls.",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                }
-                Switch(checked = webSearchEnabled, onCheckedChange = onWebSearchToggle)
-            }
-
-            Spacer(Modifier.height(12.dp))
-
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.SpaceBetween
-            ) {
-                Column(modifier = Modifier.weight(1f)) {
-                    Text("Multimodal (images)", style = MaterialTheme.typography.bodyLarge, fontWeight = FontWeight.Bold)
-                    Text(
-                        "Generates short descriptions for attached images and adds them to the chat context.",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                }
-                Switch(checked = multimodalEnabled, onCheckedChange = onMultimodalToggle)
-            }
-
-            HorizontalDivider(modifier = Modifier.padding(vertical = 24.dp), color = MaterialTheme.colorScheme.outlineVariant)
-
-            Text(
-                text = "Danger Zone",
-                style = MaterialTheme.typography.titleLarge,
-                color = MaterialTheme.colorScheme.error,
-                modifier = Modifier.padding(bottom = 8.dp)
-            )
-            Text(
-                text = "Wipe all chats from this device.",
-                style = MaterialTheme.typography.bodyMedium
-            )
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.End
-            ) {
-                TextButton(onClick = { confirmWipe = true }) { Text("Wipe all chats", color = MaterialTheme.colorScheme.error) }
-            }
-
-            if (confirmWipe) {
-                androidx.compose.material3.AlertDialog(
-                    onDismissRequest = { confirmWipe = false },
-                    title = { Text("Wipe all chats?") },
-                    text = { Text("This cannot be undone.") },
-                    confirmButton = {
-                        TextButton(onClick = {
-                            confirmWipe = false
-                            onWipeAllChats()
-                            onDismiss()
-                        }) { Text("Wipe") }
-                    },
-                    dismissButton = { TextButton(onClick = { confirmWipe = false }) { Text("Cancel") } }
+    Surface(modifier = Modifier.fillMaxSize()) {
+        Scaffold(
+            topBar = {
+                TopAppBar(
+                    title = { Text("Settings") },
+                    actions = {
+                        IconButton(onClick = onDismiss) { Icon(Icons.Outlined.Close, contentDescription = "Close") }
+                    }
                 )
             }
-
-            HorizontalDivider(modifier = Modifier.padding(vertical = 24.dp), color = MaterialTheme.colorScheme.outlineVariant)
-
-            Text(
-                text = "About",
-                style = MaterialTheme.typography.titleLarge,
-                modifier = Modifier.padding(bottom = 12.dp)
-            )
-            Text(
-                text = "AICore Chat demonstrates on-device Gemini Nano via the AICore SDK. Chats can be renamed, organized, and titled automatically.",
-                style = MaterialTheme.typography.bodyMedium
-            )
-            Text(
-                text = "Personal Context is optional and only used locally to help the model respond more accurately.",
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                modifier = Modifier.padding(top = 4.dp)
-            )
-            TextButton(onClick = { context.startActivity(githubIntent) }) {
-                Text("Source Code on GitHub")
-                Icon(
-                    imageVector = Icons.Outlined.OpenInNew,
-                    contentDescription = "Open in new window",
-                    modifier = Modifier
-                        .padding(start = 4.dp)
-                        .size(16.dp)
+        ) { innerPadding ->
+            Column(
+                modifier = Modifier
+                    .padding(innerPadding)
+                    .padding(horizontal = 24.dp)
+                    .navigationBarsPadding()
+                    .verticalScroll(rememberScrollState())
+            ) {
+                Text(
+                    text = "Model Settings",
+                    style = MaterialTheme.typography.titleLarge,
+                    color = MaterialTheme.colorScheme.primary,
+                    modifier = Modifier.padding(top = 12.dp, bottom = 16.dp)
                 )
+
+                SettingSlider(
+                    label = "Temperature",
+                    value = temperature,
+                    valueRange = 0f..1f,
+                    onValueChange = onTemperatureChange,
+                    valueLabel = "%.2f".format(temperature)
+                )
+
+                Spacer(modifier = Modifier.height(8.dp))
+
+                SettingSlider(
+                    label = "Top-K",
+                    value = topK.toFloat(),
+                    valueRange = 1f..100f,
+                    onValueChange = { onTopKChange(it.roundToInt()) },
+                    valueLabel = topK.toString()
+                )
+
+                HorizontalDivider(modifier = Modifier.padding(vertical = 24.dp), color = MaterialTheme.colorScheme.outlineVariant)
+
+                Text(
+                    text = "Personalization",
+                    style = MaterialTheme.typography.titleLarge,
+                    modifier = Modifier.padding(bottom = 12.dp)
+                )
+
+                OutlinedTextField(
+                    value = userName,
+                    onValueChange = onUserNameChange,
+                    label = { Text("Your name") },
+                    singleLine = true,
+                    modifier = Modifier.fillMaxWidth()
+                )
+
+                Spacer(modifier = Modifier.height(12.dp))
+
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.SpaceBetween
+                ) {
+                    Column(modifier = Modifier.weight(1f)) {
+                        Text("Personal Context", style = MaterialTheme.typography.bodyLarge, fontWeight = FontWeight.Bold)
+                        Text(
+                            "Adds current time, device, locale, and (if permitted) location to the start of each chat to improve responses.",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+                    Switch(checked = personalContextEnabled, onCheckedChange = onPersonalContextToggle)
+                }
+
+                Spacer(Modifier.height(12.dp))
+
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.SpaceBetween
+                ) {
+                    Column(modifier = Modifier.weight(1f)) {
+                        Text("Web Search", style = MaterialTheme.typography.bodyLarge, fontWeight = FontWeight.Bold)
+                        Text(
+                            "Allow the assistant to trigger a one-shot web search using tool calls.",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+                    Switch(checked = webSearchEnabled, onCheckedChange = onWebSearchToggle)
+                }
+
+                Spacer(Modifier.height(12.dp))
+
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.SpaceBetween
+                ) {
+                    Column(modifier = Modifier.weight(1f)) {
+                        Text("Multimodal (images)", style = MaterialTheme.typography.bodyLarge, fontWeight = FontWeight.Bold)
+                        Text(
+                            "Generates short descriptions for attached images and adds them to the chat context.",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+                    Switch(checked = multimodalEnabled, onCheckedChange = onMultimodalToggle)
+                }
+
+                HorizontalDivider(modifier = Modifier.padding(vertical = 24.dp), color = MaterialTheme.colorScheme.outlineVariant)
+
+                Text(
+                    text = "Danger Zone",
+                    style = MaterialTheme.typography.titleLarge,
+                    color = MaterialTheme.colorScheme.error,
+                    modifier = Modifier.padding(bottom = 8.dp)
+                )
+                Text(
+                    text = "Wipe all chats from this device.",
+                    style = MaterialTheme.typography.bodyMedium
+                )
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.End
+                ) {
+                    TextButton(onClick = { confirmWipe = true }) { Text("Wipe all chats", color = MaterialTheme.colorScheme.error) }
+                }
+
+                if (confirmWipe) {
+                    androidx.compose.material3.AlertDialog(
+                        onDismissRequest = { confirmWipe = false },
+                        title = { Text("Wipe all chats?") },
+                        text = { Text("This cannot be undone.") },
+                        confirmButton = {
+                            TextButton(onClick = {
+                                confirmWipe = false
+                                onWipeAllChats()
+                                onDismiss()
+                            }) { Text("Wipe") }
+                        },
+                        dismissButton = { TextButton(onClick = { confirmWipe = false }) { Text("Cancel") } }
+                    )
+                }
+
+                HorizontalDivider(modifier = Modifier.padding(vertical = 24.dp), color = MaterialTheme.colorScheme.outlineVariant)
+
+                Text(
+                    text = "About",
+                    style = MaterialTheme.typography.titleLarge,
+                    modifier = Modifier.padding(bottom = 12.dp)
+                )
+                Text(
+                    text = "AICore Chat demonstrates on-device Gemini Nano via the AICore SDK. Chats can be renamed, organized, and titled automatically.",
+                    style = MaterialTheme.typography.bodyMedium
+                )
+                Text(
+                    text = "Personal Context is optional and only used locally to help the model respond more accurately.",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.padding(top = 4.dp)
+                )
+                TextButton(onClick = { context.startActivity(githubIntent) }) {
+                    Text("Source Code on GitHub")
+                    Icon(
+                        imageVector = Icons.Outlined.OpenInNew,
+                        contentDescription = "Open in new window",
+                        modifier = Modifier
+                            .padding(start = 4.dp)
+                            .size(16.dp)
+                    )
+                }
+                Spacer(modifier = Modifier.height(16.dp))
             }
-            Spacer(modifier = Modifier.height(16.dp))
         }
     }
 }
