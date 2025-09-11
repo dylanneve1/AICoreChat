@@ -3,6 +3,8 @@ package org.dylanneve1.aicorechat.data
 import android.app.Application
 import android.content.Context
 import android.location.Location
+import android.net.ConnectivityManager
+import android.net.NetworkCapabilities
 import android.os.BatteryManager
 import android.os.Build
 import android.os.Environment
@@ -442,6 +444,18 @@ class ChatViewModel(application: Application) : AndroidViewModel(application) {
         }
     }
 
+    private fun isOnline(): Boolean {
+        return try {
+            val cm = getApplication<Application>().getSystemService(Context.CONNECTIVITY_SERVICE) as ConnectivityManager
+            val network = cm.activeNetwork ?: return false
+            val caps = cm.getNetworkCapabilities(network) ?: return false
+            caps.hasCapability(NetworkCapabilities.NET_CAPABILITY_INTERNET) &&
+                (caps.hasTransport(NetworkCapabilities.TRANSPORT_WIFI) ||
+                 caps.hasTransport(NetworkCapabilities.TRANSPORT_CELLULAR) ||
+                 caps.hasTransport(NetworkCapabilities.TRANSPORT_ETHERNET))
+        } catch (e: Exception) { false }
+    }
+
     fun sendMessage(prompt: String) {
         generationJob?.cancel()
 
@@ -457,6 +471,7 @@ class ChatViewModel(application: Application) : AndroidViewModel(application) {
         generationJob = viewModelScope.launch {
             try {
                 val promptBuilder = StringBuilder()
+                val allowSearchThisTurn = _uiState.value.webSearchEnabled && isOnline()
                 promptBuilder.append(
                     "You are a helpful AI assistant powered by Gemini Nano, created by the Google Deepmind team. Follow the user's instructions carefully.\n" +
                     "Always format the conversation with tags and ALWAYS end your reply with [/ASSISTANT].\n" +
@@ -464,10 +479,15 @@ class ChatViewModel(application: Application) : AndroidViewModel(application) {
                     "- Assistant turns: wrap content in [ASSISTANT] and [/ASSISTANT].\n" +
                     "- Never mention tools or web results in your reply. Do NOT include [WEB_RESULTS] or citations, links, or attributions.\n"
                 )
-                if (_uiState.value.webSearchEnabled) {
+                if (allowSearchThisTurn) {
                     promptBuilder.append(
                         "- Tool call: To request a web search, respond with [SEARCH]query[/SEARCH] as the first output and nothing else.\n" +
-                        "-  For questions about up to date events or for any query you feel fresh information would be useful, always use the search tool")
+                        "- For up-to-date or factual queries where fresh info helps, prefer the search tool.\n\n"
+                    )
+                } else if (_uiState.value.webSearchEnabled) {
+                    promptBuilder.append(
+                        "- Search unavailable this turn (device offline). Do not attempt to use any tools. Answer based on known information.\n\n"
+                    )
                 } else {
                     promptBuilder.append("\n")
                 }
@@ -501,7 +521,6 @@ class ChatViewModel(application: Application) : AndroidViewModel(application) {
                         _uiState.update {
                             it.copy(
                                 isGenerating = true,
-                                // Add one assistant streaming bubble
                                 messages = it.messages + ChatMessage(text = "", isFromUser = false, isStreaming = true)
                             )
                         }
@@ -535,13 +554,12 @@ class ChatViewModel(application: Application) : AndroidViewModel(application) {
                     .collect { chunk ->
                         fullResponse += chunk.text
 
-                        if (_uiState.value.webSearchEnabled) {
+                        if (allowSearchThisTurn) {
                             val firstNonWs = fullResponse.indexOfFirst { !it.isWhitespace() }.let { if (it < 0) Int.MAX_VALUE else it }
                             val searchToken = "[SEARCH]"
                             if (!searchStartDetected && firstNonWs != Int.MAX_VALUE) {
                                 val after = fullResponse.substring(firstNonWs)
                                 if (after.isNotEmpty() && after.length < searchToken.length && searchToken.startsWith(after)) {
-                                    // Detected prefix of [SEARCH]; treat as tool-call start immediately
                                     searchStartDetected = true
                                     searchStartIndex = firstNonWs
                                     _uiState.update { current ->
@@ -558,7 +576,6 @@ class ChatViewModel(application: Application) : AndroidViewModel(application) {
                             if (!searchStartDetected && startIdx >= 0 && startIdx == firstNonWs) {
                                 searchStartDetected = true
                                 searchStartIndex = startIdx
-                                // Mark searching; clear bubble text so UI shows "Searching..."
                                 val partialQuery = if (fullResponse.length >= startIdx + searchToken.length) {
                                     fullResponse.substring(startIdx + searchToken.length).substringBefore("[/SEARCH]").trim()
                                 } else ""
@@ -578,17 +595,14 @@ class ChatViewModel(application: Application) : AndroidViewModel(application) {
                                 if (endIdx != -1 && !searchTriggered) {
                                     searchTriggered = true
                                     val query = fullResponse.substring(tokenEndBase, endIdx).trim()
-                                    // Start follow-up; cancel current stream to avoid rendering content
                                     viewModelScope.launch { continueWithSearchResultsUsingExistingBubble(userMessage, query) }
                                     generationJob?.cancel()
                                     return@collect
                                 }
-                                // While waiting for closing tag, do not render stream content
                                 return@collect
                             }
                         }
 
-                        // Initial suppression window to hide partial tokens (e.g., "[SEAR")
                         val elapsed = SystemClock.elapsedRealtime() - streamStartMs
                         if (!searchStartDetected && elapsed < 300 && fullResponse.length < 24) {
                             return@collect
@@ -714,19 +728,42 @@ class ChatViewModel(application: Application) : AndroidViewModel(application) {
     private suspend fun performWebSearch(query: String): String = withContext(Dispatchers.IO) {
         try {
             val encoded = URLEncoder.encode(query, "UTF-8")
-            val url = URL("https://duckduckgo.com/html/?q=$encoded")
+            val url = URL("https://duckduckgo.com/html/?q=$encoded&kl=us-en")
             val conn = (url.openConnection() as HttpURLConnection).apply {
                 requestMethod = "GET"
                 setRequestProperty("User-Agent", "Mozilla/5.0")
-                connectTimeout = 7000
-                readTimeout = 7000
+                connectTimeout = 8000
+                readTimeout = 8000
             }
             conn.inputStream.bufferedReader().use { reader ->
                 val html = reader.readText()
-                // Very naive extraction of result titles
-                val regex = Regex("<a[^>]*class=\\\"result__a[^>]*>(.*?)</a>", RegexOption.IGNORE_CASE)
-                val titles = regex.findAll(html).map { it.groupValues[1].replace(Regex("<.*?>"), "").trim() }.take(5).toList()
-                if (titles.isEmpty()) "No results" else titles.withIndex().joinToString("\n") { (i, t) -> "${i + 1}. $t" }
+                val itemRegex = Regex(
+                    pattern = """<div class="result.*?</a>.*?</div>""",
+                    options = setOf(RegexOption.DOT_MATCHES_ALL, RegexOption.IGNORE_CASE)
+                )
+                val titleRegex = Regex(
+                    pattern = """<a[^>]*class="result__a[^"]*"[^>]*>(.*?)</a>""",
+                    option = RegexOption.IGNORE_CASE
+                )
+                val hrefRegex = Regex(
+                    pattern = """<a[^>]*class="result__a[^"]*"[^>]*href="(.*?)"""",
+                    option = RegexOption.IGNORE_CASE
+                )
+                val snippetRegex = Regex(
+                    pattern = """(?:<a[^>]*class="result__snippet[^"]*"[^>]*>(.*?)</a>|<span[^>]*class="result__snippet[^"]*"[^>]*>(.*?)</span>)""",
+                    option = RegexOption.IGNORE_CASE
+                )
+                val items = itemRegex.findAll(html).take(5).map { it.value }.toList()
+                if (items.isEmpty()) return@use "No results"
+                val lines = items.mapIndexed { idx, block ->
+                    val title = titleRegex.find(block)?.groupValues?.get(1)?.replace(Regex("<.*?>"), "")?.trim().orEmpty()
+                    val href = hrefRegex.find(block)?.groupValues?.get(1)?.trim().orEmpty()
+                    val snippetMatch = snippetRegex.find(block)
+                    val snippetRaw = (snippetMatch?.groupValues?.getOrNull(1) ?: snippetMatch?.groupValues?.getOrNull(2)) ?: ""
+                    val snippet = snippetRaw.replace(Regex("<.*?>"), "").replace("\n", " ").trim()
+                    "${idx + 1}. ${title}\n- ${snippet}\n- ${href}"
+                }
+                lines.joinToString("\n\n")
             }
         } catch (e: Exception) {
             "No results (error: ${e.message})"
