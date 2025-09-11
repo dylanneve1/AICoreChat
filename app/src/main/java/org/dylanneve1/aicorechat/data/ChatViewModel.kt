@@ -15,6 +15,7 @@ import com.google.ai.edge.aicore.GenerativeModel
 import com.google.ai.edge.aicore.generationConfig
 import com.google.android.gms.location.LocationServices
 import kotlinx.coroutines.Job
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -499,14 +500,22 @@ class ChatViewModel(application: Application) : AndroidViewModel(application) {
                         val earliestIndex = stopTokens
                             .map { token -> fullResponse.indexOf(token).let { if (it >= 0) it else Int.MAX_VALUE } }
                             .minOrNull() ?: Int.MAX_VALUE
+
+                        // Small delay to coalesce chunks and avoid flashing partial tokens
+                        delay(35)
+
                         _uiState.update { currentState ->
                             val updatedMessages = currentState.messages.toMutableList()
                             if (updatedMessages.isNotEmpty() && updatedMessages.last().isStreaming) {
-                                val trimmed = if (earliestIndex != Int.MAX_VALUE) fullResponse.substring(0, earliestIndex).trim() else fullResponse.trim()
-                                updatedMessages[updatedMessages.lastIndex] = updatedMessages.last().copy(text = trimmed)
+                                val displayText = if (earliestIndex != Int.MAX_VALUE) {
+                                    fullResponse.substring(0, earliestIndex)
+                                } else {
+                                    val holdBack = findPartialStopSuffixLength(fullResponse, stopTokens)
+                                    if (holdBack > 0 && fullResponse.length > holdBack) fullResponse.dropLast(holdBack) else fullResponse
+                                }
+                                updatedMessages[updatedMessages.lastIndex] = updatedMessages.last().copy(text = displayText.trim())
                             }
-                            val newState = currentState.copy(messages = updatedMessages)
-                            newState
+                            currentState.copy(messages = updatedMessages)
                         }
                         if (earliestIndex != Int.MAX_VALUE) {
                             Log.d("ChatViewModel", "Stop token detected. Cancelling job.")
@@ -530,6 +539,20 @@ class ChatViewModel(application: Application) : AndroidViewModel(application) {
                 }
             }
         }
+    }
+
+    private fun findPartialStopSuffixLength(text: String, tokens: List<String>): Int {
+        var maxLen = 0
+        tokens.forEach { token ->
+            val maxCheck = minOf(token.length - 1, text.length)
+            for (k in maxCheck downTo 1) {
+                if (text.endsWith(token.substring(0, k))) {
+                    if (k > maxLen) maxLen = k
+                    break
+                }
+            }
+        }
+        return maxLen
     }
 
     override fun onCleared() {
