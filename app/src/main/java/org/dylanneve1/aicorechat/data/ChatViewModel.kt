@@ -72,7 +72,6 @@ class ChatViewModel(application: Application) : AndroidViewModel(application) {
         val locale = Locale.getDefault().toString()
         val timeZone = java.util.TimeZone.getDefault().id
         val namePart = if (_uiState.value.userName.isNotBlank()) "User Name: ${_uiState.value.userName}\n" else ""
-        // Note: For location, proper runtime permissions and APIs are needed. Placeholder here.
         val location = "Location: (not granted)\n"
         return "[PERSONAL_CONTEXT]\n${namePart}Current Time: ${now}\nDevice: ${device}\nLocale: ${locale}\nTime Zone: ${timeZone}\n${location}\n[/PERSONAL_CONTEXT]\n\n"
     }
@@ -398,6 +397,7 @@ class ChatViewModel(application: Application) : AndroidViewModel(application) {
                 Log.d("ChatViewModel", "Sending prompt:\n$fullPrompt")
 
                 var fullResponse = ""
+                val stopTokens = listOf("[/ASSISTANT]", "[ASSISTANT]", "[/USER]", "[USER]")
                 generativeModel!!
                     .generateContentStream(fullPrompt)
                     .onStart {
@@ -442,21 +442,20 @@ class ChatViewModel(application: Application) : AndroidViewModel(application) {
                     }
                     .collect { chunk ->
                         fullResponse += chunk.text
+                        val earliestIndex = stopTokens
+                            .map { token -> fullResponse.indexOf(token).let { if (it >= 0) it else Int.MAX_VALUE } }
+                            .minOrNull() ?: Int.MAX_VALUE
                         _uiState.update { currentState ->
                             val updatedMessages = currentState.messages.toMutableList()
                             if (updatedMessages.isNotEmpty() && updatedMessages.last().isStreaming) {
-                                val cleanedText = fullResponse.substringBefore("[USER]").trim()
-                                updatedMessages[updatedMessages.lastIndex] = updatedMessages.last().copy(text = cleanedText)
+                                val trimmed = if (earliestIndex != Int.MAX_VALUE) fullResponse.substring(0, earliestIndex).trim() else fullResponse.trim()
+                                updatedMessages[updatedMessages.lastIndex] = updatedMessages.last().copy(text = trimmed)
                             }
                             val newState = currentState.copy(messages = updatedMessages)
                             newState
                         }
-                        _uiState.value.currentSessionId?.let { sid ->
-                            repository.replaceMessages(sid, _uiState.value.messages)
-                        }
-
-                        if (fullResponse.contains("[USER]")) {
-                            Log.d("ChatViewModel", "Stop sequence '[USER]' detected. Cancelling job.")
+                        if (earliestIndex != Int.MAX_VALUE) {
+                            Log.d("ChatViewModel", "Stop token detected. Cancelling job.")
                             generationJob?.cancel()
                         }
                     }
