@@ -151,6 +151,88 @@ class ChatViewModel(application: Application) : AndroidViewModel(application) {
         newChat()
     }
 
+    fun purgeEmptyChats() {
+        // Delete any sessions without at least one user message
+        val sessions = repository.loadSessions()
+        var changed = false
+        sessions.forEach { s ->
+            if (s.messages.none { it.isFromUser }) {
+                repository.deleteSession(s.id)
+                changed = true
+            }
+        }
+        if (changed) {
+            val remaining = repository.loadSessions()
+            _uiState.update {
+                it.copy(
+                    sessions = remaining.map { s -> ChatSessionMeta(s.id, s.name) }
+                )
+            }
+            if (_uiState.value.currentSessionId !in remaining.map { it.id }) {
+                if (remaining.isEmpty()) newChat() else selectChat(remaining.first().id)
+            }
+        }
+    }
+
+    fun generateTitlesForAllChats() {
+        if (_uiState.value.isGenerating) {
+            _uiState.update { it.copy(modelError = "Please wait for current generation to finish.") }
+            return
+        }
+        val model = generativeModel ?: run {
+            _uiState.update { it.copy(modelError = "Model not ready.") }
+            return
+        }
+        viewModelScope.launch {
+            try {
+                _uiState.update { it.copy(isBulkTitleGenerating = true, modelError = null) }
+                val sessions = repository.loadSessions()
+                for (s in sessions) {
+                    if (s.messages.none { it.isFromUser }) {
+                        repository.deleteSession(s.id)
+                        continue
+                    }
+                    val sb = StringBuilder()
+                    sb.append("You are to summarize the following chat into a very short, descriptive title.\n")
+                    sb.append("Rules: 3-4 words max, no quotes, no punctuation, Title Case, be specific.\n\n")
+                    s.messages.forEach { m ->
+                        if (m.isFromUser) sb.append("User: ${m.text}\n") else sb.append("Assistant: ${m.text}\n")
+                    }
+                    sb.append("\nReturn only the title.")
+                    val prompt = sb.toString()
+                    var result = ""
+                    model.generateContentStream(prompt)
+                        .onStart { }
+                        .catch { e -> Log.e("ChatViewModel", "Title gen error for session ${s.id}", e) }
+                        .collect { chunk -> result += chunk.text }
+                    val cleaned = result
+                        .replace("\n", " ")
+                        .replace("\"", "")
+                        .trim()
+                        .split(" ")
+                        .filter { it.isNotBlank() }
+                        .take(4)
+                        .joinToString(" ")
+                        .replace(Regex("[.,!?:;]+$"), "")
+                    if (cleaned.isNotBlank()) {
+                        repository.renameSession(s.id, cleaned)
+                    }
+                }
+                val refreshed = repository.loadSessions()
+                _uiState.update { state ->
+                    val currentName = refreshed.find { it.id == state.currentSessionId }?.name ?: state.currentSessionName
+                    state.copy(
+                        isBulkTitleGenerating = false,
+                        sessions = refreshed.map { ChatSessionMeta(it.id, it.name) },
+                        currentSessionName = currentName
+                    )
+                }
+            } catch (e: Exception) {
+                _uiState.update { it.copy(isBulkTitleGenerating = false, modelError = e.message) }
+            }
+        }
+    }
+
     fun updateTemperature(temperature: Float) {
         sharedPreferences.edit().putFloat(KEY_TEMPERATURE, temperature).apply()
         _uiState.update { it.copy(temperature = temperature) }

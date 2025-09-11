@@ -29,6 +29,7 @@ import androidx.compose.material3.CenterAlignedTopAppBar
 import androidx.compose.material3.DrawerValue
 import androidx.compose.material3.ElevatedCard
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -83,6 +84,12 @@ fun ChatScreen(viewModel: ChatViewModel) {
     var showDeleteDialog by remember { mutableStateOf<Long?>(null) }
     var renameTitleDialog by remember { mutableStateOf(false) }
 
+    LaunchedEffect(drawerState.currentValue) {
+        if (drawerState.currentValue == DrawerValue.Open) {
+            viewModel.purgeEmptyChats()
+        }
+    }
+
     LaunchedEffect(uiState.messages.size) {
         if (uiState.messages.isNotEmpty()) {
             listState.animateScrollToItem(max(0, uiState.messages.size - 1))
@@ -126,6 +133,15 @@ fun ChatScreen(viewModel: ChatViewModel) {
                             showRenameDialog = meta.id to meta.name
                         }
                     )
+                }
+                Spacer(Modifier.width(8.dp))
+                FilledTonalButton(
+                    onClick = { viewModel.generateTitlesForAllChats() },
+                    modifier = Modifier
+                        .padding(16.dp)
+                        .fillMaxWidth()
+                ) {
+                    Text("Generate titles for all chats")
                 }
             }
         }
@@ -216,7 +232,7 @@ fun ChatScreen(viewModel: ChatViewModel) {
         )
     }
 
-    // Title generation progress popup
+    // Single chat title generation modal
     if (uiState.isTitleGenerating) {
         AlertDialog(
             onDismissRequest = { /* not dismissible */ },
@@ -226,6 +242,23 @@ fun ChatScreen(viewModel: ChatViewModel) {
                     CircularProgressIndicator()
                     Spacer(Modifier.width(12.dp))
                     Text("Using chat context…")
+                }
+            },
+            confirmButton = {},
+            dismissButton = {}
+        )
+    }
+
+    // Bulk title generation progress popup
+    if (uiState.isBulkTitleGenerating) {
+        AlertDialog(
+            onDismissRequest = { /* not dismissible */ },
+            title = { Text("Generating titles") },
+            text = {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    CircularProgressIndicator()
+                    Spacer(Modifier.width(12.dp))
+                    Text("Processing all chats…")
                 }
             },
             confirmButton = {},

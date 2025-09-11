@@ -17,5 +17,6 @@ data class ChatUiState(
     val sessions: List<ChatSessionMeta> = emptyList(),
     val currentSessionId: Long? = null,
     val currentSessionName: String = "New Chat",
-    val isTitleGenerating: Boolean = false
+    val isTitleGenerating: Boolean = false,
+    val isBulkTitleGenerating: Boolean = false
 )
