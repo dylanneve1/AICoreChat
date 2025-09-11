@@ -62,9 +62,9 @@ fun MessageRow(
                     contentDescription = null,
                     contentScale = ContentScale.Crop,
                     modifier = Modifier
-                        .size(128.dp)
+                        .size(154.dp)
                         .clip(RoundedCornerShape(12.dp))
-                        .padding(bottom = 6.dp)
+                        .padding(bottom = 8.dp)
                 )
             }
 
