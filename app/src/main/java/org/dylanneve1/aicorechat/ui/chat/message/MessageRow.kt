@@ -15,6 +15,7 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
+import androidx.compose.material3.Surface
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -57,15 +58,21 @@ fun MessageRow(
         // Stack the (optional) image above the bubble for user messages
         Column(horizontalAlignment = Alignment.End) {
             if (message.isFromUser && message.imageUri != null) {
-                AsyncImage(
-                    model = message.imageUri.toUri(),
-                    contentDescription = null,
-                    contentScale = ContentScale.Crop,
+                Surface(
+                    shape = RoundedCornerShape(12.dp),
+                    tonalElevation = 2.dp,
+                    color = MaterialTheme.colorScheme.surfaceVariant,
                     modifier = Modifier
                         .size(154.dp)
-                        .clip(RoundedCornerShape(12.dp))
                         .padding(bottom = 8.dp)
-                )
+                ) {
+                    AsyncImage(
+                        model = message.imageUri.toUri(),
+                        contentDescription = null,
+                        contentScale = ContentScale.Crop,
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                }
             }
 
             MessageBubble(
