@@ -38,6 +38,10 @@ import androidx.compose.ui.unit.dp
 import kotlinx.coroutines.delay
 import org.dylanneve1.aicorechat.data.ChatMessage
 import com.mikepenz.markdown.m3.Markdown
+import org.dylanneve1.aicorechat.ui.chat.message.AssistantAvatar
+import org.dylanneve1.aicorechat.ui.chat.message.UserAvatar
+import org.dylanneve1.aicorechat.ui.chat.message.TypingIndicator
+import org.dylanneve1.aicorechat.ui.chat.message.SearchingIndicator
 
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
@@ -54,7 +58,7 @@ fun MessageRow(
         verticalAlignment = Alignment.Bottom
     ) {
         if (!message.isFromUser) {
-            Avatar(icon = Icons.Outlined.SmartToy)
+            AssistantAvatar()
             Spacer(Modifier.width(8.dp))
         }
 
@@ -92,10 +96,7 @@ fun MessageRow(
                             style = MaterialTheme.typography.bodyLarge
                         )
                     } else {
-                        // Markdown content for assistant messages
-                        Markdown(
-                            content = message.text
-                        )
+                        Markdown(content = message.text)
                     }
                 }
             }
@@ -103,58 +104,7 @@ fun MessageRow(
 
         if (message.isFromUser) {
             Spacer(Modifier.width(8.dp))
-            Avatar(icon = Icons.Outlined.Person)
+            UserAvatar()
         }
     }
-}
-
-@Composable
-private fun Avatar(icon: ImageVector) {
-    Surface(
-        modifier = Modifier.size(40.dp),
-        shape = CircleShape,
-        color = MaterialTheme.colorScheme.surfaceContainerHigh,
-        tonalElevation = 0.dp
-    ) {
-        Box(contentAlignment = Alignment.Center) {
-            Icon(
-                imageVector = icon,
-                contentDescription = null,
-                tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                modifier = Modifier.size(24.dp)
-            )
-        }
-    }
-}
-
-@Composable
-private fun TypingIndicator(color: Color) {
-    var dots by remember { mutableStateOf(1) }
-    LaunchedEffect(Unit) {
-        while (true) {
-            delay(400)
-            dots = if (dots >= 3) 1 else dots + 1
-        }
-    }
-    Text(
-        text = "typing" + ".".repeat(dots),
-        color = color.copy(alpha = 0.7f),
-        style = MaterialTheme.typography.bodyLarge
-    )
-}
-
-@Composable
-private fun SearchingIndicator(color: Color) {
-    var dots by remember { mutableStateOf(1) }
-    LaunchedEffect(Unit) {
-        while (true) {
-            delay(350)
-            dots = if (dots >= 3) 1 else dots + 1
-        }
-    }
-    Text(
-        text = "Searching" + ".".repeat(dots),
-        color = color.copy(alpha = 0.7f),
-        style = MaterialTheme.typography.bodyLarge
-    )
 }

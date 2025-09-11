@@ -81,6 +81,9 @@ import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.material3.HorizontalDivider
 import org.dylanneve1.aicorechat.ui.chat.tools.ToolsSheet
+import org.dylanneve1.aicorechat.ui.chat.drawer.DrawerHeader
+import org.dylanneve1.aicorechat.ui.chat.drawer.SessionItem
+import org.dylanneve1.aicorechat.ui.chat.topbar.AICoreChatTopAppBar
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalFoundationApi::class)
 @Composable
@@ -392,96 +395,6 @@ fun ChatScreen(viewModel: ChatViewModel) {
                 viewModel.updatePersonalContextEnabled(enabled)
             },
             onDismiss = { showToolsSheet = false }
-        )
-    }
-}
-
-@Composable
-private fun DrawerHeader(onNewChat: () -> Unit) {
-    ElevatedCard(
-        modifier = Modifier
-            .padding(horizontal = 16.dp, vertical = 12.dp)
-    ) {
-        Row(
-            verticalAlignment = Alignment.CenterVertically,
-            modifier = Modifier.padding(12.dp)
-        ) {
-            Text("Chats", style = MaterialTheme.typography.titleMedium)
-            Spacer(Modifier.width(12.dp))
-            TextButton(onClick = onNewChat) { Text("New chat") }
-        }
-    }
-}
-
-@OptIn(ExperimentalFoundationApi::class)
-@Composable
-private fun SessionItem(
-    meta: ChatSessionMeta,
-    isSelected: Boolean,
-    onClick: () -> Unit,
-    onLongPress: () -> Unit,
-) {
-    val containerColor = if (isSelected) MaterialTheme.colorScheme.surfaceContainerHigh else MaterialTheme.colorScheme.surface
-    ElevatedCard(
-        modifier = Modifier
-            .padding(horizontal = 16.dp, vertical = 6.dp)
-            .combinedClickable(onClick = onClick, onLongClick = onLongPress),
-        colors = androidx.compose.material3.CardDefaults.elevatedCardColors(containerColor = containerColor)
-    ) {
-        Text(
-            text = meta.name,
-            style = MaterialTheme.typography.bodyLarge,
-            modifier = Modifier.padding(horizontal = 16.dp, vertical = 12.dp)
-        )
-    }
-}
-
-@OptIn(ExperimentalMaterial3Api::class, ExperimentalFoundationApi::class)
-@Composable
-private fun AICoreChatTopAppBar(
-    scrollBehavior: TopAppBarScrollBehavior,
-    isChatNotEmpty: Boolean,
-    onClearClick: () -> Unit,
-    onSettingsClick: () -> Unit,
-    onMenuClick: () -> Unit,
-    title: String,
-    onTitleLongPress: () -> Unit,
-    onTitleClick: () -> Unit,
-) {
-    CompositionLocalProvider(LocalLayoutDirection provides LayoutDirection.Ltr) {
-        CenterAlignedTopAppBar(
-            title = {
-                Text(
-                    title,
-                    style = MaterialTheme.typography.titleLarge.copy(
-                        fontWeight = androidx.compose.ui.text.font.FontWeight.SemiBold
-                    ),
-                    modifier = Modifier.combinedClickable(onClick = onTitleClick, onLongClick = onTitleLongPress)
-                )
-            },
-            navigationIcon = {
-                IconButton(onClick = onMenuClick) {
-                    Icon(imageVector = Icons.Outlined.Menu, contentDescription = "Menu")
-                }
-            },
-            actions = {
-                IconButton(onClick = onClearClick, enabled = isChatNotEmpty) {
-                    Icon(
-                        imageVector = Icons.Outlined.Delete,
-                        contentDescription = "Clear chat"
-                    )
-                }
-                IconButton(onClick = onSettingsClick) {
-                    Icon(
-                        imageVector = Icons.Outlined.Settings,
-                        contentDescription = "Settings"
-                    )
-                }
-            },
-            scrollBehavior = scrollBehavior,
-            colors = TopAppBarDefaults.centerAlignedTopAppBarColors(
-                scrolledContainerColor = MaterialTheme.colorScheme.surfaceContainerHigh
-            )
         )
     }
 }
