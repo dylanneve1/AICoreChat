@@ -101,6 +101,7 @@ import org.dylanneve1.aicorechat.ui.chat.message.MessageInput
 fun ChatScreen(viewModel: ChatViewModel) {
     val uiState by viewModel.uiState.collectAsState()
     val listState = rememberLazyListState()
+    val drawerListState = rememberLazyListState()
     val snackbarHostState = remember { SnackbarHostState() }
     val scope = rememberCoroutineScope()
     var showClearDialog by remember { mutableStateOf(false) }
@@ -141,6 +142,7 @@ fun ChatScreen(viewModel: ChatViewModel) {
     LaunchedEffect(drawerState.currentValue) {
         if (drawerState.currentValue == DrawerValue.Open) {
             focusManager.clearFocus(force = true)
+            scope.launch { drawerListState.scrollToItem(0) }
             viewModel.purgeEmptyChats()
         }
     }
@@ -176,6 +178,7 @@ fun ChatScreen(viewModel: ChatViewModel) {
                     }
                 )
                 LazyColumn(
+                    state = drawerListState,
                     modifier = Modifier.weight(1f, fill = true),
                     contentPadding = PaddingValues(vertical = 8.dp)
                 ) {
@@ -456,6 +459,8 @@ fun ChatScreen(viewModel: ChatViewModel) {
                 }
                 viewModel.updatePersonalContextEnabled(enabled)
             },
+            multimodalEnabled = uiState.multimodalEnabled,
+            onMultimodalToggle = viewModel::updateMultimodalEnabled,
             onDismiss = { showToolsSheet = false }
         )
     }

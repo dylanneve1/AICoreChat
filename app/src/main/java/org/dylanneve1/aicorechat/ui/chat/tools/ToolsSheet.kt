@@ -28,6 +28,8 @@ fun ToolsSheet(
     onWebSearchToggle: (Boolean) -> Unit,
     personalContextEnabled: Boolean,
     onPersonalContextToggle: (Boolean) -> Unit,
+    multimodalEnabled: Boolean,
+    onMultimodalToggle: (Boolean) -> Unit,
     onDismiss: () -> Unit
 ) {
     val sheetState = rememberModalBottomSheetState()
@@ -55,6 +57,14 @@ fun ToolsSheet(
                             Text("Optionally include device/time and (if permitted) location to improve responses.", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                         }
                         Switch(checked = personalContextEnabled, onCheckedChange = onPersonalContextToggle)
+                    }
+                    HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
+                    Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
+                        Column(modifier = Modifier.weight(1f)) {
+                            Text("Multimodal (images)", style = MaterialTheme.typography.titleMedium)
+                            Text("Generate an on-device description for attached images.", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        }
+                        Switch(checked = multimodalEnabled, onCheckedChange = onMultimodalToggle)
                     }
                 }
             }
