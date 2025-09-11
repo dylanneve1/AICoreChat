@@ -142,6 +142,8 @@ fun ChatScreen(viewModel: ChatViewModel) {
     LaunchedEffect(drawerState.currentValue) {
         if (drawerState.currentValue == DrawerValue.Open) {
             focusManager.clearFocus(force = true)
+            viewModel.purgeEmptyChats()
+        } else if (drawerState.currentValue == DrawerValue.Closed) {
             scope.launch { drawerListState.scrollToItem(0) }
             viewModel.purgeEmptyChats()
         }
