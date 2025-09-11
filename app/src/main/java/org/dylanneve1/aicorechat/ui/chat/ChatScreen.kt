@@ -65,6 +65,7 @@ import androidx.compose.foundation.layout.imePadding
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.unit.LayoutDirection
+import androidx.compose.material3.CircularProgressIndicator
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalFoundationApi::class)
 @Composable
@@ -142,7 +143,17 @@ fun ChatScreen(viewModel: ChatViewModel) {
                     onSettingsClick = { showSettingsSheet = true },
                     onMenuClick = { scope.launch { drawerState.open() } },
                     title = uiState.currentSessionName,
-                    onTitleLongPress = { renameTitleDialog = true }
+                    onTitleLongPress = { renameTitleDialog = true },
+                    onTitleClick = {
+                        if (!uiState.isGenerating && uiState.messages.any { it.isFromUser }) {
+                            viewModel.generateChatTitle()
+                        } else {
+                            scope.launch {
+                                val msg = if (uiState.isGenerating) "Please wait for the response to finish." else "Chat is empty."
+                                snackbarHostState.showSnackbar(msg)
+                            }
+                        }
+                    }
                 )
             },
             bottomBar = {
@@ -202,6 +213,23 @@ fun ChatScreen(viewModel: ChatViewModel) {
                     }
                 }
             }
+        )
+    }
+
+    // Title generation progress popup
+    if (uiState.isTitleGenerating) {
+        AlertDialog(
+            onDismissRequest = { /* not dismissible */ },
+            title = { Text("Generating title") },
+            text = {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    CircularProgressIndicator()
+                    Spacer(Modifier.width(12.dp))
+                    Text("Using chat context…")
+                }
+            },
+            confirmButton = {},
+            dismissButton = {}
         )
     }
 
@@ -364,6 +392,7 @@ private fun AICoreChatTopAppBar(
     onMenuClick: () -> Unit,
     title: String,
     onTitleLongPress: () -> Unit,
+    onTitleClick: () -> Unit,
 ) {
     CompositionLocalProvider(LocalLayoutDirection provides LayoutDirection.Ltr) {
         CenterAlignedTopAppBar(
@@ -373,7 +402,7 @@ private fun AICoreChatTopAppBar(
                     style = MaterialTheme.typography.titleLarge.copy(
                         fontWeight = androidx.compose.ui.text.font.FontWeight.SemiBold
                     ),
-                    modifier = Modifier.combinedClickable(onClick = {}, onLongClick = onTitleLongPress)
+                    modifier = Modifier.combinedClickable(onClick = onTitleClick, onLongClick = onTitleLongPress)
                 )
             },
             navigationIcon = {

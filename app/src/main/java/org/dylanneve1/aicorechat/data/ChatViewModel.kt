@@ -173,6 +173,66 @@ class ChatViewModel(application: Application) : AndroidViewModel(application) {
         generationJob?.cancel()
     }
 
+    fun generateChatTitle() {
+        if (_uiState.value.isGenerating) {
+            _uiState.update { it.copy(modelError = "Cannot rename while generating.") }
+            return
+        }
+        val sessionId = _uiState.value.currentSessionId
+        if (sessionId == null || _uiState.value.messages.none { it.isFromUser }) {
+            _uiState.update { it.copy(modelError = "Chat is empty.") }
+            return
+        }
+        val model = generativeModel
+        if (model == null) {
+            _uiState.update { it.copy(modelError = "Model not ready.") }
+            return
+        }
+
+        viewModelScope.launch {
+            try {
+                _uiState.update { it.copy(isTitleGenerating = true, modelError = null) }
+                val history = _uiState.value.messages
+                val sb = StringBuilder()
+                sb.append("You are to summarize the following chat into a very short, descriptive title.\n")
+                sb.append("Rules: 3-4 words max, no quotes, no punctuation, Title Case, be specific.\n\n")
+                history.forEach { m ->
+                    if (m.isFromUser) sb.append("User: ${m.text}\n") else sb.append("Assistant: ${m.text}\n")
+                }
+                sb.append("\nReturn only the title.")
+                val prompt = sb.toString()
+
+                var result = ""
+                model.generateContentStream(prompt)
+                    .onStart { /* no-op */ }
+                    .onCompletion {
+                        val cleaned = result
+                            .replace("\n", " ")
+                            .replace("\"", "")
+                            .trim()
+                            .split(" ")
+                            .filter { it.isNotBlank() }
+                            .take(4)
+                            .joinToString(" ")
+                            .replace(Regex("[.,!?:;]+$"), "")
+                        if (cleaned.isNotBlank()) {
+                            renameCurrentChat(cleaned)
+                        }
+                        _uiState.update { it.copy(isTitleGenerating = false) }
+                    }
+                    .catch { e ->
+                        Log.e("ChatViewModel", "Error generating title", e)
+                        _uiState.update { it.copy(isTitleGenerating = false, modelError = e.message) }
+                    }
+                    .collect { chunk ->
+                        result += chunk.text
+                    }
+            } catch (e: Exception) {
+                _uiState.update { it.copy(isTitleGenerating = false, modelError = e.message) }
+            }
+        }
+    }
+
     fun sendMessage(prompt: String) {
         generationJob?.cancel()
 
