@@ -97,6 +97,8 @@ class ChatViewModel(application: Application) : AndroidViewModel(application) {
     }
 
     fun selectChat(sessionId: Long) {
+        val prevId = _uiState.value.currentSessionId
+        val prevMessages = _uiState.value.messages
         val sessions = repository.loadSessions()
         val selected = sessions.find { it.id == sessionId } ?: return
         _uiState.update {
@@ -105,6 +107,14 @@ class ChatViewModel(application: Application) : AndroidViewModel(application) {
                 currentSessionName = selected.name,
                 messages = selected.messages.toList()
             )
+        }
+        // After switching, if previous chat existed and was empty (no user messages), delete it
+        if (prevId != null && prevId != sessionId && prevMessages.none { it.isFromUser }) {
+            repository.deleteSession(prevId)
+            val refreshed = repository.loadSessions()
+            _uiState.update { state ->
+                state.copy(sessions = refreshed.map { s -> ChatSessionMeta(s.id, s.name) })
+            }
         }
     }
 
@@ -152,11 +162,12 @@ class ChatViewModel(application: Application) : AndroidViewModel(application) {
     }
 
     fun purgeEmptyChats() {
-        // Delete any sessions without at least one user message
+        // Delete any sessions without at least one user message, except current
+        val currentId = _uiState.value.currentSessionId
         val sessions = repository.loadSessions()
         var changed = false
         sessions.forEach { s ->
-            if (s.messages.none { it.isFromUser }) {
+            if (s.id != currentId && s.messages.none { it.isFromUser }) {
                 repository.deleteSession(s.id)
                 changed = true
             }
@@ -167,9 +178,6 @@ class ChatViewModel(application: Application) : AndroidViewModel(application) {
                 it.copy(
                     sessions = remaining.map { s -> ChatSessionMeta(s.id, s.name) }
                 )
-            }
-            if (_uiState.value.currentSessionId !in remaining.map { it.id }) {
-                if (remaining.isEmpty()) newChat() else selectChat(remaining.first().id)
             }
         }
     }
@@ -187,11 +195,13 @@ class ChatViewModel(application: Application) : AndroidViewModel(application) {
             try {
                 _uiState.update { it.copy(isBulkTitleGenerating = true, modelError = null) }
                 val sessions = repository.loadSessions()
+                val currentId = _uiState.value.currentSessionId
                 for (s in sessions) {
-                    if (s.messages.none { it.isFromUser }) {
+                    if (s.id != currentId && s.messages.none { it.isFromUser }) {
                         repository.deleteSession(s.id)
                         continue
                     }
+                    if (s.messages.none { it.isFromUser }) continue
                     val sb = StringBuilder()
                     sb.append("You are to summarize the following chat into a very short, descriptive title.\n")
                     sb.append("Rules: 3-4 words max, no quotes, no punctuation, Title Case, be specific.\n\n")
