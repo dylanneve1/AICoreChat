@@ -23,7 +23,10 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
@@ -38,12 +41,14 @@ fun SettingsSheet(
     topK: Int,
     onTemperatureChange: (Float) -> Unit,
     onTopKChange: (Int) -> Unit,
+    onWipeAllChats: () -> Unit,
     onDismiss: () -> Unit
 ) {
     val sheetState = rememberModalBottomSheetState()
     val context = LocalContext.current
     val githubUrl = "https://github.com/dylanneve1/AICoreChat"
     val githubIntent = remember { Intent(Intent.ACTION_VIEW, Uri.parse(githubUrl)) }
+    var confirmWipe by remember { mutableStateOf(false) }
 
     ModalBottomSheet(
         onDismissRequest = onDismiss,
@@ -79,6 +84,45 @@ fun SettingsSheet(
                 onValueChange = { onTopKChange(it.roundToInt()) },
                 valueLabel = topK.toString()
             )
+
+            Divider(modifier = Modifier.padding(vertical = 24.dp))
+
+            Text(
+                text = "Danger Zone",
+                style = MaterialTheme.typography.titleLarge,
+                color = MaterialTheme.colorScheme.error,
+                modifier = Modifier.padding(bottom = 8.dp)
+            )
+            Text(
+                text = "Wipe all chats from this device.",
+                style = MaterialTheme.typography.bodyMedium
+            )
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.End
+            ) {
+                TextButton(onClick = { confirmWipe = true }) {
+                    Text("Wipe all chats", color = MaterialTheme.colorScheme.error)
+                }
+            }
+
+            if (confirmWipe) {
+                androidx.compose.material3.AlertDialog(
+                    onDismissRequest = { confirmWipe = false },
+                    title = { Text("Wipe all chats?") },
+                    text = { Text("This cannot be undone.") },
+                    confirmButton = {
+                        TextButton(onClick = {
+                            confirmWipe = false
+                            onWipeAllChats()
+                            onDismiss()
+                        }) { Text("Wipe") }
+                    },
+                    dismissButton = {
+                        TextButton(onClick = { confirmWipe = false }) { Text("Cancel") }
+                    }
+                )
+            }
 
             Divider(modifier = Modifier.padding(vertical = 24.dp))
 

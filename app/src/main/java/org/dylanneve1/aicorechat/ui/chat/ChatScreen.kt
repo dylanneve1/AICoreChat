@@ -8,10 +8,12 @@ import androidx.compose.animation.slideOutVertically
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
@@ -77,6 +79,8 @@ fun ChatScreen(viewModel: ChatViewModel) {
 
     val drawerState = rememberDrawerState(DrawerValue.Closed)
     var showRenameDialog by remember { mutableStateOf<Pair<Long, String>?>(null) }
+    var showDeleteDialog by remember { mutableStateOf<Long?>(null) }
+    var renameTitleDialog by remember { mutableStateOf(false) }
 
     LaunchedEffect(uiState.messages.size) {
         if (uiState.messages.isNotEmpty()) {
@@ -117,6 +121,7 @@ fun ChatScreen(viewModel: ChatViewModel) {
                             scope.launch { drawerState.close() }
                         },
                         onLongPress = {
+                            // Open rename dialog; delete is available from that dialog
                             showRenameDialog = meta.id to meta.name
                         }
                     )
@@ -136,7 +141,8 @@ fun ChatScreen(viewModel: ChatViewModel) {
                     onClearClick = { showClearDialog = true },
                     onSettingsClick = { showSettingsSheet = true },
                     onMenuClick = { scope.launch { drawerState.open() } },
-                    title = uiState.currentSessionName
+                    title = uiState.currentSessionName,
+                    onTitleLongPress = { renameTitleDialog = true }
                 )
             },
             bottomBar = {
@@ -199,11 +205,65 @@ fun ChatScreen(viewModel: ChatViewModel) {
         )
     }
 
+    // Rename from drawer long-press
     if (showRenameDialog != null) {
         val (id, currentName) = showRenameDialog!!
         var name by remember(currentName) { mutableStateOf(currentName) }
         AlertDialog(
             onDismissRequest = { showRenameDialog = null },
+            title = { Text("Chat options") },
+            text = {
+                Column {
+                    OutlinedTextField(
+                        value = name,
+                        onValueChange = { name = it },
+                        singleLine = true,
+                        label = { Text("Rename chat") }
+                    )
+                    Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
+                        TextButton(onClick = {
+                            val trimmed = name.trim().ifEmpty { "New Chat" }
+                            viewModel.renameChat(id, trimmed)
+                            showRenameDialog = null
+                        }) { Text("Save") }
+                        Spacer(Modifier.width(8.dp))
+                        TextButton(onClick = {
+                            showRenameDialog = null
+                            showDeleteDialog = id
+                        }) { Text("Delete", color = MaterialTheme.colorScheme.error) }
+                    }
+                }
+            },
+            confirmButton = {},
+            dismissButton = {
+                TextButton(onClick = { showRenameDialog = null }) { Text("Close") }
+            }
+        )
+    }
+
+    if (showDeleteDialog != null) {
+        val deleteId = showDeleteDialog!!
+        AlertDialog(
+            onDismissRequest = { showDeleteDialog = null },
+            title = { Text("Delete chat?") },
+            text = { Text("This will permanently remove this chat.") },
+            confirmButton = {
+                TextButton(onClick = {
+                    viewModel.deleteChat(deleteId)
+                    showDeleteDialog = null
+                }) { Text("Delete", color = MaterialTheme.colorScheme.error) }
+            },
+            dismissButton = {
+                TextButton(onClick = { showDeleteDialog = null }) { Text("Cancel") }
+            }
+        )
+    }
+
+    // Rename on title long-press
+    if (renameTitleDialog) {
+        var name by remember(uiState.currentSessionName) { mutableStateOf(uiState.currentSessionName) }
+        AlertDialog(
+            onDismissRequest = { renameTitleDialog = false },
             title = { Text("Rename chat") },
             text = {
                 OutlinedTextField(
@@ -215,12 +275,12 @@ fun ChatScreen(viewModel: ChatViewModel) {
             confirmButton = {
                 TextButton(onClick = {
                     val trimmed = name.trim().ifEmpty { "New Chat" }
-                    viewModel.renameChat(id, trimmed)
-                    showRenameDialog = null
+                    viewModel.renameCurrentChat(trimmed)
+                    renameTitleDialog = false
                 }) { Text("Save") }
             },
             dismissButton = {
-                TextButton(onClick = { showRenameDialog = null }) { Text("Cancel") }
+                TextButton(onClick = { renameTitleDialog = false }) { Text("Cancel") }
             }
         )
     }
@@ -229,12 +289,12 @@ fun ChatScreen(viewModel: ChatViewModel) {
         AlertDialog(
             onDismissRequest = { showClearDialog = false },
             title = { Text("Clear conversation?") },
-            text = { Text("This will remove all messages from this chat.") },
+            text = { Text("This will remove this chat completely and start a new one.") },
             confirmButton = {
                 TextButton(onClick = {
                     viewModel.clearChat()
                     showClearDialog = false
-                }) { Text("Clear") }
+                }) { Text("Delete chat") }
             },
             dismissButton = {
                 TextButton(onClick = { showClearDialog = false }) { Text("Cancel") }
@@ -248,6 +308,7 @@ fun ChatScreen(viewModel: ChatViewModel) {
             topK = uiState.topK,
             onTemperatureChange = viewModel::updateTemperature,
             onTopKChange = viewModel::updateTopK,
+            onWipeAllChats = viewModel::wipeAllChats,
             onDismiss = { showSettingsSheet = false }
         )
     }
@@ -293,7 +354,7 @@ private fun SessionItem(
     }
 }
 
-@OptIn(ExperimentalMaterial3Api::class)
+@OptIn(ExperimentalMaterial3Api::class, ExperimentalFoundationApi::class)
 @Composable
 private fun AICoreChatTopAppBar(
     scrollBehavior: TopAppBarScrollBehavior,
@@ -302,6 +363,7 @@ private fun AICoreChatTopAppBar(
     onSettingsClick: () -> Unit,
     onMenuClick: () -> Unit,
     title: String,
+    onTitleLongPress: () -> Unit,
 ) {
     CompositionLocalProvider(LocalLayoutDirection provides LayoutDirection.Ltr) {
         CenterAlignedTopAppBar(
@@ -310,7 +372,8 @@ private fun AICoreChatTopAppBar(
                     title,
                     style = MaterialTheme.typography.titleLarge.copy(
                         fontWeight = androidx.compose.ui.text.font.FontWeight.SemiBold
-                    )
+                    ),
+                    modifier = Modifier.combinedClickable(onClick = {}, onLongClick = onTitleLongPress)
                 )
             },
             navigationIcon = {

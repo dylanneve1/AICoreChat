@@ -128,6 +128,29 @@ class ChatViewModel(application: Application) : AndroidViewModel(application) {
         }
     }
 
+    fun deleteChat(sessionId: Long) {
+        repository.deleteSession(sessionId)
+        val remaining = repository.loadSessions()
+        if (remaining.isEmpty()) {
+            newChat()
+        } else {
+            val next = remaining.first()
+            _uiState.update {
+                it.copy(
+                    sessions = remaining.map { s -> ChatSessionMeta(s.id, s.name) },
+                    currentSessionId = next.id,
+                    currentSessionName = next.name,
+                    messages = next.messages.toList()
+                )
+            }
+        }
+    }
+
+    fun wipeAllChats() {
+        repository.wipeAllSessions()
+        newChat()
+    }
+
     fun updateTemperature(temperature: Float) {
         sharedPreferences.edit().putFloat(KEY_TEMPERATURE, temperature).apply()
         _uiState.update { it.copy(temperature = temperature) }
@@ -141,8 +164,9 @@ class ChatViewModel(application: Application) : AndroidViewModel(application) {
     }
 
     fun clearChat() {
-        _uiState.update { it.copy(messages = emptyList(), modelError = null) }
-        _uiState.value.currentSessionId?.let { repository.replaceMessages(it, emptyList()) }
+        // Delete current chat session entirely and start a new one
+        _uiState.value.currentSessionId?.let { repository.deleteSession(it) }
+        newChat()
     }
 
     fun stopGeneration() {

@@ -33,6 +33,16 @@ class ChatRepository(context: Context) {
         saveSessions(sessions)
     }
 
+    fun deleteSession(sessionId: Long) {
+        val sessions = loadSessions()
+        val updated = sessions.filter { it.id != sessionId }
+        saveSessions(updated)
+    }
+
+    fun wipeAllSessions() {
+        saveSessions(emptyList())
+    }
+
     fun appendMessage(sessionId: Long, message: ChatMessage) {
         val sessions = loadSessions()
         sessions.find { it.id == sessionId }?.let {
