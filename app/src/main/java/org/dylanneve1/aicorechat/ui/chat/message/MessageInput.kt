@@ -30,6 +30,7 @@ import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.unit.dp
 import androidx.compose.material.icons.outlined.Build
 import androidx.compose.material.icons.outlined.Add
+import androidx.compose.material.icons.outlined.PhotoCamera
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.width
 import coil.compose.AsyncImage
@@ -48,6 +49,7 @@ fun MessageInput(
     isGenerating: Boolean,
     onOpenTools: () -> Unit = {},
     onPickImage: () -> Unit = {},
+    onTakePhoto: () -> Unit = {},
     attachmentUri: String? = null,
     isDescribingImage: Boolean = false,
     onRemoveImage: () -> Unit = {},
@@ -91,6 +93,7 @@ fun MessageInput(
                         IconButton(onClick = onOpenTools, modifier = Modifier.size(34.dp)) { Icon(Icons.Outlined.Build, contentDescription = "Tools", modifier = Modifier.size(24.dp)) }
                         if (showPlus) {
                             IconButton(onClick = onPickImage, modifier = Modifier.size(34.dp)) { Icon(Icons.Outlined.Add, contentDescription = "Add image", modifier = Modifier.size(24.dp)) }
+                            IconButton(onClick = onTakePhoto, modifier = Modifier.size(34.dp)) { Icon(Icons.Outlined.PhotoCamera, contentDescription = "Take photo", modifier = Modifier.size(24.dp)) }
                         }
                     }
                 },

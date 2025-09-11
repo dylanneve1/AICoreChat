@@ -71,6 +71,12 @@ import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.PickVisualMediaRequest
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.activity.result.contract.ActivityResultContracts.PickVisualMedia
+import androidx.activity.result.contract.ActivityResultContracts.TakePicture
+import androidx.core.content.FileProvider
+import java.io.File
+import java.text.SimpleDateFormat
+import java.util.Date
+import java.util.Locale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.core.content.ContextCompat
@@ -112,6 +118,21 @@ fun ChatScreen(viewModel: ChatViewModel) {
     val locationPermissionLauncher = rememberLauncherForActivityResult(
         ActivityResultContracts.RequestMultiplePermissions()
     ) { /* results ignored; ViewModel will use if granted */ }
+
+    val photoFile = remember {
+        val ctx = context.applicationContext
+        val dir = ctx.getExternalFilesDir(android.os.Environment.DIRECTORY_PICTURES)
+        val time = SimpleDateFormat("yyyyMMdd_HHmmss", Locale.US).format(Date())
+        File(dir, "IMG_${'$'}time.jpg")
+    }
+    var pendingPhotoUri by remember { mutableStateOf(android.net.Uri.EMPTY) }
+    val takePictureLauncher = rememberLauncherForActivityResult(TakePicture()) { success ->
+        if (success && pendingPhotoUri != android.net.Uri.EMPTY) {
+            viewModel.onImageSelected(pendingPhotoUri)
+        } else {
+            pendingPhotoUri = android.net.Uri.EMPTY
+        }
+    }
 
     val pickImageLauncher = rememberLauncherForActivityResult(PickVisualMedia()) { uri ->
         if (uri != null) {
@@ -222,6 +243,20 @@ fun ChatScreen(viewModel: ChatViewModel) {
                             scope.launch { snackbarHostState.showSnackbar("Multimodal is disabled in Settings") }
                         } else {
                             pickImageLauncher.launch(PickVisualMediaRequest(PickVisualMedia.ImageOnly))
+                        }
+                    },
+                    onTakePhoto = {
+                        if (!uiState.multimodalEnabled) {
+                            scope.launch { snackbarHostState.showSnackbar("Multimodal is disabled in Settings") }
+                        } else {
+                            try {
+                                val ctx = context
+                                val uri = FileProvider.getUriForFile(ctx, ctx.packageName + ".fileprovider", photoFile)
+                                pendingPhotoUri = uri
+                                takePictureLauncher.launch(uri)
+                            } catch (e: Exception) {
+                                scope.launch { snackbarHostState.showSnackbar(e.message ?: "Failed to open camera") }
+                            }
                         }
                     },
                     attachmentUri = uiState.pendingImageUri,
