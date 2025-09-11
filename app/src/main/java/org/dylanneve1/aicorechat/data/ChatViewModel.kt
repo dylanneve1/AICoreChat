@@ -430,9 +430,15 @@ class ChatViewModel(application: Application) : AndroidViewModel(application) {
         generationJob = viewModelScope.launch {
             try {
                 val promptBuilder = StringBuilder()
-                promptBuilder.append("You are a helpful AI assistant. Follow the user's instructions carefully.\n\n")
-                promptBuilder.append("[USER]\nHello, who are you?\n")
-                promptBuilder.append("[ASSISTANT]\nI am a helpful AI assistant built to answer your questions.\n\n")
+                promptBuilder.append(
+                    "You are a helpful AI assistant. Follow the user's instructions carefully.\n" +
+                    "Always format the conversation with tags and ALWAYS end your reply with [/ASSISTANT].\n" +
+                    "- User turns: wrap content in [USER] and [/USER].\n" +
+                    "- Assistant turns: wrap content in [ASSISTANT] and [/ASSISTANT].\n\n"
+                )
+                // Few-shot example with explicit stop sequences
+                promptBuilder.append("[USER]\nHello, who are you?\n[/USER]\n")
+                promptBuilder.append("[ASSISTANT]\nI am a helpful AI assistant built to answer your questions.\n[/ASSISTANT]\n\n")
                 prependPersonalContextIfNeeded(promptBuilder)
 
                 val history = _uiState.value.messages.takeLast(10)
@@ -440,12 +446,12 @@ class ChatViewModel(application: Application) : AndroidViewModel(application) {
                 history.forEach { message ->
                     if (message.id == userMessage.id) return@forEach
                     if (message.isFromUser) {
-                        promptBuilder.append("[USER]\n${message.text}\n")
+                        promptBuilder.append("[USER]\n${message.text}\n[/USER]\n")
                     } else {
-                        promptBuilder.append("[ASSISTANT]\n${message.text}\n")
+                        promptBuilder.append("[ASSISTANT]\n${message.text}\n[/ASSISTANT]\n")
                     }
                 }
-                promptBuilder.append("[USER]\n$prompt\n")
+                promptBuilder.append("[USER]\n$prompt\n[/USER]\n")
                 promptBuilder.append("[ASSISTANT]\n")
 
                 val fullPrompt = promptBuilder.toString()
