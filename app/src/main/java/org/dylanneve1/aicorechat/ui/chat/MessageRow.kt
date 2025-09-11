@@ -37,6 +37,7 @@ import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.unit.dp
 import kotlinx.coroutines.delay
 import org.dylanneve1.aicorechat.data.ChatMessage
+import com.mikepenz.markdown.m3.Markdown
 
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
@@ -84,11 +85,18 @@ fun MessageRow(
                 if (message.isStreaming && message.text.isBlank()) {
                     if (isSearching) SearchingIndicator(contentColor) else TypingIndicator(contentColor)
                 } else {
-                    Text(
-                        text = message.text,
-                        color = contentColor,
-                        style = MaterialTheme.typography.bodyLarge
-                    )
+                    if (message.isFromUser) {
+                        Text(
+                            text = message.text,
+                            color = contentColor,
+                            style = MaterialTheme.typography.bodyLarge
+                        )
+                    } else {
+                        // Markdown content for assistant messages
+                        Markdown(
+                            content = message.text
+                        )
+                    }
                 }
             }
         }

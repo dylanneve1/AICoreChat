@@ -53,6 +53,10 @@ dependencies {
     implementation(libs.androidx.compose.ui.tooling.preview)
     implementation(libs.androidx.compose.material3)
     implementation("com.google.android.gms:play-services-location:21.3.0")
+
+    // Markdown renderer for Compose Material 3
+    implementation("com.mikepenz:multiplatform-markdown-renderer-m3:0.26.0")
+
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)
     androidTestImplementation(libs.androidx.espresso.core)
