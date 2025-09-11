@@ -88,9 +88,9 @@ fun MessageInput(
                 ),
                 leadingIcon = {
                     Row {
-                        IconButton(onClick = onOpenTools) { Icon(Icons.Outlined.Build, contentDescription = "Tools") }
+                        IconButton(onClick = onOpenTools, modifier = Modifier.size(28.dp)) { Icon(Icons.Outlined.Build, contentDescription = "Tools", modifier = Modifier.size(18.dp)) }
                         if (showPlus) {
-                            IconButton(onClick = onPickImage) { Icon(Icons.Outlined.Add, contentDescription = "Add image") }
+                            IconButton(onClick = onPickImage, modifier = Modifier.size(28.dp)) { Icon(Icons.Outlined.Add, contentDescription = "Add image", modifier = Modifier.size(18.dp)) }
                         }
                     }
                 },

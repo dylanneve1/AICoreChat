@@ -89,6 +89,7 @@ import android.os.Build
 import android.provider.MediaStore
 import androidx.activity.result.PickVisualMediaRequest
 import androidx.activity.result.contract.ActivityResultContracts.PickVisualMedia
+import androidx.compose.ui.platform.LocalFocusManager
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalFoundationApi::class)
 @Composable
@@ -108,6 +109,7 @@ fun ChatScreen(viewModel: ChatViewModel) {
     var renameTitleDialog by remember { mutableStateOf(false) }
 
     val context = LocalContext.current
+    val focusManager = LocalFocusManager.current
     val locationPermissionLauncher = rememberLauncherForActivityResult(
         ActivityResultContracts.RequestMultiplePermissions()
     ) { /* results ignored; ViewModel will use if granted */ }
@@ -124,6 +126,7 @@ fun ChatScreen(viewModel: ChatViewModel) {
 
     LaunchedEffect(drawerState.currentValue) {
         if (drawerState.currentValue == DrawerValue.Open) {
+            focusManager.clearFocus(force = true)
             viewModel.purgeEmptyChats()
         }
     }
@@ -193,7 +196,7 @@ fun ChatScreen(viewModel: ChatViewModel) {
                     scrollBehavior = scrollBehavior,
                     isChatNotEmpty = uiState.messages.isNotEmpty(),
                     onClearClick = { showClearDialog = true },
-                    onSettingsClick = { showSettingsSheet = true },
+                    onSettingsClick = { focusManager.clearFocus(force = true); showSettingsSheet = true },
                     onMenuClick = { scope.launch { drawerState.open() } },
                     title = uiState.currentSessionName,
                     onTitleLongPress = { renameTitleDialog = true },

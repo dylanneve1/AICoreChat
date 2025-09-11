@@ -2,6 +2,7 @@ package org.dylanneve1.aicorechat.ui.chat
 
 import android.content.Intent
 import android.net.Uri
+import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -64,6 +65,8 @@ fun SettingsSheet(
     val githubUrl = "https://github.com/dylanneve1/AICoreChat"
     val githubIntent = remember { Intent(Intent.ACTION_VIEW, Uri.parse(githubUrl)) }
     var confirmWipe by remember { mutableStateOf(false) }
+
+    BackHandler(onBack = onDismiss)
 
     Surface(modifier = Modifier.fillMaxSize()) {
         Scaffold(
