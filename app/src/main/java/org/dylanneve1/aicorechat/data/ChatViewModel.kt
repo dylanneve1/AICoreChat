@@ -85,10 +85,10 @@ class ChatViewModel(application: Application) : AndroidViewModel(application) {
 
     fun newChat() {
         val session = repository.createNewSession()
-        val updatedSessions = listOf(ChatSessionMeta(session.id, session.name)) + _uiState.value.sessions
+        val allSessions = repository.loadSessions()
         _uiState.update {
             it.copy(
-                sessions = updatedSessions,
+                sessions = allSessions.map { s -> ChatSessionMeta(s.id, s.name) },
                 currentSessionId = session.id,
                 currentSessionName = session.name,
                 messages = emptyList()
