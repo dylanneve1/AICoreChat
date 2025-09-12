@@ -9,6 +9,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.Info
+import androidx.compose.material.icons.outlined.OpenInNew
 import androidx.compose.material3.Button
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
@@ -21,6 +22,9 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.fillMaxWidth
 
 @Composable
 fun UnsupportedDeviceScreen(message: String?) {
@@ -59,17 +63,48 @@ fun UnsupportedDeviceScreen(message: String?) {
                 textAlign = TextAlign.Center,
                 modifier = Modifier.padding(top = 12.dp)
             )
-            Button(
-                onClick = { context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(groupUrl))) },
-                modifier = Modifier.padding(top = 20.dp)
-            ) {
-                Text("Join Google Group")
-            }
-            TextButton(
-                onClick = { context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(testingUrl))) },
+            Text(
+                text = "You must first join the Google Group and then enroll in the AICore testing program.",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                textAlign = TextAlign.Center,
                 modifier = Modifier.padding(top = 8.dp)
+            )
+            Surface(
+                tonalElevation = 2.dp,
+                shape = MaterialTheme.shapes.large,
+                color = MaterialTheme.colorScheme.surfaceVariant,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(top = 20.dp)
+                    .clickable { context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(groupUrl))) }
             ) {
-                Text("Join AICore testing program")
+                Row(
+                    modifier = Modifier.padding(horizontal = 16.dp, vertical = 12.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.SpaceBetween
+                ) {
+                    Text("Join Google Group", style = MaterialTheme.typography.bodyLarge)
+                    Icon(Icons.Outlined.OpenInNew, contentDescription = null)
+                }
+            }
+            Surface(
+                tonalElevation = 2.dp,
+                shape = MaterialTheme.shapes.large,
+                color = MaterialTheme.colorScheme.surfaceVariant,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(top = 12.dp)
+                    .clickable { context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(testingUrl))) }
+            ) {
+                Row(
+                    modifier = Modifier.padding(horizontal = 16.dp, vertical = 12.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.SpaceBetween
+                ) {
+                    Text("Join AICore testing program", style = MaterialTheme.typography.bodyLarge)
+                    Icon(Icons.Outlined.OpenInNew, contentDescription = null)
+                }
             }
         }
     }
