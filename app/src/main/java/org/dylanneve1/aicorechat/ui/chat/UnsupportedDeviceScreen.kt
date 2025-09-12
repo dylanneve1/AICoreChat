@@ -14,6 +14,7 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -24,7 +25,8 @@ import androidx.compose.ui.unit.dp
 @Composable
 fun UnsupportedDeviceScreen(message: String?) {
     val context = LocalContext.current
-    val url = "https://play.google.com/apps/testing/com.google.android.aicore"
+    val groupUrl = "https://groups.google.com/g/aicore-experimental"
+    val testingUrl = "https://play.google.com/apps/testing/com.google.android.aicore"
 
     Surface(modifier = Modifier.fillMaxSize()) {
         Column(
@@ -47,7 +49,7 @@ fun UnsupportedDeviceScreen(message: String?) {
             Text(
                 text = buildString {
                     append("This device doesn't appear to support Gemini Nano on AICore.\n\n")
-                    append("If you have a Pixel 9 or Pixel 10 series device, ensure you've joined the testing program.")
+                    append("If you have a Pixel 9 or Pixel 10 series device, first join the Google Group, then enroll in the AICore testing program.")
                     if (!message.isNullOrBlank()) {
                         append("\n\nDetails: ")
                         append(message)
@@ -58,11 +60,14 @@ fun UnsupportedDeviceScreen(message: String?) {
                 modifier = Modifier.padding(top = 12.dp)
             )
             Button(
-                onClick = {
-                    val intent = Intent(Intent.ACTION_VIEW, Uri.parse(url))
-                    context.startActivity(intent)
-                },
+                onClick = { context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(groupUrl))) },
                 modifier = Modifier.padding(top = 20.dp)
+            ) {
+                Text("Join Google Group")
+            }
+            TextButton(
+                onClick = { context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(testingUrl))) },
+                modifier = Modifier.padding(top = 8.dp)
             ) {
                 Text("Join AICore testing program")
             }
