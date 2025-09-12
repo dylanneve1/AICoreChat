@@ -29,6 +29,12 @@ import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.ui.platform.LocalContext
 import androidx.core.content.ContextCompat
 import org.dylanneve1.aicorechat.R
+import android.content.Intent
+import android.net.Uri
+import androidx.compose.material3.Icon
+import androidx.compose.material3.TextButton
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.outlined.OpenInNew
 
 @Composable
 fun OnboardingScreen(
@@ -72,6 +78,21 @@ fun OnboardingScreen(
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
+            Text(
+                "To use Gemini Nano, you must join the Google Group and then enroll in the AICore testing program.",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+            val groupUrl = "https://groups.google.com/g/aicore-experimental"
+            val testingUrl = "https://play.google.com/apps/testing/com.google.android.aicore"
+            TextButton(onClick = { context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(groupUrl))) }, modifier = Modifier.fillMaxWidth()) {
+                Text("Join Google Group (AICore Experimental)")
+                Icon(imageVector = Icons.Outlined.OpenInNew, contentDescription = null, modifier = Modifier.padding(start = 4.dp))
+            }
+            TextButton(onClick = { context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(testingUrl))) }, modifier = Modifier.fillMaxWidth()) {
+                Text("Join AICore Testing Program")
+                Icon(imageVector = Icons.Outlined.OpenInNew, contentDescription = null, modifier = Modifier.padding(start = 4.dp))
+            }
             OutlinedTextField(
                 value = name,
                 onValueChange = { name = it },
