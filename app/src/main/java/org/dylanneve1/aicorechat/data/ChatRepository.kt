@@ -76,6 +76,7 @@ class ChatRepository(context: Context) {
             for (j in 0 until messagesArr.length()) {
                 val m = messagesArr.getJSONObject(j)
                 val imageUri: String? = if (m.has("imageUri")) m.optString("imageUri") else null
+                val imageDescription: String? = if (m.has("imageDescription")) m.optString("imageDescription") else null
                 messages.add(
                     ChatMessage(
                         id = m.optLong("id", System.nanoTime()),
@@ -83,7 +84,8 @@ class ChatRepository(context: Context) {
                         isFromUser = m.getBoolean("isFromUser"),
                         isStreaming = m.optBoolean("isStreaming", false),
                         timestamp = m.optLong("timestamp", System.currentTimeMillis()),
-                        imageUri = imageUri
+                        imageUri = imageUri,
+                        imageDescription = imageDescription
                     )
                 )
             }
@@ -117,6 +119,7 @@ class ChatRepository(context: Context) {
                 mo.put("isStreaming", m.isStreaming)
                 mo.put("timestamp", m.timestamp)
                 if (m.imageUri != null) mo.put("imageUri", m.imageUri)
+                if (m.imageDescription != null) mo.put("imageDescription", m.imageDescription)
                 mArr.put(mo)
             }
             o.put("messages", mArr)

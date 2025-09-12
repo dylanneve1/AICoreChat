@@ -139,9 +139,15 @@ class ChatViewModel(application: Application) : AndroidViewModel(application) {
                     }
                 }
                 val desc = imageDescriptionService.describe(bitmap).trim()
-                _uiState.update { it.copy(isDescribingImage = false, pendingImageDescription = if (desc.isNotBlank()) desc else null) }
+                if (desc.isBlank()) {
+                    // Detach image on failure/blank
+                    _uiState.update { it.copy(isDescribingImage = false, pendingImageDescription = null, pendingImageUri = null, modelError = "Could not generate image description") }
+                } else {
+                    _uiState.update { it.copy(isDescribingImage = false, pendingImageDescription = desc) }
+                }
             } catch (e: Exception) {
-                _uiState.update { it.copy(isDescribingImage = false, modelError = e.message ?: "Failed to describe image") }
+                // Detach on error
+                _uiState.update { it.copy(isDescribingImage = false, pendingImageDescription = null, pendingImageUri = null, modelError = e.message ?: "Failed to describe image") }
             }
         }
     }
@@ -534,14 +540,10 @@ class ChatViewModel(application: Application) : AndroidViewModel(application) {
         }
 
         val currentPendingUri = _uiState.value.pendingImageUri
-        val userMessage = ChatMessage(text = prompt, isFromUser = true, imageUri = currentPendingUri)
-        _uiState.update { it.copy(messages = it.messages + userMessage, pendingImageUri = null) }
+        val currentPendingDesc = _uiState.value.pendingImageDescription
+        val userMessage = ChatMessage(text = prompt, isFromUser = true, imageUri = currentPendingUri, imageDescription = currentPendingDesc)
+        _uiState.update { it.copy(messages = it.messages + userMessage, pendingImageUri = null, pendingImageDescription = null) }
         _uiState.value.currentSessionId?.let { repository.appendMessage(it, userMessage) }
-
-        val pendingImageDesc = _uiState.value.pendingImageDescription
-        if (!pendingImageDesc.isNullOrBlank()) {
-            _uiState.update { it.copy(pendingImageDescription = null) }
-        }
 
         generationJob = viewModelScope.launch {
             try {
@@ -554,9 +556,16 @@ class ChatViewModel(application: Application) : AndroidViewModel(application) {
                     promptBuilder.append(PromptTemplates.fewShotSearch())
                 }
                 prependPersonalContextIfNeeded(promptBuilder)
-                if (!pendingImageDesc.isNullOrBlank() && _uiState.value.multimodalEnabled) {
-                    promptBuilder.append("[IMAGE_DESCRIPTION]\n${pendingImageDesc}\n[/IMAGE_DESCRIPTION]\n\n")
+
+                // Include prior image descriptions as context blocks
+                if (_uiState.value.multimodalEnabled) {
+                    _uiState.value.messages.forEach { msg ->
+                        if (!msg.imageDescription.isNullOrBlank()) {
+                            promptBuilder.append("[IMAGE_DESCRIPTION]\n${msg.imageDescription}\n[/IMAGE_DESCRIPTION]\n\n")
+                        }
+                    }
                 }
+
                 val history = _uiState.value.messages.takeLast(10)
                 history.forEach { message ->
                     if (message.id == userMessage.id) return@forEach

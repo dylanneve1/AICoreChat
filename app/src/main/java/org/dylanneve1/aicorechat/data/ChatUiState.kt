@@ -6,7 +6,8 @@ data class ChatMessage(
     val isFromUser: Boolean,
     val isStreaming: Boolean = false,
     val timestamp: Long = System.currentTimeMillis(),
-    val imageUri: String? = null
+    val imageUri: String? = null,
+    val imageDescription: String? = null
 )
 
 data class ChatUiState(
