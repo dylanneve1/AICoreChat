@@ -51,8 +51,6 @@ import kotlinx.coroutines.withContext
 import org.dylanneve1.aicorechat.util.DeviceSupportStatus
 import org.dylanneve1.aicorechat.util.checkDeviceSupport
 import org.dylanneve1.aicorechat.util.isAICoreInstalled
-import android.os.Build
-import android.content.pm.PackageManager
 
 enum class SettingsDestination { Main, Personalization, Support }
 
@@ -289,11 +287,6 @@ private fun PersonalizationScreen(
     modifier: Modifier = Modifier
 ) {
     Column(modifier = modifier) {
-        Text(
-            text = "Personalization",
-            style = MaterialTheme.typography.titleLarge,
-            modifier = Modifier.padding(top = 12.dp, bottom = 12.dp)
-        )
         OutlinedTextField(
             value = userName,
             onValueChange = onUserNameChange,
@@ -359,7 +352,6 @@ private fun SupportScreen(
     val context = LocalContext.current
     var supportStatus by remember { mutableStateOf<DeviceSupportStatus?>(null) }
     var aicoreInstalled by remember { mutableStateOf(false) }
-    var aicoreVersionName by remember { mutableStateOf<String?>(null) }
     var statusText by remember { mutableStateOf("Checking…") }
 
     LaunchedEffect(Unit) {
@@ -372,44 +364,15 @@ private fun SupportScreen(
             is DeviceSupportStatus.NotReady -> status.reason ?: "Not ready"
             null -> "Unknown"
         }
-        if (aicoreInstalled) {
-            runCatching {
-                val pm = context.packageManager
-                val pkgInfo = if (Build.VERSION.SDK_INT >= 33) {
-                    pm.getPackageInfo("com.google.android.aicore", PackageManager.PackageInfoFlags.of(0))
-                } else {
-                    @Suppress("DEPRECATION")
-                    pm.getPackageInfo("com.google.android.aicore", 0)
-                }
-                aicoreVersionName = pkgInfo.versionName
-            }.onFailure { aicoreVersionName = null }
-        }
     }
 
     Column(modifier = modifier) {
-        Text(
-            text = "Support",
-            style = MaterialTheme.typography.titleLarge,
-            modifier = Modifier.padding(top = 12.dp, bottom = 12.dp)
-        )
         Text("Device Support: $statusText", style = MaterialTheme.typography.bodyLarge)
         Text(
             text = "AICore Installed: ${if (aicoreInstalled) "Yes" else "No"}",
             style = MaterialTheme.typography.bodyLarge,
             modifier = Modifier.padding(top = 8.dp)
         )
-        Text(
-            text = "AICore App Version: ${aicoreVersionName ?: "—"}",
-            style = MaterialTheme.typography.bodyLarge,
-            modifier = Modifier.padding(top = 8.dp)
-        )
-        Spacer(modifier = Modifier.height(8.dp))
-        Text(
-            text = "Gemini Nano Version: —",
-            style = MaterialTheme.typography.bodySmall,
-            color = MaterialTheme.colorScheme.onSurfaceVariant
-        )
-        Spacer(modifier = Modifier.height(8.dp))
     }
 }
 
