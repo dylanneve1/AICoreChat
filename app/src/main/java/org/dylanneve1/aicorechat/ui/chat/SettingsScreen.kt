@@ -51,6 +51,8 @@ import kotlinx.coroutines.withContext
 import org.dylanneve1.aicorechat.util.DeviceSupportStatus
 import org.dylanneve1.aicorechat.util.checkDeviceSupport
 import org.dylanneve1.aicorechat.util.isAICoreInstalled
+import android.os.Build
+import android.content.pm.PackageManager
 
 enum class SettingsDestination { Main, Personalization, Support }
 
@@ -230,7 +232,7 @@ fun SettingsScreen(
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                             modifier = Modifier.padding(top = 4.dp)
                         )
-                        TextButton(onClick = { context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(githubUrl))) }) {
+                        TextButton(onClick = { context.startActivity(githubIntent) }) {
                             Text("Source Code on GitHub")
                             Icon(
                                 imageVector = Icons.Outlined.OpenInNew,
@@ -357,6 +359,7 @@ private fun SupportScreen(
     val context = LocalContext.current
     var supportStatus by remember { mutableStateOf<DeviceSupportStatus?>(null) }
     var aicoreInstalled by remember { mutableStateOf(false) }
+    var aicoreVersionName by remember { mutableStateOf<String?>(null) }
     var statusText by remember { mutableStateOf("Checking…") }
 
     LaunchedEffect(Unit) {
@@ -368,6 +371,18 @@ private fun SupportScreen(
             is DeviceSupportStatus.AICoreMissing -> "AICore app missing"
             is DeviceSupportStatus.NotReady -> status.reason ?: "Not ready"
             null -> "Unknown"
+        }
+        if (aicoreInstalled) {
+            runCatching {
+                val pm = context.packageManager
+                val pkgInfo = if (Build.VERSION.SDK_INT >= 33) {
+                    pm.getPackageInfo("com.google.android.aicore", PackageManager.PackageInfoFlags.of(0))
+                } else {
+                    @Suppress("DEPRECATION")
+                    pm.getPackageInfo("com.google.android.aicore", 0)
+                }
+                aicoreVersionName = pkgInfo.versionName
+            }.onFailure { aicoreVersionName = null }
         }
     }
 
@@ -383,28 +398,18 @@ private fun SupportScreen(
             style = MaterialTheme.typography.bodyLarge,
             modifier = Modifier.padding(top = 8.dp)
         )
+        Text(
+            text = "AICore App Version: ${aicoreVersionName ?: "—"}",
+            style = MaterialTheme.typography.bodyLarge,
+            modifier = Modifier.padding(top = 8.dp)
+        )
         Spacer(modifier = Modifier.height(8.dp))
         Text(
-            text = "Gemini Nano Version: Unknown (initialized dynamically)",
+            text = "Gemini Nano Version: —",
             style = MaterialTheme.typography.bodySmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant
         )
-        Spacer(modifier = Modifier.height(16.dp))
-        Text(
-            text = "If unsupported, join the Google Group and enroll in AICore testing:",
-            style = MaterialTheme.typography.bodySmall,
-            color = MaterialTheme.colorScheme.onSurfaceVariant
-        )
-        val groupUrl = "https://groups.google.com/g/aicore-experimental"
-        val testingUrl = "https://play.google.com/apps/testing/com.google.android.aicore"
-        TextButton(onClick = { context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(groupUrl))) }) {
-            Text("Join Google Group (AICore Experimental)")
-            Icon(imageVector = Icons.Outlined.OpenInNew, contentDescription = null, modifier = Modifier.padding(start = 4.dp))
-        }
-        TextButton(onClick = { context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(testingUrl))) }) {
-            Text("Join AICore Testing Program")
-            Icon(imageVector = Icons.Outlined.OpenInNew, contentDescription = null, modifier = Modifier.padding(start = 4.dp))
-        }
+        Spacer(modifier = Modifier.height(8.dp))
     }
 }
 
