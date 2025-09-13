@@ -31,6 +31,7 @@ import androidx.compose.material3.Slider
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
+import androidx.compose.material3.Button
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Scaffold
@@ -52,7 +53,7 @@ import org.dylanneve1.aicorechat.util.DeviceSupportStatus
 import org.dylanneve1.aicorechat.util.checkDeviceSupport
 import org.dylanneve1.aicorechat.util.isAICoreInstalled
 
-enum class SettingsDestination { Main, Personalization, Support }
+enum class SettingsDestination { Main, ModelSettings, Personalization, Support }
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -61,6 +62,7 @@ fun SettingsScreen(
     topK: Int,
     onTemperatureChange: (Float) -> Unit,
     onTopKChange: (Int) -> Unit,
+    onResetModelSettings: () -> Unit,
     userName: String,
     personalContextEnabled: Boolean,
     onUserNameChange: (String) -> Unit,
@@ -81,7 +83,12 @@ fun SettingsScreen(
     var destination by remember { mutableStateOf(SettingsDestination.Main) }
 
     BackHandler(onBack = {
-        if (destination != SettingsDestination.Main) destination = SettingsDestination.Main else onDismiss()
+        when (destination) {
+            SettingsDestination.ModelSettings,
+            SettingsDestination.Personalization,
+            SettingsDestination.Support -> destination = SettingsDestination.Main
+            SettingsDestination.Main -> onDismiss()
+        }
     })
 
     Surface(modifier = Modifier.fillMaxSize()) {
@@ -90,6 +97,7 @@ fun SettingsScreen(
                 TopAppBar(
                     title = { Text(when (destination) {
                         SettingsDestination.Main -> "Settings"
+                        SettingsDestination.ModelSettings -> "Model Settings"
                         SettingsDestination.Personalization -> "Personalization"
                         SettingsDestination.Support -> "Support"
                     }) },
@@ -115,39 +123,21 @@ fun SettingsScreen(
                             .navigationBarsPadding()
                             .verticalScroll(rememberScrollState())
                     ) {
-                        Text(
-                            text = "Model Settings",
-                            style = MaterialTheme.typography.titleLarge,
-                            color = MaterialTheme.colorScheme.primary,
-                            modifier = Modifier.padding(top = 12.dp, bottom = 16.dp)
-                        )
-
-                        SettingSlider(
-                            label = "Temperature",
-                            value = temperature,
-                            valueRange = 0f..1f,
-                            onValueChange = onTemperatureChange,
-                            valueLabel = "%.2f".format(temperature)
-                        )
-
-                        Spacer(modifier = Modifier.height(8.dp))
-
-                        SettingSlider(
-                            label = "Top-K",
-                            value = topK.toFloat(),
-                            valueRange = 1f..100f,
-                            onValueChange = { onTopKChange(it.roundToInt()) },
-                            valueLabel = topK.toString()
-                        )
-
-                        HorizontalDivider(modifier = Modifier.padding(vertical = 24.dp), color = MaterialTheme.colorScheme.outlineVariant)
-
                         // Navigation rows
-                        Text(
-                            text = "Sections",
-                            style = MaterialTheme.typography.titleLarge,
-                            modifier = Modifier.padding(bottom = 12.dp)
-                        )
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .clickable { destination = SettingsDestination.ModelSettings }
+                                .padding(vertical = 12.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.SpaceBetween
+                        ) {
+                            Column(Modifier.weight(1f)) {
+                                Text("Model Settings", style = MaterialTheme.typography.bodyLarge, fontWeight = FontWeight.Bold)
+                                Text("Temperature, Top-K, Reset to defaults", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                            }
+                            Icon(Icons.Outlined.ChevronRight, contentDescription = null)
+                        }
                         Row(
                             modifier = Modifier
                                 .fillMaxWidth()
@@ -242,6 +232,20 @@ fun SettingsScreen(
                         }
                         Spacer(modifier = Modifier.height(16.dp))
                     }
+                }
+                SettingsDestination.ModelSettings -> {
+                    ModelSettingsScreen(
+                        temperature = temperature,
+                        topK = topK,
+                        onTemperatureChange = onTemperatureChange,
+                        onTopKChange = onTopKChange,
+                        onResetModelSettings = onResetModelSettings,
+                        modifier = Modifier
+                            .padding(innerPadding)
+                            .padding(horizontal = 24.dp)
+                            .navigationBarsPadding()
+                            .verticalScroll(rememberScrollState())
+                    )
                 }
                 SettingsDestination.Personalization -> {
                     PersonalizationScreen(
@@ -373,6 +377,59 @@ private fun SupportScreen(
             style = MaterialTheme.typography.bodyLarge,
             modifier = Modifier.padding(top = 8.dp)
         )
+    }
+}
+
+@Composable
+private fun ModelSettingsScreen(
+    temperature: Float,
+    topK: Int,
+    onTemperatureChange: (Float) -> Unit,
+    onTopKChange: (Int) -> Unit,
+    onResetModelSettings: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    Column(modifier = modifier) {
+        Text(
+            text = "Adjust model parameters to control response creativity and diversity.",
+            style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            modifier = Modifier.padding(bottom = 24.dp)
+        )
+
+        SettingSlider(
+            label = "Temperature",
+            value = temperature,
+            valueRange = 0f..1f,
+            onValueChange = onTemperatureChange,
+            valueLabel = "%.2f".format(temperature)
+        )
+
+        Spacer(modifier = Modifier.height(8.dp))
+
+        SettingSlider(
+            label = "Top-K",
+            value = topK.toFloat(),
+            valueRange = 1f..100f,
+            onValueChange = { onTopKChange(it.roundToInt()) },
+            valueLabel = topK.toString()
+        )
+
+        Spacer(modifier = Modifier.height(24.dp))
+
+        Text(
+            text = "Reset to default parameters (Temperature: 0.30, Top-K: 40)",
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            modifier = Modifier.padding(bottom = 8.dp)
+        )
+
+        Button(
+            onClick = onResetModelSettings,
+            modifier = Modifier.fillMaxWidth()
+        ) {
+            Text("Reset to Defaults")
+        }
     }
 }
 

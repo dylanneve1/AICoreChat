@@ -430,6 +430,7 @@ fun ChatScreen(viewModel: ChatViewModel) {
             topK = uiState.topK,
             onTemperatureChange = viewModel::updateTemperature,
             onTopKChange = viewModel::updateTopK,
+            onResetModelSettings = viewModel::resetModelSettings,
             userName = uiState.userName,
             personalContextEnabled = uiState.personalContextEnabled,
             onUserNameChange = viewModel::updateUserName,

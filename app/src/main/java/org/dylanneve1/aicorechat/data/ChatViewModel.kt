@@ -434,6 +434,17 @@ class ChatViewModel(application: Application) : AndroidViewModel(application) {
         reinitializeModel()
     }
 
+    fun resetModelSettings() {
+        val defaultTemperature = 0.3f
+        val defaultTopK = 40
+        sharedPreferences.edit()
+            .putFloat(KEY_TEMPERATURE, defaultTemperature)
+            .putInt(KEY_TOP_K, defaultTopK)
+            .apply()
+        _uiState.update { it.copy(temperature = defaultTemperature, topK = defaultTopK) }
+        reinitializeModel()
+    }
+
     fun clearChat() {
         _uiState.value.currentSessionId?.let { repository.deleteSession(it) }
         newChat()
