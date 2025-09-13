@@ -30,6 +30,11 @@ import androidx.compose.material.icons.outlined.Edit
 import androidx.compose.material.icons.outlined.LocationOn
 import androidx.compose.material.icons.outlined.Search
 import androidx.compose.material.icons.outlined.Image
+import androidx.compose.material.icons.outlined.AutoAwesome
+import androidx.compose.material.icons.outlined.Shield
+import androidx.compose.material.icons.outlined.Adjust
+import androidx.compose.material.icons.outlined.Language
+import androidx.compose.material.icons.outlined.Refresh
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
@@ -252,12 +257,27 @@ fun SettingsScreen(
                                     style = MaterialTheme.typography.bodyMedium,
                                     modifier = Modifier.padding(bottom = 12.dp)
                                 )
-                                Text(
-                                    text = "✨ Smart chat organization and automatic titling\n🔒 Privacy-first with local processing\n🎯 Personal context for better responses\n🌐 Optional web search integration",
-                                    style = MaterialTheme.typography.bodySmall,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                Column(
+                                    verticalArrangement = Arrangement.spacedBy(8.dp),
                                     modifier = Modifier.padding(bottom = 16.dp)
-                                )
+                                ) {
+                                    FeatureItem(
+                                        icon = Icons.Outlined.AutoAwesome,
+                                        text = "Smart chat organization and automatic titling"
+                                    )
+                                    FeatureItem(
+                                        icon = Icons.Outlined.Shield,
+                                        text = "Privacy-first with local processing"
+                                    )
+                                    FeatureItem(
+                                        icon = Icons.Outlined.Adjust,
+                                        text = "Personal context for better responses"
+                                    )
+                                    FeatureItem(
+                                        icon = Icons.Outlined.Language,
+                                        text = "Optional web search integration"
+                                    )
+                                }
                                 FilledTonalButton(
                                     onClick = { context.startActivity(githubIntent) },
                                     modifier = Modifier.align(Alignment.Start)
@@ -657,32 +677,31 @@ private fun SupportScreen(
                 )
                 when (supportStatus) {
                     is DeviceSupportStatus.Supported -> {
-                        Text(
-                            text = "✅ Your device fully supports on-device AI processing\n✅ Gemini Nano model available\n✅ Optimal performance expected",
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
+                        Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                            StatusItem(Icons.Outlined.Info, "Your device fully supports on-device AI processing")
+                            StatusItem(Icons.Outlined.AutoAwesome, "Gemini Nano model available")
+                            StatusItem(Icons.Outlined.Support, "Optimal performance expected")
+                        }
                     }
                     is DeviceSupportStatus.AICoreMissing -> {
-                        Text(
-                            text = "⚠️  Google AICore app is required for on-device AI\n📱 Install AICore from Google Play Store\n🔄 Restart AICore Chat after installation",
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
+                        Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                            StatusItem(Icons.Outlined.Warning, "Google AICore app is required for on-device AI")
+                            StatusItem(Icons.Outlined.Person, "Install AICore from Google Play Store")
+                            StatusItem(Icons.Outlined.Refresh, "Restart AICore Chat after installation")
+                        }
                     }
                     is DeviceSupportStatus.NotReady -> {
-                        Text(
-                            text = "⚠️  Device compatibility check in progress\n🔄 This may take a moment\n📋 Ensure AICore is properly installed",
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
+                        Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                            StatusItem(Icons.Outlined.Warning, "Device compatibility check in progress")
+                            StatusItem(Icons.Outlined.Info, "This may take a moment")
+                            StatusItem(Icons.Outlined.Support, "Ensure AICore is properly installed")
+                        }
                     }
                     null -> {
-                        Text(
-                            text = "🔄 Checking device compatibility...\n⏳ This may take a few seconds",
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
+                        Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                            StatusItem(Icons.Outlined.Info, "Checking device compatibility...")
+                            StatusItem(Icons.Outlined.Info, "This may take a few seconds")
+                        }
                     }
                 }
             }
@@ -721,12 +740,21 @@ private fun SupportScreen(
                         style = MaterialTheme.typography.bodyLarge,
                         modifier = Modifier.weight(1f)
                     )
-                    Text(
-                        text = if (aicoreInstalled) "✅ Yes" else "❌ No",
-                        style = MaterialTheme.typography.bodyLarge,
-                        fontWeight = FontWeight.Medium,
-                        color = if (aicoreInstalled) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.error
-                    )
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Icon(
+                            imageVector = if (aicoreInstalled) Icons.Outlined.Info else Icons.Outlined.Warning,
+                            contentDescription = null,
+                            tint = if (aicoreInstalled) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.error,
+                            modifier = Modifier.size(16.dp)
+                        )
+                        Spacer(modifier = Modifier.width(4.dp))
+                        Text(
+                            text = if (aicoreInstalled) "Installed" else "Not Installed",
+                            style = MaterialTheme.typography.bodyLarge,
+                            fontWeight = FontWeight.Medium,
+                            color = if (aicoreInstalled) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.error
+                        )
+                    }
                 }
                 if (!aicoreInstalled) {
                     Text(
@@ -802,7 +830,7 @@ private fun ModelSettingsScreen(
                     modifier = Modifier.padding(bottom = 8.dp)
                 )
                 Text(
-                    text = "Controls response randomness • Lower = more consistent • Higher = more varied",
+                    text = "Controls response randomness\n• Lower = more consistent\n• Higher = more varied",
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     modifier = Modifier.padding(bottom = 12.dp)
@@ -854,7 +882,7 @@ private fun ModelSettingsScreen(
                     modifier = Modifier.padding(bottom = 8.dp)
                 )
                 Text(
-                    text = "Limits token selection to top K options • Lower = more focused • Higher = more diverse",
+                    text = "Limits token selection to top K options\n• Lower = more focused\n• Higher = more diverse",
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     modifier = Modifier.padding(bottom = 12.dp)
@@ -985,6 +1013,54 @@ private fun SettingCard(
                 tint = MaterialTheme.colorScheme.onSurfaceVariant
             )
         }
+    }
+}
+
+@Composable
+private fun FeatureItem(
+    icon: androidx.compose.ui.graphics.vector.ImageVector,
+    text: String
+) {
+    Row(
+        verticalAlignment = Alignment.CenterVertically,
+        modifier = Modifier.fillMaxWidth()
+    ) {
+        Icon(
+            imageVector = icon,
+            contentDescription = null,
+            tint = MaterialTheme.colorScheme.primary,
+            modifier = Modifier.size(16.dp)
+        )
+        Spacer(modifier = Modifier.width(8.dp))
+        Text(
+            text = text,
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant
+        )
+    }
+}
+
+@Composable
+private fun StatusItem(
+    icon: androidx.compose.ui.graphics.vector.ImageVector,
+    text: String
+) {
+    Row(
+        verticalAlignment = Alignment.Top,
+        modifier = Modifier.fillMaxWidth()
+    ) {
+        Icon(
+            imageVector = icon,
+            contentDescription = null,
+            tint = MaterialTheme.colorScheme.onSurfaceVariant,
+            modifier = Modifier.size(14.dp).padding(top = 1.dp)
+        )
+        Spacer(modifier = Modifier.width(8.dp))
+        Text(
+            text = text,
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant
+        )
     }
 }
 
