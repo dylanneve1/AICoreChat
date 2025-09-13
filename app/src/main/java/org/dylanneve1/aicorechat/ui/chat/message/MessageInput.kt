@@ -68,12 +68,7 @@ fun MessageInput(
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(start = 16.dp, end = 16.dp, top = 10.dp, bottom = 14.dp)
-                    .heightIn(min = 52.dp, max = 180.dp)
-                    .border(
-                        width = 1.dp,
-                        color = MaterialTheme.colorScheme.outlineVariant,
-                        shape = RoundedCornerShape(28.dp)
-                    ),
+                    .heightIn(min = 52.dp, max = 180.dp),
                 placeholder = { Text("Message", style = MaterialTheme.typography.bodyMedium.copy(color = MaterialTheme.colorScheme.onSurfaceVariant)) },
                 enabled = !isGenerating,
                 shape = RoundedCornerShape(28.dp),
@@ -146,4 +141,4 @@ fun MessageInput(
             )
         }
     }
-} 
+}
