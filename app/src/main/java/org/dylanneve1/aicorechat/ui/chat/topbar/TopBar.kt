@@ -37,7 +37,7 @@ fun AICoreChatTopAppBar(
             title = {
                 Text(
                     title,
-                    style = MaterialTheme.typography.titleLarge.copy(
+                    style = MaterialTheme.typography.titleMedium.copy(
                         fontWeight = androidx.compose.ui.text.font.FontWeight.SemiBold
                     ),
                     modifier = Modifier.combinedClickable(onClick = onTitleClick, onLongClick = onTitleLongPress)
