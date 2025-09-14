@@ -14,7 +14,10 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.ArrowBack
+import androidx.compose.material.icons.outlined.AutoAwesome
+import androidx.compose.material.icons.outlined.Psychology
 import androidx.compose.material.icons.outlined.Settings
+import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -26,6 +29,7 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
+import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -45,11 +49,19 @@ fun CustomInstructionsScreen(
 ) {
     var instructions by remember(customInstructions) { mutableStateOf(customInstructions) }
 
-    Surface(modifier = Modifier.fillMaxSize()) {
+    Surface(
+        modifier = Modifier.fillMaxSize(),
+        color = MaterialTheme.colorScheme.background
+    ) {
         Scaffold(
             topBar = {
                 TopAppBar(
-                    title = { Text("Custom Instructions") },
+                    title = { 
+                        Text(
+                            text = "Response Style",
+                            style = MaterialTheme.typography.titleLarge
+                        )
+                    },
                     navigationIcon = {
                         IconButton(onClick = {
                             onCustomInstructionsChange(instructions.trim())
@@ -57,31 +69,34 @@ fun CustomInstructionsScreen(
                         }) {
                             Icon(Icons.AutoMirrored.Outlined.ArrowBack, contentDescription = "Back")
                         }
-                    }
+                    },
+                    colors = TopAppBarDefaults.topAppBarColors(
+                        containerColor = MaterialTheme.colorScheme.surface
+                    )
                 )
             }
         ) { innerPadding ->
             Column(
                 modifier = Modifier
                     .padding(innerPadding)
-                    .padding(horizontal = 24.dp)
-                    .padding(top = 8.dp)
+                    .verticalScroll(rememberScrollState())
+                    .padding(horizontal = 16.dp, vertical = 8.dp),
+                verticalArrangement = Arrangement.spacedBy(16.dp)
             ) {
-                // Header
+                // Header Card
                 Card(
                     colors = CardDefaults.cardColors(
-                        containerColor = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.1f)
+                        containerColor = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.08f)
                     ),
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(bottom = 24.dp)
+                    elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
+                    modifier = Modifier.fillMaxWidth()
                 ) {
                     Row(
                         modifier = Modifier.padding(20.dp),
-                        verticalAlignment = Alignment.CenterVertically
+                        verticalAlignment = Alignment.Top
                     ) {
                         Icon(
-                            imageVector = Icons.Outlined.Settings,
+                            imageVector = Icons.Outlined.Psychology,
                             contentDescription = null,
                             tint = MaterialTheme.colorScheme.primary,
                             modifier = Modifier.size(24.dp)
@@ -89,12 +104,12 @@ fun CustomInstructionsScreen(
                         Spacer(modifier = Modifier.width(16.dp))
                         Column(modifier = Modifier.weight(1f)) {
                             Text(
-                                text = "Custom Instructions",
+                                text = "Personalize AI Behavior",
                                 style = MaterialTheme.typography.titleMedium,
                                 fontWeight = FontWeight.SemiBold
                             )
                             Text(
-                                text = "Set specific instructions for how the AI should respond to you. These will be included with every conversation.",
+                                text = "Define how the AI should communicate with you in every conversation",
                                 style = MaterialTheme.typography.bodyMedium,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                                 modifier = Modifier.padding(top = 4.dp)
@@ -103,40 +118,114 @@ fun CustomInstructionsScreen(
                     }
                 }
 
-                // Instructions Input
+                // Instructions Input Card
                 Card(
                     colors = CardDefaults.cardColors(
                         containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f)
                     ),
+                    elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
                     modifier = Modifier.fillMaxWidth()
                 ) {
                     Column(modifier = Modifier.padding(20.dp)) {
-                        Text(
-                            text = "Response Instructions",
-                            style = MaterialTheme.typography.titleSmall,
-                            fontWeight = FontWeight.SemiBold,
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
                             modifier = Modifier.padding(bottom = 16.dp)
-                        )
+                        ) {
+                            Icon(
+                                imageVector = Icons.Outlined.AutoAwesome,
+                                contentDescription = null,
+                                tint = MaterialTheme.colorScheme.primary,
+                                modifier = Modifier.size(20.dp)
+                            )
+                            Spacer(modifier = Modifier.width(8.dp))
+                            Text(
+                                text = "Your Instructions",
+                                style = MaterialTheme.typography.titleSmall,
+                                fontWeight = FontWeight.SemiBold
+                            )
+                        }
 
                         OutlinedTextField(
                             value = instructions,
                             onValueChange = { instructions = it },
-                            label = { Text("Instructions") },
-                            placeholder = { Text("e.g., Be concise and direct, use simple language, always be encouraging...") },
-                            minLines = 4,
-                            maxLines = 8,
-                            modifier = Modifier.fillMaxWidth()
+                            label = { Text("Custom Instructions") },
+                            placeholder = { 
+                                Text(
+                                    text = "Example:\n• Be concise and direct\n• Use simple language\n• Always be encouraging\n• Focus on practical solutions",
+                                    style = MaterialTheme.typography.bodySmall
+                                )
+                            },
+                            minLines = 6,
+                            maxLines = 12,
+                            modifier = Modifier.fillMaxWidth(),
+                            supportingText = {
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    horizontalArrangement = Arrangement.SpaceBetween
+                                ) {
+                                    Text(
+                                        text = "${instructions.length} characters",
+                                        style = MaterialTheme.typography.bodySmall
+                                    )
+                                    if (instructions.length > 500) {
+                                        Text(
+                                            text = "Keep it concise for best results",
+                                            style = MaterialTheme.typography.bodySmall,
+                                            color = MaterialTheme.colorScheme.error
+                                        )
+                                    }
+                                }
+                            }
                         )
+                    }
+                }
 
-                        Spacer(modifier = Modifier.height(12.dp))
-
+                // Tips Card
+                Card(
+                    colors = CardDefaults.cardColors(
+                        containerColor = MaterialTheme.colorScheme.tertiaryContainer.copy(alpha = 0.1f)
+                    ),
+                    elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Column(modifier = Modifier.padding(20.dp)) {
                         Text(
-                            text = "These instructions will be sent to the AI at the start of every conversation to guide its responses.",
+                            text = "💡 Tips for Better Instructions",
+                            style = MaterialTheme.typography.titleSmall,
+                            fontWeight = FontWeight.SemiBold,
+                            modifier = Modifier.padding(bottom = 12.dp)
+                        )
+                        Text(
+                            text = "• Be specific about tone and style\n• Mention any preferences or constraints\n• Include examples if helpful\n• Keep instructions clear and concise",
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
                     }
                 }
+
+                // Save Button
+                Button(
+                    onClick = {
+                        onCustomInstructionsChange(instructions.trim())
+                        onDismiss()
+                    },
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(vertical = 8.dp)
+                ) {
+                    Icon(
+                        imageVector = Icons.Outlined.Psychology,
+                        contentDescription = null,
+                        modifier = Modifier.size(18.dp)
+                    )
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text(
+                        text = "Save Instructions",
+                        fontWeight = FontWeight.SemiBold
+                    )
+                }
+                
+                Spacer(modifier = Modifier.height(24.dp))
             }
         }
     }

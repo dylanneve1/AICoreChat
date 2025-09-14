@@ -288,34 +288,41 @@ fun SettingsScreen(
                     )
                 }
                 SettingsDestination.Personalization -> {
-                    PersonalizationScreen(
-                        userName = userName,
-                        personalContextEnabled = personalContextEnabled,
-                        onUserNameChange = onUserNameChange,
-                        onPersonalContextToggle = onPersonalContextToggle,
-                        webSearchEnabled = webSearchEnabled,
-                        onWebSearchToggle = onWebSearchToggle,
-                        multimodalEnabled = multimodalEnabled,
-                        onMultimodalToggle = onMultimodalToggle,
-                        memoryContextEnabled = memoryContextEnabled,
-                        onMemoryContextToggle = onMemoryContextToggle,
-                        customInstructionsEnabled = customInstructionsEnabled,
-                        onCustomInstructionsToggle = onCustomInstructionsToggle,
-                        bioContextEnabled = bioContextEnabled,
-                        onBioContextToggle = onBioContextToggle,
-                        // Bio information
-                        bioName = bioName,
-                        bioAge = bioAge,
-                        bioOccupation = bioOccupation,
-                        bioLocation = bioLocation,
-                        onBioNameChange = onBioNameChange,
-                        onBioAgeChange = onBioAgeChange,
-                        onBioOccupationChange = onBioOccupationChange,
-                        onBioLocationChange = onBioLocationChange,
-                        // Custom instructions
-                        customInstructions = customInstructions,
-                        onCustomInstructionsChange = onCustomInstructionsChange
-                    )
+                    Surface(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .padding(innerPadding),
+                        color = MaterialTheme.colorScheme.background
+                    ) {
+                        PersonalizationScreen(
+                            userName = userName,
+                            personalContextEnabled = personalContextEnabled,
+                            onUserNameChange = onUserNameChange,
+                            onPersonalContextToggle = onPersonalContextToggle,
+                            webSearchEnabled = webSearchEnabled,
+                            onWebSearchToggle = onWebSearchToggle,
+                            multimodalEnabled = multimodalEnabled,
+                            onMultimodalToggle = onMultimodalToggle,
+                            memoryContextEnabled = memoryContextEnabled,
+                            onMemoryContextToggle = onMemoryContextToggle,
+                            customInstructionsEnabled = customInstructionsEnabled,
+                            onCustomInstructionsToggle = onCustomInstructionsToggle,
+                            bioContextEnabled = bioContextEnabled,
+                            onBioContextToggle = onBioContextToggle,
+                            // Bio information
+                            bioName = bioName,
+                            bioAge = bioAge,
+                            bioOccupation = bioOccupation,
+                            bioLocation = bioLocation,
+                            onBioNameChange = onBioNameChange,
+                            onBioAgeChange = onBioAgeChange,
+                            onBioOccupationChange = onBioOccupationChange,
+                            onBioLocationChange = onBioLocationChange,
+                            // Custom instructions
+                            customInstructions = customInstructions,
+                            onCustomInstructionsChange = onCustomInstructionsChange
+                        )
+                    }
                 }
                 SettingsDestination.Support -> {
                     SupportScreen()

@@ -1,40 +1,60 @@
 package org.dylanneve1.aicorechat.ui.chat
 
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.expandVertically
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.shrinkVertically
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.outlined.ArrowBack
+import androidx.compose.material.icons.outlined.Badge
+import androidx.compose.material.icons.outlined.CameraAlt
 import androidx.compose.material.icons.outlined.Edit
-import androidx.compose.material.icons.outlined.LocationOn
-import androidx.compose.material.icons.outlined.Person
-import androidx.compose.material.icons.outlined.Search
 import androidx.compose.material.icons.outlined.Image
+import androidx.compose.material.icons.outlined.LocationOn
 import androidx.compose.material.icons.outlined.Memory
+import androidx.compose.material.icons.outlined.Person
+import androidx.compose.material.icons.outlined.Psychology
+import androidx.compose.material.icons.outlined.Search
 import androidx.compose.material.icons.outlined.Settings
+import androidx.compose.material.icons.outlined.Visibility
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.focus.focusRequester
+import androidx.compose.ui.focus.onFocusChanged
+import androidx.compose.ui.platform.LocalSoftwareKeyboardController
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.graphics.vector.ImageVector
-import androidx.compose.foundation.layout.size
+import org.dylanneve1.aicorechat.ui.components.FeatureToggleCard
+import org.dylanneve1.aicorechat.ui.components.SectionHeaderCard
 
 @Composable
 fun PersonalizationScreen(
@@ -66,110 +86,113 @@ fun PersonalizationScreen(
     onCustomInstructionsChange: (String) -> Unit,
     modifier: Modifier = Modifier
 ) {
-    Column(modifier = modifier.verticalScroll(rememberScrollState())) {
-        // Header
-        Card(
-            colors = CardDefaults.cardColors(
-                containerColor = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.1f)
-            ),
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(bottom = 24.dp)
-        ) {
-            Row(
-                modifier = Modifier.padding(20.dp),
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                androidx.compose.material3.Icon(
-                    imageVector = Icons.Outlined.Person,
-                    contentDescription = null,
-                    tint = MaterialTheme.colorScheme.primary,
-                    modifier = Modifier.size(24.dp)
-                )
-                Spacer(modifier = Modifier.width(16.dp))
-                Column(modifier = Modifier.weight(1f)) {
-                    Text(
-                        text = "Personalization Settings",
-                        style = MaterialTheme.typography.titleMedium,
-                        fontWeight = androidx.compose.ui.text.font.FontWeight.SemiBold
-                    )
-                    Text(
-                        text = "Customize how the AI understands and responds to you.",
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        modifier = Modifier.padding(top = 4.dp)
-                    )
-                }
-            }
+    val scrollState = rememberScrollState()
+    val coroutineScope = rememberCoroutineScope()
+    val keyboardController = LocalSoftwareKeyboardController.current
+    
+    Column(
+        modifier = modifier
+            .fillMaxWidth()
+            .imePadding() // Add IME padding to handle keyboard
+            .verticalScroll(scrollState)
+            .padding(horizontal = 16.dp, vertical = 8.dp),
+        verticalArrangement = Arrangement.spacedBy(16.dp)
+    ) {
+        // Main Header
+        SectionHeaderCard(
+            icon = Icons.Outlined.Person,
+            title = "Personalization",
+            description = "Customize how the AI understands and responds to you",
+            modifier = Modifier.padding(bottom = 8.dp)
+        )
+
+        // AI Capabilities Section
+        Text(
+            text = "AI Capabilities",
+            style = MaterialTheme.typography.titleSmall,
+            color = MaterialTheme.colorScheme.primary,
+            fontWeight = FontWeight.SemiBold,
+            modifier = Modifier.padding(start = 4.dp)
+        )
+        
+        Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+            FeatureToggleCard(
+                icon = Icons.Outlined.LocationOn,
+                title = "Personal Context",
+                description = "Share time, device info, and location for contextual responses",
+                checked = personalContextEnabled,
+                onCheckedChange = onPersonalContextToggle
+            )
+
+            FeatureToggleCard(
+                icon = Icons.Outlined.Search,
+                title = "Web Search",
+                description = "Allow searching the web for current information",
+                checked = webSearchEnabled,
+                onCheckedChange = onWebSearchToggle
+            )
+
+            FeatureToggleCard(
+                icon = Icons.Outlined.CameraAlt,
+                title = "Image Analysis",
+                description = "Enable AI to analyze and describe images",
+                checked = multimodalEnabled,
+                onCheckedChange = onMultimodalToggle
+            )
+
+            FeatureToggleCard(
+                icon = Icons.Outlined.Memory,
+                title = "Memory Context",
+                description = "Use saved memories to personalize responses",
+                checked = memoryContextEnabled,
+                onCheckedChange = onMemoryContextToggle
+            )
         }
 
-
-        // Feature Toggles
-        FeatureToggleCard(
-            icon = Icons.Outlined.LocationOn,
-            title = "Personal Context",
-            description = "Include time, device info, and location for more relevant responses",
-            checked = personalContextEnabled,
-            onCheckedChange = onPersonalContextToggle,
-            modifier = Modifier.padding(bottom = 16.dp)
+        // Personal Information Section
+        Text(
+            text = "Personal Information",
+            style = MaterialTheme.typography.titleSmall,
+            color = MaterialTheme.colorScheme.primary,
+            fontWeight = FontWeight.SemiBold,
+            modifier = Modifier.padding(start = 4.dp, top = 8.dp)
         )
-
-        FeatureToggleCard(
-            icon = Icons.Outlined.Search,
-            title = "Web Search",
-            description = "Enable AI to search the web for current information",
-            checked = webSearchEnabled,
-            onCheckedChange = onWebSearchToggle,
-            modifier = Modifier.padding(bottom = 16.dp)
-        )
-
-        FeatureToggleCard(
-            icon = Icons.Outlined.Image,
-            title = "Image Analysis",
-            description = "Allow AI to analyze and describe images you share",
-            checked = multimodalEnabled,
-            onCheckedChange = onMultimodalToggle,
-            modifier = Modifier.padding(bottom = 16.dp)
-        )
-
-        FeatureToggleCard(
-            icon = Icons.Outlined.Memory,
-            title = "Memory Context",
-            description = "Include relevant memories in conversations",
-            checked = memoryContextEnabled,
-            onCheckedChange = onMemoryContextToggle,
-            modifier = Modifier.padding(bottom = 16.dp)
-        )
-
-        // Bio Information Section
+        
+        // Bio Information Card
         Card(
             colors = CardDefaults.cardColors(
-                containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f)
+                containerColor = if (bioContextEnabled) {
+                    MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.08f)
+                } else {
+                    MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f)
+                }
             ),
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(bottom = 16.dp)
+            modifier = Modifier.fillMaxWidth()
         ) {
             Column(modifier = Modifier.padding(20.dp)) {
                 Row(
                     verticalAlignment = Alignment.CenterVertically,
-                    modifier = Modifier.padding(bottom = 12.dp)
+                    modifier = Modifier.fillMaxWidth()
                 ) {
                     androidx.compose.material3.Icon(
-                        imageVector = Icons.Outlined.Person,
+                        imageVector = Icons.Outlined.Badge,
                         contentDescription = null,
-                        tint = MaterialTheme.colorScheme.primary,
+                        tint = if (bioContextEnabled) {
+                            MaterialTheme.colorScheme.primary
+                        } else {
+                            MaterialTheme.colorScheme.onSurfaceVariant
+                        },
                         modifier = Modifier.size(20.dp)
                     )
                     Spacer(modifier = Modifier.width(12.dp))
                     Column(modifier = Modifier.weight(1f)) {
                         Text(
-                            text = "Bio Information",
+                            text = "Biographical Details",
                             style = MaterialTheme.typography.titleSmall,
-                            fontWeight = androidx.compose.ui.text.font.FontWeight.SemiBold
+                            fontWeight = FontWeight.SemiBold
                         )
                         Text(
-                            text = "Basic information about you for personalized responses",
+                            text = "Help the AI understand who you are",
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
@@ -180,93 +203,96 @@ fun PersonalizationScreen(
                     )
                 }
 
-                if (bioContextEnabled) {
-                    Spacer(modifier = Modifier.height(16.dp))
-
-                    // Name field (moved from separate section)
-                    OutlinedTextField(
-                        value = userName,
-                        onValueChange = onUserNameChange,
-                        label = { Text("Your Name") },
-                        placeholder = { Text("Enter your name") },
-                        singleLine = true,
-                        modifier = Modifier.fillMaxWidth()
-                    )
-
-                    Spacer(modifier = Modifier.height(16.dp))
-
-                    OutlinedTextField(
-                        value = bioName,
-                        onValueChange = onBioNameChange,
-                        label = { Text("Full Name (optional)") },
-                        placeholder = { Text("Your full name") },
-                        singleLine = true,
-                        modifier = Modifier.fillMaxWidth()
-                    )
-
-                    Spacer(modifier = Modifier.height(12.dp))
-
-                    Row(modifier = Modifier.fillMaxWidth()) {
+                AnimatedVisibility(
+                    visible = bioContextEnabled,
+                    enter = expandVertically() + fadeIn(),
+                    exit = shrinkVertically() + fadeOut()
+                ) {
+                    Column(
+                        modifier = Modifier.padding(top = 16.dp),
+                        verticalArrangement = Arrangement.spacedBy(12.dp)
+                    ) {
                         OutlinedTextField(
-                            value = bioAge,
-                            onValueChange = onBioAgeChange,
-                            label = { Text("Age") },
-                            placeholder = { Text("Your age") },
+                            value = userName,
+                            onValueChange = onUserNameChange,
+                            label = { Text("Preferred Name") },
+                            placeholder = { Text("How should I address you?") },
                             singleLine = true,
-                            modifier = Modifier.weight(1f)
+                            modifier = Modifier.fillMaxWidth()
                         )
-                        Spacer(modifier = Modifier.width(12.dp))
+
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.spacedBy(12.dp)
+                        ) {
+                            OutlinedTextField(
+                                value = bioAge,
+                                onValueChange = { if (it.all { char -> char.isDigit() }) onBioAgeChange(it) },
+                                label = { Text("Age") },
+                                placeholder = { Text("Optional") },
+                                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                                singleLine = true,
+                                modifier = Modifier.weight(1f)
+                            )
+                            
+                            OutlinedTextField(
+                                value = bioLocation,
+                                onValueChange = onBioLocationChange,
+                                label = { Text("Location") },
+                                placeholder = { Text("City, Country") },
+                                singleLine = true,
+                                modifier = Modifier.weight(2f)
+                            )
+                        }
+
                         OutlinedTextField(
                             value = bioOccupation,
                             onValueChange = onBioOccupationChange,
                             label = { Text("Occupation") },
-                            placeholder = { Text("Your job/role") },
+                            placeholder = { Text("What do you do? (Optional)") },
                             singleLine = true,
-                            modifier = Modifier.weight(2f)
+                            modifier = Modifier.fillMaxWidth()
                         )
                     }
-
-                    Spacer(modifier = Modifier.height(12.dp))
-
-                    OutlinedTextField(
-                        value = bioLocation,
-                        onValueChange = onBioLocationChange,
-                        label = { Text("Location") },
-                        placeholder = { Text("City, Country") },
-                        singleLine = true,
-                        modifier = Modifier.fillMaxWidth()
-                    )
                 }
             }
         }
 
-        // Custom Instructions Section
+        // Custom Instructions Card
         Card(
             colors = CardDefaults.cardColors(
-                containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f)
+                containerColor = if (customInstructionsEnabled) {
+                    MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.08f)
+                } else {
+                    MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f)
+                }
             ),
             modifier = Modifier.fillMaxWidth()
         ) {
             Column(modifier = Modifier.padding(20.dp)) {
                 Row(
                     verticalAlignment = Alignment.CenterVertically,
-                    modifier = Modifier.padding(bottom = 12.dp)
+                    modifier = Modifier.fillMaxWidth()
                 ) {
                     androidx.compose.material3.Icon(
-                        imageVector = Icons.Outlined.Settings,
+                        imageVector = Icons.Outlined.Psychology,
                         contentDescription = null,
-                        tint = MaterialTheme.colorScheme.primary,
+                        tint = if (customInstructionsEnabled) {
+                            MaterialTheme.colorScheme.primary
+                        } else {
+                            MaterialTheme.colorScheme.onSurfaceVariant
+                        },
                         modifier = Modifier.size(20.dp)
                     )
                     Spacer(modifier = Modifier.width(12.dp))
                     Column(modifier = Modifier.weight(1f)) {
                         Text(
-                            text = "Custom Instructions",
+                            text = "Response Style",
                             style = MaterialTheme.typography.titleSmall,
-                            fontWeight = androidx.compose.ui.text.font.FontWeight.SemiBold
+                            fontWeight = FontWeight.SemiBold
                         )
                         Text(
-                            text = "Instructions to tailor how the AI responds to you",
+                            text = "Define how the AI should communicate",
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
@@ -277,74 +303,41 @@ fun PersonalizationScreen(
                     )
                 }
 
-                if (customInstructionsEnabled) {
-                    Spacer(modifier = Modifier.height(16.dp))
+                AnimatedVisibility(
+                    visible = customInstructionsEnabled,
+                    enter = expandVertically() + fadeIn(),
+                    exit = shrinkVertically() + fadeOut()
+                ) {
                     OutlinedTextField(
                         value = customInstructions,
                         onValueChange = onCustomInstructionsChange,
-                        label = { Text("Instructions") },
-                        placeholder = { Text("e.g., Be concise, use simple language, be encouraging...") },
-                        minLines = 3,
-                        maxLines = 6,
-                        modifier = Modifier.fillMaxWidth()
+                        label = { Text("Custom Instructions") },
+                        placeholder = { Text("e.g., Be concise and direct, use simple language, always be encouraging...") },
+                        minLines = 4,
+                        maxLines = 8,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(top = 16.dp)
+                            .onFocusChanged { focusState ->
+                                if (focusState.isFocused) {
+                                    // Scroll to make the field visible when focused
+                                    coroutineScope.launch {
+                                        delay(300) // Wait for keyboard to appear
+                                        scrollState.animateScrollTo(scrollState.maxValue)
+                                    }
+                                }
+                            },
+                        supportingText = {
+                            Text(
+                                text = "${customInstructions.length} characters",
+                                style = MaterialTheme.typography.bodySmall
+                            )
+                        }
                     )
                 }
             }
         }
-    }
-}
-
-@Composable
-private fun FeatureToggleCard(
-    icon: androidx.compose.ui.graphics.vector.ImageVector,
-    title: String,
-    description: String,
-    checked: Boolean,
-    onCheckedChange: (Boolean) -> Unit,
-    modifier: Modifier = Modifier
-) {
-    Card(
-        colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f)
-        ),
-        modifier = modifier.fillMaxWidth()
-    ) {
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(20.dp),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.SpaceBetween
-        ) {
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
-                modifier = Modifier.weight(1f)
-            ) {
-                androidx.compose.material3.Icon(
-                    imageVector = icon,
-                    contentDescription = null,
-                    tint = MaterialTheme.colorScheme.primary,
-                    modifier = Modifier.size(20.dp)
-                )
-                Spacer(modifier = Modifier.width(12.dp))
-                Column(modifier = Modifier.weight(1f)) {
-                    Text(
-                        text = title,
-                        style = MaterialTheme.typography.titleSmall,
-                        fontWeight = androidx.compose.ui.text.font.FontWeight.SemiBold
-                    )
-                    Text(
-                        text = description,
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        modifier = Modifier.padding(top = 2.dp)
-                    )
-                }
-            }
-            Switch(
-                checked = checked,
-                onCheckedChange = onCheckedChange
-            )
-        }
+        
+        Spacer(modifier = Modifier.height(24.dp))
     }
 }

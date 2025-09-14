@@ -89,13 +89,13 @@ fun FeatureToggleCard(
     Card(
         colors = CardDefaults.cardColors(
             containerColor = if (checked) {
-                MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.08f)
+                MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.12f)
             } else {
                 MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f)
             }
         ),
         elevation = CardDefaults.cardElevation(
-            defaultElevation = if (checked) 1.dp else 0.dp
+            defaultElevation = 0.dp
         ),
         modifier = modifier
             .fillMaxWidth()

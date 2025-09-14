@@ -216,11 +216,13 @@ private fun MemoryCard(
     Card(
         modifier = Modifier.fillMaxWidth(),
         colors = CardDefaults.cardColors(
-            containerColor = if (memory.isEnabled)
+            containerColor = if (memory.isEnabled) {
+                MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.12f)
+            } else {
                 MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f)
-            else
-                MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.1f)
-        )
+            }
+        ),
+        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
     ) {
         Column(modifier = Modifier.padding(20.dp)) {
             Row(
@@ -228,19 +230,41 @@ private fun MemoryCard(
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.Top
             ) {
-                Column(modifier = Modifier.weight(1f)) {
-                    Text(
-                        text = memory.content,
-                        style = MaterialTheme.typography.bodyLarge,
-                        color = MaterialTheme.colorScheme.onSurface,
-                        modifier = Modifier.padding(bottom = 8.dp)
+                Row(
+                    modifier = Modifier.weight(1f),
+                    verticalAlignment = Alignment.Top
+                ) {
+                    Icon(
+                        imageVector = Icons.Outlined.Memory,
+                        contentDescription = null,
+                        tint = if (memory.isEnabled) {
+                            MaterialTheme.colorScheme.primary
+                        } else {
+                            MaterialTheme.colorScheme.onSurfaceVariant
+                        },
+                        modifier = Modifier
+                            .size(20.dp)
+                            .padding(top = 2.dp)
                     )
+                    Spacer(modifier = Modifier.width(12.dp))
+                    Column(modifier = Modifier.weight(1f)) {
+                        Text(
+                            text = memory.content,
+                            style = MaterialTheme.typography.bodyLarge,
+                            color = if (memory.isEnabled) {
+                                MaterialTheme.colorScheme.onSurface
+                            } else {
+                                MaterialTheme.colorScheme.onSurfaceVariant
+                            },
+                            modifier = Modifier.padding(bottom = 8.dp)
+                        )
 
-                    Text(
-                        text = dateFormat.format(java.util.Date(memory.updatedAt)),
-                        style = MaterialTheme.typography.labelSmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
+                        Text(
+                            text = dateFormat.format(java.util.Date(memory.updatedAt)),
+                            style = MaterialTheme.typography.labelSmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f)
+                        )
+                    }
                 }
 
                 Column(horizontalAlignment = Alignment.End) {
@@ -254,7 +278,11 @@ private fun MemoryCard(
                             androidx.compose.material3.Icon(
                                 Icons.Outlined.Edit,
                                 contentDescription = "Edit",
-                                tint = MaterialTheme.colorScheme.primary,
+                                tint = if (memory.isEnabled) {
+                                    MaterialTheme.colorScheme.primary
+                                } else {
+                                    MaterialTheme.colorScheme.onSurfaceVariant
+                                },
                                 modifier = Modifier.size(18.dp)
                             )
                         }
