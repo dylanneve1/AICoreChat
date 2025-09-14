@@ -9,6 +9,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.Error
+import androidx.compose.material.icons.outlined.Info
 import androidx.compose.material.icons.automirrored.outlined.OpenInNew
 import androidx.compose.material3.Button
 import androidx.compose.material3.Icon
@@ -41,7 +42,7 @@ fun UnsupportedDeviceScreen(message: String?) {
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
             Icon(
-                imageVector = Icons.Outlined.Info,
+                imageVector = Icons.Outlined.Error,
                 contentDescription = null,
                 tint = MaterialTheme.colorScheme.primary
             )
