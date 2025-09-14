@@ -29,5 +29,16 @@ data class ChatUiState(
     val isDescribingImage: Boolean = false,
     val pendingImageDescription: String? = null,
     val pendingImageUri: String? = null,
-    val multimodalEnabled: Boolean = true
+    val multimodalEnabled: Boolean = true,
+    // Memory and Custom Instructions
+    val customInstructions: String = "",
+    val memoryEntries: List<MemoryEntry> = emptyList(),
+    val bioInformation: BioInformation? = null,
+    val memoryContextEnabled: Boolean = true,
+    val customInstructionsEnabled: Boolean = true,
+    val bioContextEnabled: Boolean = true,
+    val memorySearchQuery: String = "",
+    val selectedMemoryCategory: MemoryCategory? = null,
+    val isMemoryLoading: Boolean = false,
+    val memoryError: String? = null
 )

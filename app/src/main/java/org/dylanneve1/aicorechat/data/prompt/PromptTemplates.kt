@@ -1,5 +1,9 @@
 package org.dylanneve1.aicorechat.data.prompt
 
+import org.dylanneve1.aicorechat.data.CustomInstruction
+import org.dylanneve1.aicorechat.data.MemoryEntry
+import org.dylanneve1.aicorechat.data.BioInformation
+
 object PromptTemplates {
     fun systemPreamble(allowSearch: Boolean, offlineNotice: Boolean): String {
         val sb = StringBuilder()
@@ -52,5 +56,86 @@ object PromptTemplates {
             append("Do NOT mention or cite sources, URLs, or [WEB_RESULTS].\n")
             append("Write the answer directly, ending with [/ASSISTANT].\n\n")
         }
+    }
+
+    fun customInstructionsBlock(instructions: String): String {
+        if (instructions.isBlank()) return ""
+
+        return buildString {
+            append("[CUSTOM_INSTRUCTIONS]\n")
+            append("The following are custom instructions that should guide your behavior:\n\n")
+            append("$instructions\n")
+            append("[/CUSTOM_INSTRUCTIONS]\n\n")
+        }
+    }
+
+    fun memoryContextBlock(memories: List<MemoryEntry>, bio: BioInformation? = null): String {
+        val sb = StringBuilder()
+
+        // Add bio information if available
+        bio?.let { bioInfo ->
+            sb.append("[BIO_CONTEXT]\n")
+            sb.append("User biographical information:\n")
+
+            bioInfo.name?.let { sb.append("• Name: $it\n") }
+            bioInfo.age?.let { sb.append("• Age: $it\n") }
+            bioInfo.occupation?.let { sb.append("• Occupation: $it\n") }
+            bioInfo.location?.let { sb.append("• Location: $it\n") }
+
+            if (bioInfo.interests.isNotEmpty()) {
+                sb.append("• Interests: ${bioInfo.interests.joinToString(", ")}\n")
+            }
+
+            if (bioInfo.personalityTraits.isNotEmpty()) {
+                sb.append("• Personality: ${bioInfo.personalityTraits.joinToString(", ")}\n")
+            }
+
+            if (bioInfo.goals.isNotEmpty()) {
+                sb.append("• Goals: ${bioInfo.goals.joinToString(", ")}\n")
+            }
+
+            if (bioInfo.achievements.isNotEmpty()) {
+                sb.append("• Achievements: ${bioInfo.achievements.joinToString(", ")}\n")
+            }
+
+            sb.append("[/BIO_CONTEXT]\n\n")
+        }
+
+        // Add relevant memory entries
+        if (memories.isNotEmpty()) {
+            sb.append("[MEMORY_CONTEXT]\n")
+            sb.append("Relevant information from user's memory:\n\n")
+
+            memories.forEach { memory ->
+                sb.append("• ${memory.content}\n\n")
+            }
+
+            sb.append("[/MEMORY_CONTEXT]\n\n")
+        }
+
+        return sb.toString()
+    }
+
+    fun buildMemoryContextFromQuery(query: String, allMemories: List<MemoryEntry>): List<MemoryEntry> {
+        if (query.isBlank() || allMemories.isEmpty()) return emptyList()
+
+        // Simple relevance scoring based on keyword matching
+        val queryWords = query.lowercase().split("\\s+".toRegex()).filter { it.length > 2 }
+
+        val scoredMemories = allMemories
+            .filter { it.isEnabled }
+            .map { memory ->
+                val contentMatch = queryWords.count { word ->
+                    memory.content.lowercase().contains(word)
+                }
+
+                val relevanceScore = contentMatch * 2
+                memory to relevanceScore
+            }
+            .filter { it.second > 0 } // Only include memories with some relevance
+            .sortedByDescending { it.second }
+            .take(5) // Limit to top 5 most relevant memories
+
+        return scoredMemories.map { it.first }
     }
 } 

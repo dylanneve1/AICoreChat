@@ -31,6 +31,14 @@ import androidx.core.net.toUri
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.foundation.background
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.material3.Icon
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.outlined.Person
+import androidx.compose.material.icons.outlined.SmartToy
+import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.LinearProgressIndicator
 
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
@@ -120,6 +128,67 @@ fun MessageRow(
         if (message.isFromUser) {
             Spacer(Modifier.width(8.dp))
             UserAvatar()
+        }
+    }
+}
+
+@Composable
+private fun AssistantAvatar() {
+    Surface(
+        modifier = Modifier.size(32.dp),
+        shape = CircleShape,
+        color = MaterialTheme.colorScheme.primaryContainer
+    ) {
+        Box(contentAlignment = Alignment.Center) {
+            Icon(
+                imageVector = Icons.Outlined.SmartToy,
+                contentDescription = "AI Assistant",
+                tint = MaterialTheme.colorScheme.onPrimaryContainer,
+                modifier = Modifier.size(20.dp)
+            )
+        }
+    }
+}
+
+@Composable
+private fun UserAvatar() {
+    Surface(
+        modifier = Modifier.size(32.dp),
+        shape = CircleShape,
+        color = MaterialTheme.colorScheme.secondaryContainer
+    ) {
+        Box(contentAlignment = Alignment.Center) {
+            Icon(
+                imageVector = Icons.Outlined.Person,
+                contentDescription = "User",
+                tint = MaterialTheme.colorScheme.onSecondaryContainer,
+                modifier = Modifier.size(20.dp)
+            )
+        }
+    }
+}
+
+@Composable
+private fun SearchingIndicator(tint: androidx.compose.ui.graphics.Color) {
+    CircularProgressIndicator(
+        modifier = Modifier.size(16.dp),
+        color = tint,
+        strokeWidth = 2.dp
+    )
+}
+
+@Composable
+private fun TypingIndicator(tint: androidx.compose.ui.graphics.Color) {
+    Row(
+        horizontalArrangement = Arrangement.spacedBy(2.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        repeat(3) {
+            Surface(
+                modifier = Modifier.size(4.dp),
+                shape = CircleShape,
+                color = tint.copy(alpha = 0.6f)
+            ) {}
         }
     }
 } 

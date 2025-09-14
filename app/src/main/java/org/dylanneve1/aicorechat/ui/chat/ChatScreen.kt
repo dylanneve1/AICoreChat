@@ -5,8 +5,6 @@ import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.slideInVertically
 import androidx.compose.animation.slideOutVertically
-import androidx.compose.foundation.ExperimentalFoundationApi
-import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
@@ -27,7 +25,6 @@ import androidx.compose.material.icons.outlined.Settings
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.CenterAlignedTopAppBar
 import androidx.compose.material3.DrawerValue
-import androidx.compose.material3.ElevatedCard
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material3.FloatingActionButton
@@ -63,9 +60,6 @@ import org.dylanneve1.aicorechat.data.ChatSessionMeta
 import org.dylanneve1.aicorechat.data.ChatViewModel
 import kotlin.math.max
 import androidx.compose.foundation.layout.imePadding
-import androidx.compose.runtime.CompositionLocalProvider
-import androidx.compose.ui.platform.LocalLayoutDirection
-import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.PickVisualMediaRequest
@@ -95,8 +89,10 @@ import org.dylanneve1.aicorechat.ui.chat.drawer.SessionItem
 import org.dylanneve1.aicorechat.ui.chat.topbar.AICoreChatTopAppBar
 import org.dylanneve1.aicorechat.ui.chat.message.MessageRow
 import org.dylanneve1.aicorechat.ui.chat.message.MessageInput
+import org.dylanneve1.aicorechat.data.MemoryCategory
+import org.dylanneve1.aicorechat.ui.chat.SettingsDestination
 
-@OptIn(ExperimentalMaterial3Api::class, ExperimentalFoundationApi::class)
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ChatScreen(viewModel: ChatViewModel) {
     val uiState by viewModel.uiState.collectAsState()
@@ -107,6 +103,10 @@ fun ChatScreen(viewModel: ChatViewModel) {
     var showClearDialog by remember { mutableStateOf(false) }
     var showSettingsSheet by remember { mutableStateOf(false) }
     var showToolsSheet by remember { mutableStateOf(false) }
+
+    // Navigation state for settings sub-screens
+    var currentSettingsDestination by remember { mutableStateOf<SettingsDestination?>(null) }
+
     val scrollBehavior = TopAppBarDefaults.pinnedScrollBehavior()
 
     val drawerState = rememberDrawerState(DrawerValue.Closed)
@@ -115,6 +115,10 @@ fun ChatScreen(viewModel: ChatViewModel) {
     var renameTitleDialog by remember { mutableStateOf(false) }
 
     val context = LocalContext.current
+
+    // Permission variables accessible to all modal blocks
+    val hasFine = ContextCompat.checkSelfPermission(context, android.Manifest.permission.ACCESS_FINE_LOCATION) == android.content.pm.PackageManager.PERMISSION_GRANTED
+    val hasCoarse = ContextCompat.checkSelfPermission(context, android.Manifest.permission.ACCESS_COARSE_LOCATION) == android.content.pm.PackageManager.PERMISSION_GRANTED
     val focusManager = LocalFocusManager.current
     val locationPermissionLauncher = rememberLauncherForActivityResult(
         ActivityResultContracts.RequestMultiplePermissions()
@@ -422,32 +426,6 @@ fun ChatScreen(viewModel: ChatViewModel) {
         )
     }
 
-    if (showSettingsSheet) {
-        val hasFine = ContextCompat.checkSelfPermission(context, android.Manifest.permission.ACCESS_FINE_LOCATION) == android.content.pm.PackageManager.PERMISSION_GRANTED
-        val hasCoarse = ContextCompat.checkSelfPermission(context, android.Manifest.permission.ACCESS_COARSE_LOCATION) == android.content.pm.PackageManager.PERMISSION_GRANTED
-        SettingsScreen(
-            temperature = uiState.temperature,
-            topK = uiState.topK,
-            onTemperatureChange = viewModel::updateTemperature,
-            onTopKChange = viewModel::updateTopK,
-            onResetModelSettings = viewModel::resetModelSettings,
-            userName = uiState.userName,
-            personalContextEnabled = uiState.personalContextEnabled,
-            onUserNameChange = viewModel::updateUserName,
-            onPersonalContextToggle = { enabled ->
-                if (enabled && !hasFine && !hasCoarse) {
-                    locationPermissionLauncher.launch(arrayOf(android.Manifest.permission.ACCESS_FINE_LOCATION, android.Manifest.permission.ACCESS_COARSE_LOCATION))
-                }
-                viewModel.updatePersonalContextEnabled(enabled)
-            },
-            webSearchEnabled = uiState.webSearchEnabled,
-            onWebSearchToggle = viewModel::updateWebSearchEnabled,
-            multimodalEnabled = uiState.multimodalEnabled,
-            onMultimodalToggle = viewModel::updateMultimodalEnabled,
-            onWipeAllChats = viewModel::wipeAllChats,
-            onDismiss = { showSettingsSheet = false }
-        )
-    }
 
     if (showToolsSheet) {
         ToolsSheet(
@@ -455,8 +433,6 @@ fun ChatScreen(viewModel: ChatViewModel) {
             onWebSearchToggle = viewModel::updateWebSearchEnabled,
             personalContextEnabled = uiState.personalContextEnabled,
             onPersonalContextToggle = { enabled ->
-                val hasFine = ContextCompat.checkSelfPermission(context, android.Manifest.permission.ACCESS_FINE_LOCATION) == android.content.pm.PackageManager.PERMISSION_GRANTED
-                val hasCoarse = ContextCompat.checkSelfPermission(context, android.Manifest.permission.ACCESS_COARSE_LOCATION) == android.content.pm.PackageManager.PERMISSION_GRANTED
                 if (enabled && !hasFine && !hasCoarse) {
                     locationPermissionLauncher.launch(arrayOf(android.Manifest.permission.ACCESS_FINE_LOCATION, android.Manifest.permission.ACCESS_COARSE_LOCATION))
                 }
@@ -466,5 +442,106 @@ fun ChatScreen(viewModel: ChatViewModel) {
             onMultimodalToggle = viewModel::updateMultimodalEnabled,
             onDismiss = { showToolsSheet = false }
         )
+    }
+
+    // Single settings modal that handles all sub-navigation
+    if (showSettingsSheet) {
+        when (currentSettingsDestination) {
+            null -> {
+                // Show main settings screen
+                SettingsScreen(
+                    temperature = uiState.temperature,
+                    topK = uiState.topK,
+                    onTemperatureChange = viewModel::updateTemperature,
+                    onTopKChange = viewModel::updateTopK,
+                    onResetModelSettings = viewModel::resetModelSettings,
+                    userName = uiState.userName,
+                    personalContextEnabled = uiState.personalContextEnabled,
+                    onUserNameChange = viewModel::updateUserName,
+                    onPersonalContextToggle = { enabled ->
+                        if (enabled && !hasFine && !hasCoarse) {
+                            locationPermissionLauncher.launch(arrayOf(android.Manifest.permission.ACCESS_FINE_LOCATION, android.Manifest.permission.ACCESS_COARSE_LOCATION))
+                        }
+                        viewModel.updatePersonalContextEnabled(enabled)
+                    },
+                    webSearchEnabled = uiState.webSearchEnabled,
+                    onWebSearchToggle = viewModel::updateWebSearchEnabled,
+                    multimodalEnabled = uiState.multimodalEnabled,
+                    onMultimodalToggle = viewModel::updateMultimodalEnabled,
+                    onWipeAllChats = viewModel::wipeAllChats,
+                    onDismiss = {
+                        showSettingsSheet = false
+                        currentSettingsDestination = null
+                    },
+                    // Memory and Bio parameters
+                    memoryContextEnabled = uiState.memoryContextEnabled,
+                    onMemoryContextToggle = viewModel::updateMemoryContextEnabled,
+                    customInstructionsEnabled = uiState.customInstructionsEnabled,
+                    onCustomInstructionsToggle = viewModel::updateCustomInstructionsEnabled,
+                    bioContextEnabled = uiState.bioContextEnabled,
+                    onBioContextToggle = viewModel::updateBioContextEnabled,
+                    // Bio information
+                    bioName = uiState.bioInformation?.name ?: "",
+                    bioAge = uiState.bioInformation?.age?.toString() ?: "",
+                    bioOccupation = uiState.bioInformation?.occupation ?: "",
+                    bioLocation = uiState.bioInformation?.location ?: "",
+                    onBioNameChange = { name ->
+                        val currentBio = uiState.bioInformation
+                        viewModel.updateBioInformation(
+                            name = name,
+                            age = currentBio?.age?.toString() ?: "",
+                            occupation = currentBio?.occupation ?: "",
+                            location = currentBio?.location ?: ""
+                        )
+                    },
+                    onBioAgeChange = { age ->
+                        val currentBio = uiState.bioInformation
+                        viewModel.updateBioInformation(
+                            name = currentBio?.name ?: "",
+                            age = age,
+                            occupation = currentBio?.occupation ?: "",
+                            location = currentBio?.location ?: ""
+                        )
+                    },
+                    onBioOccupationChange = { occupation ->
+                        val currentBio = uiState.bioInformation
+                        viewModel.updateBioInformation(
+                            name = currentBio?.name ?: "",
+                            age = currentBio?.age?.toString() ?: "",
+                            occupation = occupation,
+                            location = currentBio?.location ?: ""
+                        )
+                    },
+                    onBioLocationChange = { location ->
+                        val currentBio = uiState.bioInformation
+                        viewModel.updateBioInformation(
+                            name = currentBio?.name ?: "",
+                            age = currentBio?.age?.toString() ?: "",
+                            occupation = currentBio?.occupation ?: "",
+                            location = location
+                        )
+                    },
+                    // Custom instructions
+                    customInstructions = uiState.customInstructions,
+                    onCustomInstructionsChange = { instructions ->
+                        viewModel.updateCustomInstructions(instructions, uiState.customInstructionsEnabled)
+                    },
+                    // Memory and Bio management parameters
+                    memoryEntries = uiState.memoryEntries,
+                    bioInformation = uiState.bioInformation,
+                    onAddMemory = viewModel::addMemoryEntry,
+                    onUpdateMemory = viewModel::updateMemoryEntry,
+                    onDeleteMemory = viewModel::deleteMemoryEntry,
+                    onToggleMemory = viewModel::toggleMemoryEntry,
+                    onSaveBio = viewModel::saveBioInformation,
+                    onDeleteBio = viewModel::deleteBioInformation
+                )
+            }
+            else -> {
+                // Handle any unexpected destinations by closing settings
+                showSettingsSheet = false
+                currentSettingsDestination = null
+            }
+        }
     }
 }

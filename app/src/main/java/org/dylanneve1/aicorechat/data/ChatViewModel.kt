@@ -36,6 +36,12 @@ import java.io.InputStream
 import android.graphics.ImageDecoder
 import android.provider.MediaStore
 import org.dylanneve1.aicorechat.data.prompt.PromptTemplates
+import org.dylanneve1.aicorechat.data.MemoryRepository
+import org.dylanneve1.aicorechat.data.MemoryEntry
+import org.dylanneve1.aicorechat.data.CustomInstruction
+import org.dylanneve1.aicorechat.data.BioInformation
+import org.dylanneve1.aicorechat.data.MemoryCategory
+import org.dylanneve1.aicorechat.data.MemoryImportance
 
 /**
  * ChatViewModel orchestrates sessions, model streaming, tools, and persistence.
@@ -52,6 +58,7 @@ class ChatViewModel(application: Application) : AndroidViewModel(application) {
         application.getSharedPreferences("AICoreChatPrefs", Context.MODE_PRIVATE)
 
     private val repository = ChatRepository(application.applicationContext)
+    private val memoryRepository = MemoryRepository(application.applicationContext)
 
     // Services
     private val webSearchService = WebSearchService(application)
@@ -65,6 +72,10 @@ class ChatViewModel(application: Application) : AndroidViewModel(application) {
         const val KEY_PERSONAL_CONTEXT = "personal_context"
         const val KEY_WEB_SEARCH = "web_search"
         const val KEY_MULTIMODAL = "multimodal"
+        const val KEY_MEMORY_CONTEXT = "memory_context"
+        const val KEY_CUSTOM_INSTRUCTIONS = "custom_instructions_enabled"
+        const val KEY_CUSTOM_INSTRUCTIONS_TEXT = "custom_instructions_text"
+        const val KEY_BIO_CONTEXT = "bio_context"
     }
 
     private fun sanitizeAssistantText(text: String): String {
@@ -79,6 +90,7 @@ class ChatViewModel(application: Application) : AndroidViewModel(application) {
 
     init {
         loadSettings()
+        loadMemoryData()
         initOrStartNewSession()
         reinitializeModel()
     }
@@ -90,7 +102,25 @@ class ChatViewModel(application: Application) : AndroidViewModel(application) {
         val personalContextEnabled = sharedPreferences.getBoolean(KEY_PERSONAL_CONTEXT, false)
         val webSearchEnabled = sharedPreferences.getBoolean(KEY_WEB_SEARCH, false)
         val multimodalEnabled = sharedPreferences.getBoolean(KEY_MULTIMODAL, true)
-        _uiState.update { it.copy(temperature = temperature, topK = topK, userName = userName, personalContextEnabled = personalContextEnabled, webSearchEnabled = webSearchEnabled, multimodalEnabled = multimodalEnabled) }
+        val memoryContextEnabled = sharedPreferences.getBoolean(KEY_MEMORY_CONTEXT, true)
+        val customInstructionsEnabled = sharedPreferences.getBoolean(KEY_CUSTOM_INSTRUCTIONS, true)
+        val customInstructionsText = sharedPreferences.getString(KEY_CUSTOM_INSTRUCTIONS_TEXT, "") ?: ""
+        val bioContextEnabled = sharedPreferences.getBoolean(KEY_BIO_CONTEXT, true)
+
+        _uiState.update {
+            it.copy(
+                temperature = temperature,
+                topK = topK,
+                userName = userName,
+                personalContextEnabled = personalContextEnabled,
+                webSearchEnabled = webSearchEnabled,
+                multimodalEnabled = multimodalEnabled,
+                memoryContextEnabled = memoryContextEnabled,
+                customInstructionsEnabled = customInstructionsEnabled,
+                customInstructions = customInstructionsText,
+                bioContextEnabled = bioContextEnabled
+            )
+        }
     }
 
     fun updateUserName(name: String) {
@@ -113,6 +143,75 @@ class ChatViewModel(application: Application) : AndroidViewModel(application) {
         _uiState.update { it.copy(multimodalEnabled = enabled) }
         if (!enabled) {
             _uiState.update { it.copy(pendingImageUri = null, pendingImageDescription = null, isDescribingImage = false) }
+        }
+    }
+
+    private fun loadMemoryData() {
+        viewModelScope.launch {
+            try {
+                _uiState.update { it.copy(isMemoryLoading = true, memoryError = null) }
+                val customInstructions = sharedPreferences.getString(KEY_CUSTOM_INSTRUCTIONS_TEXT, "") ?: ""
+                val memoryEntries = memoryRepository.loadMemoryEntries()
+                val bioInformation = memoryRepository.loadBioInformation()
+
+                _uiState.update {
+                    it.copy(
+                        customInstructions = customInstructions,
+                        memoryEntries = memoryEntries,
+                        bioInformation = bioInformation,
+                        isMemoryLoading = false
+                    )
+                }
+            } catch (e: Exception) {
+                _uiState.update {
+                    it.copy(
+                        isMemoryLoading = false,
+                        memoryError = "Failed to load memory data: ${e.message}"
+                    )
+                }
+            }
+        }
+    }
+
+    // Memory Context Settings
+    fun updateMemoryContextEnabled(enabled: Boolean) {
+        sharedPreferences.edit().putBoolean(KEY_MEMORY_CONTEXT, enabled).apply()
+        _uiState.update { it.copy(memoryContextEnabled = enabled) }
+    }
+
+    fun updateCustomInstructionsEnabled(enabled: Boolean) {
+        sharedPreferences.edit().putBoolean(KEY_CUSTOM_INSTRUCTIONS, enabled).apply()
+        _uiState.update { it.copy(customInstructionsEnabled = enabled) }
+    }
+
+    fun updateBioContextEnabled(enabled: Boolean) {
+        sharedPreferences.edit().putBoolean(KEY_BIO_CONTEXT, enabled).apply()
+        _uiState.update { it.copy(bioContextEnabled = enabled) }
+    }
+
+    fun updateBioInformation(name: String, age: String, occupation: String, location: String) {
+        val bio = if (name.isNotBlank() || age.isNotBlank() || occupation.isNotBlank() || location.isNotBlank()) {
+            BioInformation(
+                id = "user_bio",
+                name = name.takeIf { it.isNotBlank() },
+                age = age.toIntOrNull(),
+                occupation = occupation.takeIf { it.isNotBlank() },
+                location = location.takeIf { it.isNotBlank() }
+            )
+        } else null
+
+        bio?.let { memoryRepository.saveBioInformation(it) }
+        _uiState.update { it.copy(bioInformation = bio) }
+    }
+
+    fun updateCustomInstructions(instructions: String, enabled: Boolean) {
+        sharedPreferences.edit().putBoolean(KEY_CUSTOM_INSTRUCTIONS, enabled).apply()
+        sharedPreferences.edit().putString(KEY_CUSTOM_INSTRUCTIONS_TEXT, instructions).apply()
+        _uiState.update {
+            it.copy(
+                customInstructionsEnabled = enabled,
+                customInstructions = instructions
+            )
         }
     }
 
@@ -562,11 +661,28 @@ class ChatViewModel(application: Application) : AndroidViewModel(application) {
                 val offlineNotice = _uiState.value.webSearchEnabled && !allowSearchThisTurn
                 val promptBuilder = StringBuilder()
                 promptBuilder.append(PromptTemplates.systemPreamble(allowSearch = allowSearchThisTurn, offlineNotice = offlineNotice))
+
+                // Add custom instructions if enabled
+                if (_uiState.value.customInstructionsEnabled && _uiState.value.customInstructions.isNotBlank()) {
+                    promptBuilder.append(PromptTemplates.customInstructionsBlock(_uiState.value.customInstructions))
+                }
+
                 promptBuilder.append(PromptTemplates.fewShotGeneral())
                 if (allowSearchThisTurn) {
                     promptBuilder.append(PromptTemplates.fewShotSearch())
                 }
                 prependPersonalContextIfNeeded(promptBuilder)
+
+                // Add memory context if enabled
+                if (_uiState.value.memoryContextEnabled) {
+                    val relevantMemories = PromptTemplates.buildMemoryContextFromQuery(
+                        query = prompt,
+                        allMemories = _uiState.value.memoryEntries
+                    )
+
+                    val bioInfo = if (_uiState.value.bioContextEnabled) _uiState.value.bioInformation else null
+                    promptBuilder.append(PromptTemplates.memoryContextBlock(relevantMemories, bioInfo))
+                }
 
                 // Include prior image descriptions as context blocks
                 if (_uiState.value.multimodalEnabled) {
@@ -727,7 +843,24 @@ class ChatViewModel(application: Application) : AndroidViewModel(application) {
 
             val promptBuilder = StringBuilder()
             promptBuilder.append(PromptTemplates.postSearchPreamble())
+
+            // Add custom instructions if enabled
+            if (_uiState.value.customInstructionsEnabled && _uiState.value.customInstructions.isNotBlank()) {
+                promptBuilder.append(PromptTemplates.customInstructionsBlock(_uiState.value.customInstructions))
+            }
+
             promptBuilder.append("[WEB_RESULTS]\n${results}\n[/WEB_RESULTS]\n\n")
+
+            // Add memory context if enabled
+            if (_uiState.value.memoryContextEnabled) {
+                val relevantMemories = PromptTemplates.buildMemoryContextFromQuery(
+                    query = userMessage.text,
+                    allMemories = _uiState.value.memoryEntries
+                )
+
+                val bioInfo = if (_uiState.value.bioContextEnabled) _uiState.value.bioInformation else null
+                promptBuilder.append(PromptTemplates.memoryContextBlock(relevantMemories, bioInfo))
+            }
             // Build recent history WITHOUT any trailing streaming placeholder bubble (we never persisted it)
             val recent = _uiState.value.messages.filter { !it.isStreaming }
             (recent + userMessage).takeLast(10).forEach { m ->
@@ -812,6 +945,196 @@ class ChatViewModel(application: Application) : AndroidViewModel(application) {
             }
         }
         return maxLen
+    }
+
+    // Custom Instructions Management
+    fun addCustomInstruction(title: String, instruction: String, category: String = "General") {
+        viewModelScope.launch {
+            try {
+                val newInstruction = CustomInstruction(
+                    title = title,
+                    instruction = instruction,
+                    category = category
+                )
+                memoryRepository.addCustomInstruction(newInstruction)
+                loadMemoryData()
+            } catch (e: Exception) {
+                _uiState.update { it.copy(memoryError = "Failed to add custom instruction: ${e.message}") }
+            }
+        }
+    }
+
+    fun updateCustomInstruction(instruction: CustomInstruction) {
+        viewModelScope.launch {
+            try {
+                memoryRepository.updateCustomInstruction(instruction)
+                loadMemoryData()
+            } catch (e: Exception) {
+                _uiState.update { it.copy(memoryError = "Failed to update custom instruction: ${e.message}") }
+            }
+        }
+    }
+
+    fun deleteCustomInstruction(instructionId: String) {
+        viewModelScope.launch {
+            try {
+                memoryRepository.deleteCustomInstruction(instructionId)
+                loadMemoryData()
+            } catch (e: Exception) {
+                _uiState.update { it.copy(memoryError = "Failed to delete custom instruction: ${e.message}") }
+            }
+        }
+    }
+
+    fun toggleCustomInstruction(instructionId: String) {
+        viewModelScope.launch {
+            try {
+                memoryRepository.toggleCustomInstruction(instructionId)
+                loadMemoryData()
+            } catch (e: Exception) {
+                _uiState.update { it.copy(memoryError = "Failed to toggle custom instruction: ${e.message}") }
+            }
+        }
+    }
+
+    // Memory Entries Management
+    fun addMemoryEntry(content: String) {
+        viewModelScope.launch {
+            try {
+                val newMemory = MemoryEntry(
+                    content = content
+                )
+                memoryRepository.addMemoryEntry(newMemory)
+                loadMemoryData()
+            } catch (e: Exception) {
+                _uiState.update { it.copy(memoryError = "Failed to add memory entry: ${e.message}") }
+            }
+        }
+    }
+
+    fun updateMemoryEntry(memory: MemoryEntry) {
+        viewModelScope.launch {
+            try {
+                memoryRepository.updateMemoryEntry(memory)
+                loadMemoryData()
+            } catch (e: Exception) {
+                _uiState.update { it.copy(memoryError = "Failed to update memory entry: ${e.message}") }
+            }
+        }
+    }
+
+    fun deleteMemoryEntry(memoryId: String) {
+        viewModelScope.launch {
+            try {
+                memoryRepository.deleteMemoryEntry(memoryId)
+                loadMemoryData()
+            } catch (e: Exception) {
+                _uiState.update { it.copy(memoryError = "Failed to delete memory entry: ${e.message}") }
+            }
+        }
+    }
+
+    fun toggleMemoryEntry(memoryId: String) {
+        viewModelScope.launch {
+            try {
+                memoryRepository.toggleMemoryEntry(memoryId)
+                loadMemoryData()
+            } catch (e: Exception) {
+                _uiState.update { it.copy(memoryError = "Failed to toggle memory entry: ${e.message}") }
+            }
+        }
+    }
+
+    fun updateMemoryLastAccessed(memoryId: String) {
+        viewModelScope.launch {
+            try {
+                memoryRepository.updateMemoryLastAccessed(memoryId)
+                // Don't reload all data, just update the specific memory
+                val updatedMemories = _uiState.value.memoryEntries.map { memory ->
+                    if (memory.id == memoryId) {
+                        memory.copy(lastAccessed = System.currentTimeMillis())
+                    } else memory
+                }
+                _uiState.update { it.copy(memoryEntries = updatedMemories) }
+            } catch (e: Exception) {
+                _uiState.update { it.copy(memoryError = "Failed to update memory access time: ${e.message}") }
+            }
+        }
+    }
+
+    // Bio Information Management
+    fun saveBioInformation(bio: BioInformation) {
+        viewModelScope.launch {
+            try {
+                memoryRepository.saveBioInformation(bio)
+                loadMemoryData()
+            } catch (e: Exception) {
+                _uiState.update { it.copy(memoryError = "Failed to save bio information: ${e.message}") }
+            }
+        }
+    }
+
+    fun deleteBioInformation() {
+        viewModelScope.launch {
+            try {
+                memoryRepository.deleteBioInformation()
+                _uiState.update { it.copy(bioInformation = null) }
+            } catch (e: Exception) {
+                _uiState.update { it.copy(memoryError = "Failed to delete bio information: ${e.message}") }
+            }
+        }
+    }
+
+    // Search and Filter Methods
+    fun searchMemoryEntries(query: String) {
+        viewModelScope.launch {
+            try {
+                val results = memoryRepository.searchMemoryEntries(query)
+                _uiState.update { it.copy(memoryEntries = results, memorySearchQuery = query) }
+            } catch (e: Exception) {
+                _uiState.update { it.copy(memoryError = "Failed to search memories: ${e.message}") }
+            }
+        }
+    }
+
+    fun clearMemorySearch() {
+        loadMemoryData()
+        _uiState.update { it.copy(memorySearchQuery = "", selectedMemoryCategory = null) }
+    }
+
+
+    // Data Import/Export
+    fun exportAllMemoryData(): String? {
+        return try {
+            memoryRepository.exportAllData()
+        } catch (e: Exception) {
+            _uiState.update { it.copy(memoryError = "Failed to export data: ${e.message}") }
+            null
+        }
+    }
+
+    fun importMemoryData(jsonData: String) {
+        viewModelScope.launch {
+            try {
+                val result = memoryRepository.importData(jsonData)
+                when (result) {
+                    is MemoryRepository.ImportResult.Success -> {
+                        loadMemoryData()
+                        _uiState.update { it.copy(memoryError = null) }
+                    }
+                    is MemoryRepository.ImportResult.Error -> {
+                        _uiState.update { it.copy(memoryError = result.message) }
+                    }
+                }
+            } catch (e: Exception) {
+                _uiState.update { it.copy(memoryError = "Failed to import data: ${e.message}") }
+            }
+        }
+    }
+
+    // Utility Methods
+    fun clearMemoryError() {
+        _uiState.update { it.copy(memoryError = null) }
     }
 
     override fun onCleared() {

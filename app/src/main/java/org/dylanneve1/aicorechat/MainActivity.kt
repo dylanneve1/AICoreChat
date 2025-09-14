@@ -62,10 +62,18 @@ class MainActivity : ComponentActivity() {
                                 OnboardingScreen(
                                     initialName = chatViewModel.uiState.collectAsState().value.userName,
                                     initialPersonalContextEnabled = chatViewModel.uiState.collectAsState().value.personalContextEnabled,
-                                    onComplete = { name, personalEnabled, webSearchEnabled ->
+                                    onComplete = {
+                                            name, personalEnabled, webSearchEnabled, multimodalEnabled,
+                                            memoryContextEnabled, bioContextEnabled, bioName, bioAge,
+                                            bioOccupation, bioLocation, customInstructions, customInstructionsEnabled ->
                                         chatViewModel.updateUserName(name)
                                         chatViewModel.updatePersonalContextEnabled(personalEnabled)
                                         chatViewModel.updateWebSearchEnabled(webSearchEnabled)
+                                        chatViewModel.updateMultimodalEnabled(multimodalEnabled)
+                                        chatViewModel.updateMemoryContextEnabled(memoryContextEnabled)
+                                        chatViewModel.updateBioContextEnabled(bioContextEnabled)
+                                        chatViewModel.updateBioInformation(bioName, bioAge, bioOccupation, bioLocation)
+                                        chatViewModel.updateCustomInstructions(customInstructions, customInstructionsEnabled)
                                         getSharedPreferences("AICoreChatPrefs", MODE_PRIVATE)
                                             .edit().putBoolean("onboarding_shown", true).apply()
                                         onboardingShown = true
