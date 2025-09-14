@@ -13,7 +13,7 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.outlined.ArrowBack
+import androidx.compose.material.icons.automirrored.outlined.ArrowBack
 import androidx.compose.material.icons.outlined.Settings
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
@@ -55,7 +55,7 @@ fun CustomInstructionsScreen(
                             onCustomInstructionsChange(instructions.trim())
                             onDismiss()
                         }) {
-                            Icon(Icons.Outlined.ArrowBack, contentDescription = "Back")
+                            Icon(Icons.AutoMirrored.Outlined.ArrowBack, contentDescription = "Back")
                         }
                     }
                 )

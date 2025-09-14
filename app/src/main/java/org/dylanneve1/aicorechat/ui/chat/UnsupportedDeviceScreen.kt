@@ -8,8 +8,8 @@ import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.outlined.Info
-import androidx.compose.material.icons.outlined.OpenInNew
+import androidx.compose.material.icons.outlined.Error
+import androidx.compose.material.icons.automirrored.outlined.OpenInNew
 import androidx.compose.material3.Button
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
@@ -85,7 +85,7 @@ fun UnsupportedDeviceScreen(message: String?) {
                     horizontalArrangement = Arrangement.SpaceBetween
                 ) {
                     Text("Join Google Group", style = MaterialTheme.typography.bodyLarge)
-                    Icon(Icons.Outlined.OpenInNew, contentDescription = null)
+                        Icon(Icons.AutoMirrored.Outlined.OpenInNew, contentDescription = "Open")
                 }
             }
             Surface(
@@ -103,7 +103,7 @@ fun UnsupportedDeviceScreen(message: String?) {
                     horizontalArrangement = Arrangement.SpaceBetween
                 ) {
                     Text("Join AICore testing program", style = MaterialTheme.typography.bodyLarge)
-                    Icon(Icons.Outlined.OpenInNew, contentDescription = null)
+                        Icon(Icons.AutoMirrored.Outlined.OpenInNew, contentDescription = "Open")
                 }
             }
         }

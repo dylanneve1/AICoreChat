@@ -1,6 +1,12 @@
 package org.dylanneve1.aicorechat.ui.chat
 
 import androidx.activity.compose.BackHandler
+import androidx.compose.animation.AnimatedContent
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.slideInHorizontally
+import androidx.compose.animation.slideOutHorizontally
+import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -11,17 +17,22 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.outlined.ChevronRight
+import androidx.compose.material.icons.automirrored.outlined.ArrowBack
 import androidx.compose.material.icons.outlined.Close
 import androidx.compose.material.icons.outlined.Delete
+import androidx.compose.material.icons.outlined.Info
 import androidx.compose.material.icons.outlined.Memory
 import androidx.compose.material.icons.outlined.Person
-import androidx.compose.material.icons.outlined.Settings
-import androidx.compose.material.icons.outlined.Support
+import androidx.compose.material.icons.outlined.PhoneAndroid
 import androidx.compose.material.icons.outlined.Tune
+import androidx.compose.material.icons.outlined.Warning
 import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -31,6 +42,7 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
+import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -43,6 +55,8 @@ import androidx.compose.ui.unit.dp
 import org.dylanneve1.aicorechat.data.BioInformation
 import org.dylanneve1.aicorechat.data.CustomInstruction
 import org.dylanneve1.aicorechat.data.MemoryEntry
+import org.dylanneve1.aicorechat.ui.components.InfoCard
+import org.dylanneve1.aicorechat.ui.components.SettingsNavigationCard
 
 enum class SettingsDestination { Main, ModelSettings, Personalization, Support, MemoryManagement, CustomInstructions }
 
@@ -111,24 +125,39 @@ fun SettingsScreen(
         Scaffold(
             topBar = {
                 TopAppBar(
-                    title = { Text(when (destination) {
-                        SettingsDestination.Main -> "Settings"
-                        SettingsDestination.ModelSettings -> "Model Settings"
-                        SettingsDestination.Personalization -> "Personalization"
-                        SettingsDestination.Support -> "Support"
-                        SettingsDestination.MemoryManagement -> "Memory Management"
-                        SettingsDestination.CustomInstructions -> "Custom Instructions"
-                    }) },
+                    title = { 
+                        Text(
+                            text = when (destination) {
+                                SettingsDestination.Main -> "Settings"
+                                SettingsDestination.ModelSettings -> "Model Settings"
+                                SettingsDestination.Personalization -> "Personalization"
+                                SettingsDestination.Support -> "Device Support"
+                                SettingsDestination.MemoryManagement -> "Memory Management"
+                                SettingsDestination.CustomInstructions -> "Custom Instructions"
+                            },
+                            style = MaterialTheme.typography.titleLarge
+                        ) 
+                    },
                     navigationIcon = {
                         if (destination != SettingsDestination.Main) {
                             IconButton(onClick = { destination = SettingsDestination.Main }) {
-                                Icon(Icons.Outlined.Close, contentDescription = "Back")
+                                Icon(
+                                    imageVector = Icons.AutoMirrored.Outlined.ArrowBack, 
+                                    contentDescription = "Back"
+                                )
+                            }
+                        } else {
+                            IconButton(onClick = onDismiss) { 
+                                Icon(
+                                    imageVector = Icons.Outlined.Close, 
+                                    contentDescription = "Close"
+                                ) 
                             }
                         }
                     },
-                    actions = {
-                        IconButton(onClick = onDismiss) { Icon(Icons.Outlined.Close, contentDescription = "Close") }
-                    }
+                    colors = TopAppBarDefaults.topAppBarColors(
+                        containerColor = MaterialTheme.colorScheme.surface
+                    )
                 )
             }
         ) { innerPadding ->
@@ -137,88 +166,99 @@ fun SettingsScreen(
                     Column(
                         modifier = Modifier
                             .padding(innerPadding)
-                            .padding(horizontal = 24.dp, vertical = 16.dp)
+                            .fillMaxSize()
+                            .verticalScroll(rememberScrollState())
                     ) {
-                        // Settings Cards
-                        SettingCard(
-                            icon = Icons.Outlined.Tune,
-                            title = "Model Settings",
-                            description = "Fine-tune AI responses with temperature and Top-K controls",
-                            onClick = { destination = SettingsDestination.ModelSettings }
-                        )
-
-                        Spacer(modifier = Modifier.width(16.dp))
-
-                        SettingCard(
-                            icon = Icons.Outlined.Person,
-                            title = "Personalization",
-                            description = "Customize your experience with personal context and features",
-                            onClick = { destination = SettingsDestination.Personalization }
-                        )
-
-                        Spacer(modifier = Modifier.width(16.dp))
-
-                        SettingCard(
-                            icon = Icons.Outlined.Memory,
-                            title = "Memory Management",
-                            description = "Manage useful information the AI should remember",
-                            onClick = { destination = SettingsDestination.MemoryManagement }
-                        )
-
-                        Spacer(modifier = Modifier.width(16.dp))
-
-                        SettingCard(
-                            icon = Icons.Outlined.Support,
-                            title = "Device Support",
-                            description = "Check device compatibility and AICore status",
-                            onClick = { destination = SettingsDestination.Support }
-                        )
-
-                        HorizontalDivider(modifier = Modifier.padding(vertical = 24.dp))
-
-                        // Danger Zone
-                        androidx.compose.material3.Card(
-                            colors = androidx.compose.material3.CardDefaults.cardColors(
-                                containerColor = MaterialTheme.colorScheme.errorContainer.copy(alpha = 0.1f)
-                            ),
-                            modifier = Modifier.fillMaxWidth()
+                        // Settings Categories
+                        Column(
+                            modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
+                            verticalArrangement = Arrangement.spacedBy(12.dp)
                         ) {
-                            Column(modifier = Modifier.padding(20.dp)) {
-                                Row(
-                                    verticalAlignment = Alignment.CenterVertically,
-                                    modifier = Modifier.padding(bottom = 8.dp)
-                                ) {
-                                    Icon(
-                                        imageVector = Icons.Outlined.Delete,
-                                        contentDescription = null,
-                                        tint = MaterialTheme.colorScheme.error,
-                                        modifier = Modifier.size(20.dp)
-                                    )
-                                    Spacer(modifier = Modifier.width(8.dp))
-                                    Text(
-                                        text = "Danger Zone",
-                                        style = MaterialTheme.typography.titleMedium,
-                                        color = MaterialTheme.colorScheme.error,
-                                        fontWeight = FontWeight.SemiBold
-                                    )
-                                }
-                                Text(
-                                    text = "This action will permanently delete all chat conversations from your device. This cannot be undone.",
-                                    style = MaterialTheme.typography.bodyMedium,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                            // AI Configuration Section
+                            Text(
+                                text = "AI Configuration",
+                                style = MaterialTheme.typography.titleSmall,
+                                color = MaterialTheme.colorScheme.primary,
+                                fontWeight = FontWeight.SemiBold,
+                                modifier = Modifier.padding(start = 4.dp, top = 8.dp, bottom = 4.dp)
+                            )
+                            
+                            SettingsNavigationCard(
+                                icon = Icons.Outlined.Tune,
+                                title = "Model Settings",
+                                description = "Adjust temperature and Top-K for response creativity",
+                                onClick = { destination = SettingsDestination.ModelSettings }
+                            )
+
+                            SettingsNavigationCard(
+                                icon = Icons.Outlined.Person,
+                                title = "Personalization",
+                                description = "Personal context, bio, and custom instructions",
+                                onClick = { destination = SettingsDestination.Personalization }
+                            )
+
+                            SettingsNavigationCard(
+                                icon = Icons.Outlined.Memory,
+                                title = "Memory Management",
+                                description = "Manage what the AI remembers about you",
+                                onClick = { destination = SettingsDestination.MemoryManagement }
+                            )
+
+                            // System Section
+                            Text(
+                                text = "System",
+                                style = MaterialTheme.typography.titleSmall,
+                                color = MaterialTheme.colorScheme.primary,
+                                fontWeight = FontWeight.SemiBold,
+                                modifier = Modifier.padding(start = 4.dp, top = 16.dp, bottom = 4.dp)
+                            )
+
+                            SettingsNavigationCard(
+                                icon = Icons.Outlined.PhoneAndroid,
+                                title = "Device Support",
+                                description = "Check AICore compatibility and status",
+                                onClick = { destination = SettingsDestination.Support }
+                            )
+
+                            Spacer(modifier = Modifier.height(8.dp))
+
+                            // Danger Zone Section
+                            Text(
+                                text = "Danger Zone",
+                                style = MaterialTheme.typography.titleSmall,
+                                color = MaterialTheme.colorScheme.error,
+                                fontWeight = FontWeight.SemiBold,
+                                modifier = Modifier.padding(start = 4.dp, top = 16.dp, bottom = 4.dp)
+                            )
+
+                            InfoCard(
+                                icon = Icons.Outlined.Warning,
+                                title = "Delete All Chats",
+                                description = "Permanently remove all chat conversations from your device. This action cannot be undone.",
+                                containerColor = MaterialTheme.colorScheme.errorContainer.copy(alpha = 0.12f),
+                                contentColor = MaterialTheme.colorScheme.error
+                            )
+                            
+                            FilledTonalButton(
+                                onClick = { confirmWipe = true },
+                                colors = ButtonDefaults.filledTonalButtonColors(
+                                    containerColor = MaterialTheme.colorScheme.errorContainer,
+                                    contentColor = MaterialTheme.colorScheme.error
+                                ),
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(top = 8.dp)
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Outlined.Delete,
+                                    contentDescription = null,
+                                    modifier = Modifier.size(18.dp)
                                 )
-                                Spacer(modifier = Modifier.height(16.dp))
-                                androidx.compose.material3.FilledTonalButton(
-                                    onClick = { confirmWipe = true },
-                                    colors = androidx.compose.material3.ButtonDefaults.filledTonalButtonColors(
-                                        containerColor = MaterialTheme.colorScheme.errorContainer,
-                                        contentColor = MaterialTheme.colorScheme.error
-                                    ),
-                                    modifier = Modifier.align(Alignment.End)
-                                ) {
-                                    Text("Delete All Chats")
-                                }
+                                Spacer(modifier = Modifier.width(8.dp))
+                                Text("Delete All Chats")
                             }
+                            
+                            Spacer(modifier = Modifier.height(24.dp))
                         }
 
                         if (confirmWipe) {
@@ -302,59 +342,3 @@ fun SettingsScreen(
     }
 }
 
-@Composable
-private fun SettingCard(
-    icon: androidx.compose.ui.graphics.vector.ImageVector,
-    title: String,
-    description: String,
-    onClick: () -> Unit,
-    modifier: Modifier = Modifier
-) {
-    androidx.compose.material3.Card(
-        onClick = onClick,
-        modifier = modifier.fillMaxWidth(),
-        colors = androidx.compose.material3.CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f)
-        ),
-        elevation = androidx.compose.material3.CardDefaults.cardElevation(defaultElevation = 0.dp)
-    ) {
-        Row(
-            modifier = Modifier
-                .padding(20.dp)
-                .fillMaxWidth(),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.SpaceBetween
-        ) {
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
-                modifier = Modifier.weight(1f)
-            ) {
-                Icon(
-                    imageVector = icon,
-                    contentDescription = null,
-                    tint = MaterialTheme.colorScheme.primary,
-                    modifier = Modifier.size(24.dp)
-                )
-                Spacer(modifier = Modifier.width(16.dp))
-                Column {
-                    Text(
-                        text = title,
-                        style = MaterialTheme.typography.titleMedium,
-                        fontWeight = FontWeight.SemiBold
-                    )
-                    Text(
-                        text = description,
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        modifier = Modifier.padding(top = 2.dp)
-                    )
-                }
-            }
-            Icon(
-                imageVector = Icons.Outlined.ChevronRight,
-                contentDescription = "Navigate",
-                tint = MaterialTheme.colorScheme.onSurfaceVariant
-            )
-        }
-    }
-}
