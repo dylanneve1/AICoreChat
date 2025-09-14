@@ -116,8 +116,8 @@ fun MessageBubble(
                     )
                 }
                 .padding(
-                    start = if (isFromUser) 0.dp else tailSize,
-                    end = if (isFromUser) tailSize else 0.dp,
+                    start = tailSize,
+                    end = tailSize,
                     top = 8.dp,
                     bottom = tailSize + 4.dp
                 )
