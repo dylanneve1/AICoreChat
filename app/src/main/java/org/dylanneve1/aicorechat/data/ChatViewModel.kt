@@ -88,6 +88,65 @@ class ChatViewModel(application: Application) : AndroidViewModel(application) {
             .trim()
     }
 
+    private fun stripAssistantEndTokens(text: String): String {
+        val token = "[/ASSISTANT]"
+        var result = text.trimEnd()
+        while (result.endsWith(token)) {
+            result = result.dropLast(token.length).trimEnd()
+        }
+        return result
+    }
+
+    /**
+     * Ensures the assistant response ends with the proper [/ASSISTANT] token to prevent infinite loops.
+     * If the response doesn't end with [/ASSISTANT], appends it automatically.
+     */
+    private fun ensureAssistantEndToken(text: String): String {
+        val trimmed = text.trim()
+
+        // Check if response already ends with [/ASSISTANT]
+        if (trimmed.endsWith("[/ASSISTANT]")) {
+            return trimmed
+        }
+
+        // If it ends with any stop token, return as-is
+        val stopTokens = listOf("[/ASSISTANT]", "[ASSISTANT]", "[/USER]", "[USER]")
+        for (token in stopTokens) {
+            if (trimmed.endsWith(token)) {
+                return trimmed
+            }
+        }
+
+        // If response is empty or only whitespace, return a minimal valid response
+        if (trimmed.isEmpty()) {
+            return "[/ASSISTANT]"
+        }
+
+        // Check if response contains [/ASSISTANT] anywhere and ends with another token
+        if (trimmed.contains("[/ASSISTANT]")) {
+            val lastAssistantIndex = trimmed.lastIndexOf("[/ASSISTANT]")
+            val afterLastToken = trimmed.substring(lastAssistantIndex + "[/ASSISTANT]".length).trim()
+            if (afterLastToken.isEmpty()) {
+                return trimmed
+            }
+            // If there's content after the last [/ASSISTANT], it might be malformed
+            // Return everything up to and including the last [/ASSISTANT]
+            return trimmed.substring(0, lastAssistantIndex + "[/ASSISTANT]".length)
+        }
+
+        // If no [/ASSISTANT] token found, append it to prevent infinite loops
+        Log.w("ChatViewModel", "Response missing [/ASSISTANT] token, appending automatically: ${trimmed.take(50)}...")
+        return "$trimmed\n\n[/ASSISTANT]"
+    }
+
+    private fun finalizeAssistantDisplayText(rawText: String, fallback: String = ""): String {
+        if (rawText.isBlank() && fallback.isBlank()) return ""
+        val source = if (rawText.isBlank()) fallback else rawText
+        val ensured = ensureAssistantEndToken(source)
+        val withoutToken = stripAssistantEndTokens(ensured)
+        return sanitizeAssistantText(withoutToken)
+    }
+
     init {
         loadSettings()
         loadMemoryData()
@@ -730,7 +789,8 @@ class ChatViewModel(application: Application) : AndroidViewModel(application) {
                             _uiState.update { currentState ->
                                 val updated = currentState.messages.toMutableList()
                                 if (updated.isNotEmpty() && updated.last().isStreaming) {
-                                    updated[updated.lastIndex] = updated.last().copy(isStreaming = false)
+                                    val finalText = finalizeAssistantDisplayText(fullResponse, updated.last().text)
+                                    updated[updated.lastIndex] = updated.last().copy(text = finalText, isStreaming = false)
                                 }
                                 currentState.copy(isGenerating = false, messages = updated)
                             }
@@ -742,7 +802,9 @@ class ChatViewModel(application: Application) : AndroidViewModel(application) {
                         _uiState.update { currentState ->
                             val updated = currentState.messages.toMutableList()
                             if (updated.isNotEmpty() && updated.last().isStreaming) {
-                                updated[updated.lastIndex] = updated.last().copy(text = "Error: ${e.message}", isStreaming = false)
+                                val errorText = "Error: ${e.message}"
+                                val finalText = finalizeAssistantDisplayText(errorText, updated.last().text)
+                                updated[updated.lastIndex] = updated.last().copy(text = finalText, isStreaming = false)
                             }
                             currentState.copy(isGenerating = false, messages = updated)
                         }
@@ -885,7 +947,8 @@ class ChatViewModel(application: Application) : AndroidViewModel(application) {
                     _uiState.update { current ->
                         val updated = current.messages.toMutableList()
                         if (updated.isNotEmpty() && updated.last().isStreaming) {
-                            updated[updated.lastIndex] = updated.last().copy(isStreaming = false)
+                            val finalText = finalizeAssistantDisplayText(fullResponse, updated.last().text)
+                            updated[updated.lastIndex] = updated.last().copy(text = finalText, isStreaming = false)
                         }
                         current.copy(isGenerating = false, messages = updated)
                     }
@@ -896,7 +959,9 @@ class ChatViewModel(application: Application) : AndroidViewModel(application) {
                     _uiState.update { current ->
                         val updated = current.messages.toMutableList()
                         if (updated.isNotEmpty() && updated.last().isStreaming) {
-                            updated[updated.lastIndex] = updated.last().copy(text = "Error: ${e.message}", isStreaming = false)
+                            val errorText = "Error: ${e.message}"
+                            val finalText = finalizeAssistantDisplayText(errorText, updated.last().text)
+                            updated[updated.lastIndex] = updated.last().copy(text = finalText, isStreaming = false)
                         }
                         current.copy(isGenerating = false, messages = updated)
                     }
