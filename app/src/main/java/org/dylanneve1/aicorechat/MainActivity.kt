@@ -4,16 +4,25 @@ import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
+import androidx.compose.animation.AnimatedContent
+import androidx.compose.animation.ExperimentalAnimationApi
+import androidx.compose.animation.SizeTransform
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.slideInHorizontally
+import androidx.compose.animation.slideOutHorizontally
+import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.core.view.WindowCompat
 import androidx.lifecycle.viewmodel.compose.viewModel
-import androidx.compose.runtime.*
 import org.dylanneve1.aicorechat.data.ChatViewModel
 import org.dylanneve1.aicorechat.ui.chat.ChatScreen
 import org.dylanneve1.aicorechat.ui.chat.OnboardingScreen
@@ -41,27 +50,72 @@ class MainActivity : ComponentActivity() {
                         supportStatus = checkDeviceSupport(applicationContext)
                     }
 
-                    when (val status = supportStatus) {
-                        null -> {
-                            Box(
-                                modifier = Modifier.fillMaxSize(),
-                                contentAlignment = Alignment.Center
-                            ) { CircularProgressIndicator() }
-                        }
-                        is DeviceSupportStatus.Supported -> {
-                            val chatViewModel: ChatViewModel = viewModel()
+                    val chatViewModel: ChatViewModel = viewModel()
+                    val uiState by chatViewModel.uiState.collectAsState()
 
-                            var onboardingShown by remember {
-                                mutableStateOf(
-                                    getSharedPreferences("AICoreChatPrefs", MODE_PRIVATE)
-                                        .getBoolean("onboarding_shown", false)
+                    var onboardingShown by remember {
+                        mutableStateOf(
+                            getSharedPreferences("AICoreChatPrefs", MODE_PRIVATE)
+                                .getBoolean("onboarding_shown", false)
+                        )
+                    }
+
+                    val appScreen = when (val status = supportStatus) {
+                        null -> MainScreen.Loading
+                        is DeviceSupportStatus.Supported -> if (!onboardingShown) {
+                            MainScreen.Onboarding
+                        } else {
+                            MainScreen.Chat
+                        }
+                        is DeviceSupportStatus.AICoreMissing -> MainScreen.Unsupported(
+                            message = "AICore app is not installed."
+                        )
+                        is DeviceSupportStatus.NotReady -> MainScreen.Unsupported(
+                            message = status.reason ?: "Device is not ready yet."
+                        )
+                    }
+
+                    @OptIn(ExperimentalAnimationApi::class)
+                    AnimatedContent(
+                        targetState = appScreen,
+                        transitionSpec = {
+                            val isOnboardingToChat = initialState === MainScreen.Onboarding && targetState === MainScreen.Chat
+                            val isChatToOnboarding = initialState === MainScreen.Chat && targetState === MainScreen.Onboarding
+
+                            val transition = if (isOnboardingToChat || isChatToOnboarding) {
+                                val direction = if (isOnboardingToChat) 1 else -1
+                                (
+                                    slideInHorizontally(
+                                        animationSpec = tween(durationMillis = 420),
+                                        initialOffsetX = { fullWidth -> direction * fullWidth }
+                                    ) + fadeIn(animationSpec = tween(durationMillis = 240))
+                                ) togetherWith (
+                                    slideOutHorizontally(
+                                        animationSpec = tween(durationMillis = 420),
+                                        targetOffsetX = { fullWidth -> -direction * fullWidth }
+                                    ) + fadeOut(animationSpec = tween(durationMillis = 200))
                                 )
+                            } else {
+                                fadeIn(animationSpec = tween(durationMillis = 220)) togetherWith
+                                    fadeOut(animationSpec = tween(durationMillis = 160))
                             }
 
-                            if (!onboardingShown) {
+                            transition.using(SizeTransform(clip = false))
+                        },
+                        label = "MainScreenTransition"
+                    ) { screen ->
+                        when (screen) {
+                            MainScreen.Loading -> {
+                                Box(
+                                    modifier = Modifier.fillMaxSize(),
+                                    contentAlignment = Alignment.Center
+                                ) { CircularProgressIndicator() }
+                            }
+
+                            MainScreen.Onboarding -> {
                                 OnboardingScreen(
-                                    initialName = chatViewModel.uiState.collectAsState().value.userName,
-                                    initialPersonalContextEnabled = chatViewModel.uiState.collectAsState().value.personalContextEnabled,
+                                    initialName = uiState.userName,
+                                    initialPersonalContextEnabled = uiState.personalContextEnabled,
                                     onComplete = {
                                             name, personalEnabled, webSearchEnabled, multimodalEnabled,
                                             memoryContextEnabled, bioContextEnabled, bioName, bioAge,
@@ -79,23 +133,28 @@ class MainActivity : ComponentActivity() {
                                         onboardingShown = true
                                     }
                                 )
-                            } else {
+                            }
+
+                            MainScreen.Chat -> {
                                 ChatScreen(viewModel = chatViewModel)
                             }
-                        }
-                        is DeviceSupportStatus.AICoreMissing -> {
-                            UnsupportedDeviceScreen(
-                                message = "AICore app is not installed."
-                            )
-                        }
-                        is DeviceSupportStatus.NotReady -> {
-                            UnsupportedDeviceScreen(
-                                message = status.reason
-                            )
+
+                            is MainScreen.Unsupported -> {
+                                UnsupportedDeviceScreen(
+                                    message = screen.message
+                                )
+                            }
                         }
                     }
                 }
             }
         }
     }
+}
+
+private sealed class MainScreen {
+    data object Loading : MainScreen()
+    data object Onboarding : MainScreen()
+    data object Chat : MainScreen()
+    data class Unsupported(val message: String) : MainScreen()
 }

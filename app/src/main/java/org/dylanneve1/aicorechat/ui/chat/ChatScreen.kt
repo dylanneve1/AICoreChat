@@ -5,6 +5,12 @@ import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.slideInVertically
 import androidx.compose.animation.slideOutVertically
+import androidx.compose.animation.core.MutableTransitionState
+import androidx.compose.animation.core.tween
+import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
@@ -41,6 +47,7 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.material3.TopAppBarScrollBehavior
+import androidx.compose.material3.Surface
 import androidx.compose.material3.rememberDrawerState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -80,8 +87,6 @@ import androidx.compose.ui.res.painterResource
 import org.dylanneve1.aicorechat.R
 import androidx.compose.material3.Card
 import androidx.compose.material3.Switch
-import androidx.compose.material3.ModalBottomSheet
-import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.material3.HorizontalDivider
 import org.dylanneve1.aicorechat.ui.chat.drawer.DrawerHeader
 import org.dylanneve1.aicorechat.ui.chat.drawer.SessionItem
@@ -101,6 +106,9 @@ fun ChatScreen(viewModel: ChatViewModel) {
     var showSettingsSheet by remember { mutableStateOf(false) }
     // Navigation state for settings sub-screens
     var currentSettingsDestination by remember { mutableStateOf<SettingsDestination?>(null) }
+    val settingsVisibilityState = remember { MutableTransitionState(false) }
+    settingsVisibilityState.targetState = showSettingsSheet
+    val scrimInteractionSource = remember { MutableInteractionSource() }
 
     val scrollBehavior = TopAppBarDefaults.pinnedScrollBehavior()
 
@@ -422,102 +430,146 @@ fun ChatScreen(viewModel: ChatViewModel) {
 
 
     // Single settings modal that handles all sub-navigation
-    if (showSettingsSheet) {
-        when (currentSettingsDestination) {
-            null -> {
-                // Show main settings screen
-                SettingsScreen(
-                    temperature = uiState.temperature,
-                    topK = uiState.topK,
-                    onTemperatureChange = viewModel::updateTemperature,
-                    onTopKChange = viewModel::updateTopK,
-                    onResetModelSettings = viewModel::resetModelSettings,
-                    userName = uiState.userName,
-                    personalContextEnabled = uiState.personalContextEnabled,
-                    onUserNameChange = viewModel::updateUserName,
-                    onPersonalContextToggle = { enabled ->
-                        if (enabled && !hasFine && !hasCoarse) {
-                            locationPermissionLauncher.launch(arrayOf(android.Manifest.permission.ACCESS_FINE_LOCATION, android.Manifest.permission.ACCESS_COARSE_LOCATION))
-                        }
-                        viewModel.updatePersonalContextEnabled(enabled)
-                    },
-                    webSearchEnabled = uiState.webSearchEnabled,
-                    onWebSearchToggle = viewModel::updateWebSearchEnabled,
-                    multimodalEnabled = uiState.multimodalEnabled,
-                    onMultimodalToggle = viewModel::updateMultimodalEnabled,
-                    onWipeAllChats = viewModel::wipeAllChats,
-                    onDismiss = {
+    AnimatedVisibility(
+        visibleState = settingsVisibilityState,
+        enter = fadeIn(animationSpec = tween(durationMillis = 150)),
+        exit = fadeOut(animationSpec = tween(durationMillis = 150))
+    ) {
+        Box(modifier = Modifier.fillMaxSize()) {
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .background(MaterialTheme.colorScheme.scrim.copy(alpha = 0.45f))
+                    .clickable(
+                        indication = null,
+                        interactionSource = scrimInteractionSource
+                    ) {
                         showSettingsSheet = false
                         currentSettingsDestination = null
-                    },
-                    // Memory and Bio parameters
-                    memoryContextEnabled = uiState.memoryContextEnabled,
-                    onMemoryContextToggle = viewModel::updateMemoryContextEnabled,
-                    customInstructionsEnabled = uiState.customInstructionsEnabled,
-                    onCustomInstructionsToggle = viewModel::updateCustomInstructionsEnabled,
-                    bioContextEnabled = uiState.bioContextEnabled,
-                    onBioContextToggle = viewModel::updateBioContextEnabled,
-                    // Bio information
-                    bioName = uiState.bioInformation?.name ?: "",
-                    bioAge = uiState.bioInformation?.age?.toString() ?: "",
-                    bioOccupation = uiState.bioInformation?.occupation ?: "",
-                    bioLocation = uiState.bioInformation?.location ?: "",
-                    onBioNameChange = { name ->
-                        val currentBio = uiState.bioInformation
-                        viewModel.updateBioInformation(
-                            name = name,
-                            age = currentBio?.age?.toString() ?: "",
-                            occupation = currentBio?.occupation ?: "",
-                            location = currentBio?.location ?: ""
-                        )
-                    },
-                    onBioAgeChange = { age ->
-                        val currentBio = uiState.bioInformation
-                        viewModel.updateBioInformation(
-                            name = currentBio?.name ?: "",
-                            age = age,
-                            occupation = currentBio?.occupation ?: "",
-                            location = currentBio?.location ?: ""
-                        )
-                    },
-                    onBioOccupationChange = { occupation ->
-                        val currentBio = uiState.bioInformation
-                        viewModel.updateBioInformation(
-                            name = currentBio?.name ?: "",
-                            age = currentBio?.age?.toString() ?: "",
-                            occupation = occupation,
-                            location = currentBio?.location ?: ""
-                        )
-                    },
-                    onBioLocationChange = { location ->
-                        val currentBio = uiState.bioInformation
-                        viewModel.updateBioInformation(
-                            name = currentBio?.name ?: "",
-                            age = currentBio?.age?.toString() ?: "",
-                            occupation = currentBio?.occupation ?: "",
-                            location = location
-                        )
-                    },
-                    // Custom instructions
-                    customInstructions = uiState.customInstructions,
-                    onCustomInstructionsChange = { instructions ->
-                        viewModel.updateCustomInstructions(instructions, uiState.customInstructionsEnabled)
-                    },
-                    // Memory and Bio management parameters
-                    memoryEntries = uiState.memoryEntries,
-                    bioInformation = uiState.bioInformation,
-                    onAddMemory = viewModel::addMemoryEntry,
-                    onUpdateMemory = viewModel::updateMemoryEntry,
-                    onDeleteMemory = viewModel::deleteMemoryEntry,
-                    onToggleMemory = viewModel::toggleMemoryEntry,
-                    onSaveBio = viewModel::saveBioInformation,
-                    onDeleteBio = viewModel::deleteBioInformation
-                )
-            }
-            else -> {
-                // Handle any unexpected destinations by closing settings
-                showSettingsSheet = false
-                currentSettingsDestination = null
+                    }
+            )
+
+            AnimatedVisibility(
+                visibleState = settingsVisibilityState,
+                enter = slideInVertically(
+                    animationSpec = tween(durationMillis = 260),
+                    initialOffsetY = { fullHeight -> fullHeight }
+                ) + fadeIn(animationSpec = tween(durationMillis = 240)),
+                exit = slideOutVertically(
+                    animationSpec = tween(durationMillis = 220),
+                    targetOffsetY = { fullHeight -> fullHeight }
+                ) + fadeOut(animationSpec = tween(durationMillis = 200)),
+                modifier = Modifier.align(Alignment.BottomCenter)
+            ) {
+                Surface(
+                    modifier = Modifier.fillMaxSize(),
+                    color = MaterialTheme.colorScheme.background
+                ) {
+                    when (currentSettingsDestination) {
+                        null -> {
+                            SettingsScreen(
+                                temperature = uiState.temperature,
+                                topK = uiState.topK,
+                                onTemperatureChange = viewModel::updateTemperature,
+                                onTopKChange = viewModel::updateTopK,
+                                onResetModelSettings = viewModel::resetModelSettings,
+                                userName = uiState.userName,
+                                personalContextEnabled = uiState.personalContextEnabled,
+                                onUserNameChange = viewModel::updateUserName,
+                                onPersonalContextToggle = { enabled ->
+                                    if (enabled && !hasFine && !hasCoarse) {
+                                        locationPermissionLauncher.launch(
+                                            arrayOf(
+                                                android.Manifest.permission.ACCESS_FINE_LOCATION,
+                                                android.Manifest.permission.ACCESS_COARSE_LOCATION
+                                            )
+                                        )
+                                    }
+                                    viewModel.updatePersonalContextEnabled(enabled)
+                                },
+                                webSearchEnabled = uiState.webSearchEnabled,
+                                onWebSearchToggle = viewModel::updateWebSearchEnabled,
+                                multimodalEnabled = uiState.multimodalEnabled,
+                                onMultimodalToggle = viewModel::updateMultimodalEnabled,
+                                onWipeAllChats = viewModel::wipeAllChats,
+                                onDismiss = {
+                                    showSettingsSheet = false
+                                    currentSettingsDestination = null
+                                },
+                                // Memory and Bio parameters
+                                memoryContextEnabled = uiState.memoryContextEnabled,
+                                onMemoryContextToggle = viewModel::updateMemoryContextEnabled,
+                                customInstructionsEnabled = uiState.customInstructionsEnabled,
+                                onCustomInstructionsToggle = viewModel::updateCustomInstructionsEnabled,
+                                bioContextEnabled = uiState.bioContextEnabled,
+                                onBioContextToggle = viewModel::updateBioContextEnabled,
+                                // Bio information
+                                bioName = uiState.bioInformation?.name ?: "",
+                                bioAge = uiState.bioInformation?.age?.toString() ?: "",
+                                bioOccupation = uiState.bioInformation?.occupation ?: "",
+                                bioLocation = uiState.bioInformation?.location ?: "",
+                                onBioNameChange = { name ->
+                                    val currentBio = uiState.bioInformation
+                                    viewModel.updateBioInformation(
+                                        name = name,
+                                        age = currentBio?.age?.toString() ?: "",
+                                        occupation = currentBio?.occupation ?: "",
+                                        location = currentBio?.location ?: ""
+                                    )
+                                },
+                                onBioAgeChange = { age ->
+                                    val currentBio = uiState.bioInformation
+                                    viewModel.updateBioInformation(
+                                        name = currentBio?.name ?: "",
+                                        age = age,
+                                        occupation = currentBio?.occupation ?: "",
+                                        location = currentBio?.location ?: ""
+                                    )
+                                },
+                                onBioOccupationChange = { occupation ->
+                                    val currentBio = uiState.bioInformation
+                                    viewModel.updateBioInformation(
+                                        name = currentBio?.name ?: "",
+                                        age = currentBio?.age?.toString() ?: "",
+                                        occupation = occupation,
+                                        location = currentBio?.location ?: ""
+                                    )
+                                },
+                                onBioLocationChange = { location ->
+                                    val currentBio = uiState.bioInformation
+                                    viewModel.updateBioInformation(
+                                        name = currentBio?.name ?: "",
+                                        age = currentBio?.age?.toString() ?: "",
+                                        occupation = currentBio?.occupation ?: "",
+                                        location = location
+                                    )
+                                },
+                                // Custom instructions
+                                customInstructions = uiState.customInstructions,
+                                onCustomInstructionsChange = { instructions ->
+                                    viewModel.updateCustomInstructions(
+                                        instructions,
+                                        uiState.customInstructionsEnabled
+                                    )
+                                },
+                                // Memory and Bio management parameters
+                                memoryEntries = uiState.memoryEntries,
+                                bioInformation = uiState.bioInformation,
+                                onAddMemory = viewModel::addMemoryEntry,
+                                onUpdateMemory = viewModel::updateMemoryEntry,
+                                onDeleteMemory = viewModel::deleteMemoryEntry,
+                                onToggleMemory = viewModel::toggleMemoryEntry,
+                                onSaveBio = viewModel::saveBioInformation,
+                                onDeleteBio = viewModel::deleteBioInformation
+                            )
+                        }
+
+                        else -> {
+                            showSettingsSheet = false
+                            currentSettingsDestination = null
+                        }
+                    }
+                }
             }
         }
     }
