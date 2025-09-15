@@ -83,14 +83,11 @@ import androidx.compose.material3.Switch
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.material3.HorizontalDivider
-import org.dylanneve1.aicorechat.ui.chat.tools.ToolsSheet
 import org.dylanneve1.aicorechat.ui.chat.drawer.DrawerHeader
 import org.dylanneve1.aicorechat.ui.chat.drawer.SessionItem
-import org.dylanneve1.aicorechat.ui.chat.topbar.AICoreChatTopAppBar
-import org.dylanneve1.aicorechat.ui.chat.message.MessageRow
 import org.dylanneve1.aicorechat.ui.chat.message.MessageInput
-import org.dylanneve1.aicorechat.data.MemoryCategory
-import org.dylanneve1.aicorechat.ui.chat.SettingsDestination
+import org.dylanneve1.aicorechat.ui.chat.message.MessageRow
+import org.dylanneve1.aicorechat.ui.chat.topbar.AICoreChatTopAppBar
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -102,8 +99,6 @@ fun ChatScreen(viewModel: ChatViewModel) {
     val scope = rememberCoroutineScope()
     var showClearDialog by remember { mutableStateOf(false) }
     var showSettingsSheet by remember { mutableStateOf(false) }
-    var showToolsSheet by remember { mutableStateOf(false) }
-
     // Navigation state for settings sub-screens
     var currentSettingsDestination by remember { mutableStateOf<SettingsDestination?>(null) }
 
@@ -240,7 +235,6 @@ fun ChatScreen(viewModel: ChatViewModel) {
                     onSendMessage = viewModel::sendMessage,
                     onStop = viewModel::stopGeneration,
                     isGenerating = uiState.isGenerating,
-                    onOpenTools = { showToolsSheet = true },
                     onPickImage = {
                         if (!uiState.multimodalEnabled) {
                             scope.launch { snackbarHostState.showSnackbar("Multimodal is disabled in Settings") }
@@ -426,23 +420,6 @@ fun ChatScreen(viewModel: ChatViewModel) {
         )
     }
 
-
-    if (showToolsSheet) {
-        ToolsSheet(
-            webSearchEnabled = uiState.webSearchEnabled,
-            onWebSearchToggle = viewModel::updateWebSearchEnabled,
-            personalContextEnabled = uiState.personalContextEnabled,
-            onPersonalContextToggle = { enabled ->
-                if (enabled && !hasFine && !hasCoarse) {
-                    locationPermissionLauncher.launch(arrayOf(android.Manifest.permission.ACCESS_FINE_LOCATION, android.Manifest.permission.ACCESS_COARSE_LOCATION))
-                }
-                viewModel.updatePersonalContextEnabled(enabled)
-            },
-            multimodalEnabled = uiState.multimodalEnabled,
-            onMultimodalToggle = viewModel::updateMultimodalEnabled,
-            onDismiss = { showToolsSheet = false }
-        )
-    }
 
     // Single settings modal that handles all sub-navigation
     if (showSettingsSheet) {

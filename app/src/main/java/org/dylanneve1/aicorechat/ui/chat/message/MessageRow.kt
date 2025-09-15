@@ -37,8 +37,20 @@ import androidx.compose.material3.Icon
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.Person
 import androidx.compose.material.icons.outlined.SmartToy
+import androidx.compose.material.icons.filled.Search
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.LinearProgressIndicator
+import androidx.compose.animation.core.animateFloat
+import androidx.compose.animation.core.infiniteRepeatable
+import androidx.compose.animation.core.rememberInfiniteTransition
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.runtime.getValue
+import androidx.compose.ui.draw.alpha
+import androidx.compose.ui.draw.scale
+import androidx.compose.animation.core.LinearEasing
 
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
@@ -170,25 +182,117 @@ private fun UserAvatar() {
 
 @Composable
 private fun SearchingIndicator(tint: androidx.compose.ui.graphics.Color) {
-    CircularProgressIndicator(
-        modifier = Modifier.size(16.dp),
-        color = tint,
-        strokeWidth = 2.dp
+    val infiniteTransition = rememberInfiniteTransition(label = "search_animation")
+    
+    val scale by infiniteTransition.animateFloat(
+        initialValue = 0.9f,
+        targetValue = 1.1f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(1000, easing = LinearEasing),
+            repeatMode = androidx.compose.animation.core.RepeatMode.Reverse
+        ),
+        label = "search_scale"
     )
+    
+    val alpha by infiniteTransition.animateFloat(
+        initialValue = 0.6f,
+        targetValue = 1f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(800, easing = LinearEasing),
+            repeatMode = androidx.compose.animation.core.RepeatMode.Reverse
+        ),
+        label = "search_alpha"
+    )
+    
+    Row(
+        horizontalArrangement = Arrangement.spacedBy(8.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        modifier = Modifier.padding(vertical = 4.dp)
+    ) {
+        Icon(
+            Icons.Filled.Search,
+            contentDescription = "Searching",
+            modifier = Modifier
+                .size(18.dp)
+                .scale(scale)
+                .alpha(alpha),
+            tint = tint
+        )
+        
+        Column {
+            AnimatedVisibility(
+                visible = true,
+                enter = fadeIn(animationSpec = tween(300)),
+                exit = fadeOut(animationSpec = tween(300))
+            ) {
+                Text(
+                    "Searching the web...",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = tint,
+                    modifier = Modifier.alpha(alpha)
+                )
+            }
+            
+            Spacer(Modifier.size(2.dp))
+            
+            LinearProgressIndicator(
+                modifier = Modifier
+                    .width(120.dp)
+                    .clip(RoundedCornerShape(2.dp)),
+                color = tint,
+                trackColor = tint.copy(alpha = 0.2f)
+            )
+        }
+    }
 }
 
 @Composable
 private fun TypingIndicator(tint: androidx.compose.ui.graphics.Color) {
+    val infiniteTransition = rememberInfiniteTransition(label = "typing_animation")
+    
     Row(
-        horizontalArrangement = Arrangement.spacedBy(2.dp),
-        verticalAlignment = Alignment.CenterVertically
+        horizontalArrangement = Arrangement.spacedBy(4.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        modifier = Modifier.padding(vertical = 8.dp, horizontal = 4.dp)
     ) {
-        repeat(3) {
+        repeat(3) { index ->
+            val delay = index * 100
+            val alpha by infiniteTransition.animateFloat(
+                initialValue = 0.3f,
+                targetValue = 1f,
+                animationSpec = infiniteRepeatable(
+                    animation = tween(
+                        durationMillis = 600,
+                        delayMillis = delay,
+                        easing = LinearEasing
+                    ),
+                    repeatMode = androidx.compose.animation.core.RepeatMode.Reverse
+                ),
+                label = "dot_alpha_$index"
+            )
+            
+            val scale by infiniteTransition.animateFloat(
+                initialValue = 0.8f,
+                targetValue = 1.2f,
+                animationSpec = infiniteRepeatable(
+                    animation = tween(
+                        durationMillis = 600,
+                        delayMillis = delay,
+                        easing = LinearEasing
+                    ),
+                    repeatMode = androidx.compose.animation.core.RepeatMode.Reverse
+                ),
+                label = "dot_scale_$index"
+            )
+            
             Surface(
-                modifier = Modifier.size(4.dp),
+                modifier = Modifier
+                    .size(6.dp)
+                    .scale(scale)
+                    .alpha(alpha),
                 shape = CircleShape,
-                color = tint.copy(alpha = 0.6f)
+                color = tint
             ) {}
         }
     }
-} 
+}

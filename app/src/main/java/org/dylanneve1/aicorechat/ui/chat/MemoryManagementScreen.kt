@@ -84,74 +84,24 @@ fun MemoryManagementScreen(
             Column(
                 modifier = Modifier
                     .padding(innerPadding)
-                    .padding(horizontal = 24.dp)
-                    .padding(top = 8.dp)
+                    .padding(horizontal = 16.dp)
+                    .padding(vertical = 8.dp)
             ) {
-                // Header
-                Card(
-                    colors = CardDefaults.cardColors(
-                        containerColor = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.1f)
-                    ),
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(bottom = 24.dp)
-                ) {
-                    Row(
-                        modifier = Modifier.padding(20.dp),
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Icon(
-                            imageVector = Icons.Outlined.Memory,
-                            contentDescription = null,
-                            tint = MaterialTheme.colorScheme.primary,
-                            modifier = Modifier.size(24.dp)
-                        )
-                        Spacer(modifier = Modifier.width(16.dp))
-                        Column(modifier = Modifier.weight(1f)) {
-                            Text(
-                                text = "Memory Entries (${memoryEntries.size})",
-                                style = MaterialTheme.typography.titleMedium,
-                                fontWeight = FontWeight.SemiBold
-                            )
-                            Text(
-                                text = "Store useful information the AI should remember about you and your preferences.",
-                                style = MaterialTheme.typography.bodyMedium,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                modifier = Modifier.padding(top = 4.dp)
-                            )
-                        }
-                    }
-                }
+                // Header using SectionHeaderCard for consistency
+                org.dylanneve1.aicorechat.ui.components.SectionHeaderCard(
+                    icon = Icons.Outlined.Memory,
+                    title = "Memory Entries",
+                    description = "${memoryEntries.size} ${if (memoryEntries.size == 1) "entry" else "entries"} stored",
+                    modifier = Modifier.padding(bottom = 16.dp)
+                )
 
                 if (memoryEntries.isEmpty()) {
-                    Column(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(vertical = 64.dp),
-                        horizontalAlignment = Alignment.CenterHorizontally
-                    ) {
-                        Icon(
-                            imageVector = Icons.Outlined.Memory,
-                            contentDescription = null,
-                            modifier = Modifier.size(72.dp),
-                            tint = MaterialTheme.colorScheme.outline
-                        )
-                        Spacer(modifier = Modifier.height(24.dp))
-                        Text(
-                            text = "No Memories Yet",
-                            style = MaterialTheme.typography.headlineSmall,
-                            fontWeight = FontWeight.SemiBold,
-                            color = MaterialTheme.colorScheme.onSurface
-                        )
-                        Spacer(modifier = Modifier.height(12.dp))
-                        Text(
-                            text = "Add memory entries to help the AI remember important information about you and your preferences.",
-                            style = MaterialTheme.typography.bodyLarge,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            textAlign = androidx.compose.ui.text.style.TextAlign.Center,
-                            modifier = Modifier.padding(horizontal = 32.dp)
-                        )
-                    }
+                    org.dylanneve1.aicorechat.ui.components.EmptyStateView(
+                        icon = Icons.Outlined.Memory,
+                        title = "No Memories Yet",
+                        description = "Add memory entries to help the AI remember important information about you",
+                        modifier = Modifier.padding(vertical = 48.dp)
+                    )
                 } else {
                     LazyColumn(
                         modifier = Modifier.fillMaxSize(),
@@ -169,7 +119,8 @@ fun MemoryManagementScreen(
                             )
                         }
                         item {
-                            Spacer(modifier = Modifier.height(88.dp))
+                            // Padding for FAB
+                            Spacer(modifier = Modifier.height(80.dp))
                         }
                     }
                 }

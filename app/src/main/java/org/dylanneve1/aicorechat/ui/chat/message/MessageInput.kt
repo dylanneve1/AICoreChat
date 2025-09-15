@@ -1,5 +1,13 @@
 package org.dylanneve1.aicorechat.ui.chat.message
 
+import androidx.compose.animation.AnimatedContent
+import androidx.compose.animation.animateColorAsState
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.slideInVertically
+import androidx.compose.animation.slideOutVertically
+import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -10,10 +18,13 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.outlined.Send
-import androidx.compose.material.icons.rounded.Stop
+import androidx.compose.material.icons.automirrored.filled.Send
+import androidx.compose.material.icons.filled.Stop
+import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.IconButtonDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
@@ -28,17 +39,17 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.unit.dp
-import androidx.compose.material.icons.outlined.Build
-import androidx.compose.material.icons.outlined.Add
-import androidx.compose.material.icons.outlined.PhotoCamera
+import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.CameraAlt
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.width
 import coil.compose.AsyncImage
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.material.icons.outlined.Close
+import androidx.compose.material.icons.filled.Close
 import androidx.compose.ui.Alignment
+import androidx.compose.ui.draw.clip
 import androidx.core.net.toUri
 
 @Composable
@@ -47,7 +58,6 @@ fun MessageInput(
     onSendMessage: (String) -> Unit,
     onStop: () -> Unit,
     isGenerating: Boolean,
-    onOpenTools: () -> Unit = {},
     onPickImage: () -> Unit = {},
     onTakePhoto: () -> Unit = {},
     attachmentUri: String? = null,
@@ -56,89 +66,207 @@ fun MessageInput(
     showPlus: Boolean = true
 ) {
     var text by remember { mutableStateOf("") }
+    val hasText = text.isNotBlank()
 
-    Surface(
-        modifier = modifier,
-        tonalElevation = 6.dp
+    Box(
+        modifier = modifier
+            .navigationBarsPadding()
+            .fillMaxWidth()
     ) {
-        Box(modifier = Modifier.navigationBarsPadding()) {
-            TextField(
-                value = text,
-                onValueChange = { text = it },
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(start = 16.dp, end = 16.dp, top = 10.dp, bottom = 14.dp)
-                    .heightIn(min = 52.dp, max = 180.dp),
-                placeholder = { Text("Message", style = MaterialTheme.typography.bodyMedium.copy(color = MaterialTheme.colorScheme.onSurfaceVariant)) },
-                enabled = !isGenerating,
-                shape = RoundedCornerShape(28.dp),
-                singleLine = false,
-                keyboardOptions = KeyboardOptions(imeAction = ImeAction.Send),
-                keyboardActions = KeyboardActions(
-                    onSend = {
-                        val trimmed = text.trim()
-                        if (trimmed.isNotEmpty() && !isGenerating && !isDescribingImage) {
-                            onSendMessage(trimmed)
-                            text = ""
-                        }
+        TextField(
+            value = text,
+            onValueChange = { text = it },
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 12.dp, vertical = 8.dp)
+                .heightIn(min = 56.dp, max = 200.dp),
+            placeholder = { 
+                Text(
+                    "Ask anything...", 
+                    style = MaterialTheme.typography.bodyLarge,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f)
+                ) 
+            },
+            enabled = !isGenerating,
+            shape = RoundedCornerShape(24.dp),
+            singleLine = false,
+            keyboardOptions = KeyboardOptions(imeAction = ImeAction.Send),
+            keyboardActions = KeyboardActions(
+                onSend = {
+                    val trimmed = text.trim()
+                    if (trimmed.isNotEmpty() && !isGenerating && !isDescribingImage) {
+                        onSendMessage(trimmed)
+                        text = ""
                     }
-                ),
-                leadingIcon = {
-                    Row(modifier = Modifier.padding(start = 8.dp)) {
-                        IconButton(onClick = onOpenTools, modifier = Modifier.size(34.dp)) { Icon(Icons.Outlined.Build, contentDescription = "Tools", modifier = Modifier.size(24.dp)) }
-                        if (showPlus) {
-                            IconButton(onClick = onPickImage, modifier = Modifier.size(34.dp)) { Icon(Icons.Outlined.Add, contentDescription = "Add image", modifier = Modifier.size(24.dp)) }
-                            IconButton(onClick = onTakePhoto, modifier = Modifier.size(34.dp)) { Icon(Icons.Outlined.PhotoCamera, contentDescription = "Take photo", modifier = Modifier.size(24.dp)) }
-                        }
-                    }
-                },
-                trailingIcon = {
-                    if (isGenerating) {
-                        IconButton(onClick = onStop) { Icon(Icons.Rounded.Stop, contentDescription = "Stop generation") }
-                    } else {
+                }
+            ),
+            leadingIcon = if (showPlus) {
+                {
+                    Row(
+                        modifier = Modifier.padding(start = 4.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
                         IconButton(
-                            onClick = {
-                                val trimmed = text.trim()
-                                if (trimmed.isNotEmpty() && !isDescribingImage) {
-                                    onSendMessage(trimmed)
-                                    text = ""
-                                }
-                            },
-                            enabled = text.isNotBlank() && !isDescribingImage
-                        ) { Icon(Icons.AutoMirrored.Outlined.Send, contentDescription = "Send") }
-                    }
-                },
-                supportingText = {
-                    if (attachmentUri != null) {
-                        Row(verticalAlignment = Alignment.CenterVertically) {
-                            AsyncImage(
-                                model = attachmentUri.toUri(),
-                                contentDescription = null,
-                                modifier = Modifier.size(32.dp)
+                            onClick = onPickImage,
+                            modifier = Modifier.size(40.dp),
+                            enabled = !isGenerating && !isDescribingImage
+                        ) {
+                            Icon(
+                                Icons.Filled.Add,
+                                contentDescription = "Add image",
+                                modifier = Modifier.size(22.dp),
+                                tint = if (!isGenerating && !isDescribingImage)
+                                    MaterialTheme.colorScheme.onSurfaceVariant
+                                else MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.38f)
                             )
-                            Spacer(Modifier.width(8.dp))
-                            if (isDescribingImage) {
-                                Row(verticalAlignment = Alignment.CenterVertically) {
-                                    CircularProgressIndicator(modifier = Modifier.size(14.dp), strokeWidth = 2.dp)
-                                    Spacer(Modifier.width(6.dp))
-                                    Text("Generating image description…", style = MaterialTheme.typography.bodySmall)
-                                }
-                            } else {
-                                Text("Image attached", style = MaterialTheme.typography.bodySmall)
-                            }
-                            Spacer(Modifier.weight(1f))
-                            IconButton(onClick = onRemoveImage) { Icon(Icons.Outlined.Close, contentDescription = "Remove image") }
+                        }
+                        IconButton(
+                            onClick = onTakePhoto,
+                            modifier = Modifier.size(40.dp),
+                            enabled = !isGenerating && !isDescribingImage
+                        ) {
+                            Icon(
+                                Icons.Filled.CameraAlt,
+                                contentDescription = "Take photo",
+                                modifier = Modifier.size(22.dp),
+                                tint = if (!isGenerating && !isDescribingImage)
+                                    MaterialTheme.colorScheme.onSurfaceVariant
+                                else MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.38f)
+                            )
                         }
                     }
-                },
-                colors = TextFieldDefaults.colors(
-                    focusedIndicatorColor = Color.Transparent,
-                    unfocusedIndicatorColor = Color.Transparent,
-                    disabledIndicatorColor = Color.Transparent,
-                    focusedContainerColor = MaterialTheme.colorScheme.surface,
-                    unfocusedContainerColor = MaterialTheme.colorScheme.surface,
-                )
+                }
+            } else null,
+            trailingIcon = {
+                    AnimatedContent(
+                        targetState = isGenerating,
+                        transitionSpec = {
+                            (fadeIn(animationSpec = tween(300)) + 
+                             slideInVertically(animationSpec = tween(300)) { it / 2 })
+                                .togetherWith(
+                                    fadeOut(animationSpec = tween(300)) + 
+                                    slideOutVertically(animationSpec = tween(300)) { -it / 2 }
+                                )
+                        },
+                        label = "send/stop button"
+                    ) { generating ->
+                        if (generating) {
+                            IconButton(
+                                onClick = onStop,
+                                colors = IconButtonDefaults.iconButtonColors(
+                                    containerColor = MaterialTheme.colorScheme.errorContainer,
+                                    contentColor = MaterialTheme.colorScheme.onErrorContainer
+                                )
+                            ) {
+                                Icon(
+                                    Icons.Filled.Stop,
+                                    contentDescription = "Stop generation",
+                                    modifier = Modifier.size(24.dp)
+                                )
+                            }
+                        } else {
+                            val sendButtonColor by animateColorAsState(
+                                targetValue = if (hasText && !isDescribingImage)
+                                    MaterialTheme.colorScheme.primary
+                                else MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.38f),
+                                animationSpec = tween(200),
+                                label = "send button color"
+                            )
+                            
+                            IconButton(
+                                onClick = {
+                                    val trimmed = text.trim()
+                                    if (trimmed.isNotEmpty() && !isDescribingImage) {
+                                        onSendMessage(trimmed)
+                                        text = ""
+                                    }
+                                },
+                                enabled = hasText && !isDescribingImage,
+                                colors = IconButtonDefaults.iconButtonColors(
+                                    containerColor = if (hasText && !isDescribingImage)
+                                        MaterialTheme.colorScheme.primaryContainer
+                                    else Color.Transparent,
+                                    contentColor = sendButtonColor
+                                )
+                            ) {
+                                Icon(
+                                    Icons.AutoMirrored.Filled.Send,
+                                    contentDescription = "Send",
+                                    modifier = Modifier.size(24.dp)
+                                )
+                            }
+                        }
+                    }
+            },
+            supportingText = {
+                    if (attachmentUri != null) {
+                        Card(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(top = 4.dp),
+                            colors = CardDefaults.cardColors(
+                                containerColor = MaterialTheme.colorScheme.surfaceContainerHighest
+                            )
+                        ) {
+                            Row(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(8.dp),
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                AsyncImage(
+                                    model = attachmentUri.toUri(),
+                                    contentDescription = null,
+                                    modifier = Modifier
+                                        .size(40.dp)
+                                        .clip(RoundedCornerShape(8.dp))
+                                )
+                                Spacer(Modifier.width(12.dp))
+                                if (isDescribingImage) {
+                                    Row(verticalAlignment = Alignment.CenterVertically) {
+                                        CircularProgressIndicator(
+                                            modifier = Modifier.size(16.dp),
+                                            strokeWidth = 2.dp,
+                                            color = MaterialTheme.colorScheme.primary
+                                        )
+                                        Spacer(Modifier.width(8.dp))
+                                        Text(
+                                            "Analyzing image...",
+                                            style = MaterialTheme.typography.bodyMedium,
+                                            color = MaterialTheme.colorScheme.primary
+                                        )
+                                    }
+                                } else {
+                                    Text(
+                                        "Image ready",
+                                        style = MaterialTheme.typography.bodyMedium,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                                    )
+                                }
+                                Spacer(Modifier.weight(1f))
+                                IconButton(
+                                    onClick = onRemoveImage,
+                                    modifier = Modifier.size(32.dp)
+                                ) {
+                                    Icon(
+                                        Icons.Filled.Close,
+                                        contentDescription = "Remove image",
+                                        modifier = Modifier.size(18.dp),
+                                        tint = MaterialTheme.colorScheme.onSurfaceVariant
+                                    )
+                                }
+                            }
+                        }
+                    }
+            },
+            colors = TextFieldDefaults.colors(
+                focusedIndicatorColor = Color.Transparent,
+                unfocusedIndicatorColor = Color.Transparent,
+                disabledIndicatorColor = Color.Transparent,
+                focusedContainerColor = MaterialTheme.colorScheme.surfaceContainer,
+                unfocusedContainerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
+                disabledContainerColor = MaterialTheme.colorScheme.surfaceContainerHighest.copy(alpha = 0.6f)
             )
-        }
+        )
     }
 }
