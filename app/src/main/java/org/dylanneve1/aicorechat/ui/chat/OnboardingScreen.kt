@@ -125,7 +125,7 @@ fun OnboardingScreen(
                 ),
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(top = 24.dp)
+                    .padding(top = 36.dp)
             ) {
                 Column(
                     horizontalAlignment = Alignment.CenterHorizontally,
