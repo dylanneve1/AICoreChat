@@ -1,0 +1,10 @@
+syntax = "proto3";
+
+package org.dylanneve1.aicorechat.proto;
+
+option java_package = "org.dylanneve1.aicorechat.proto";
+option java_multiple_files = true;
+
+message AppSettings {
+  string selected_model_backend_id = 1;
+}

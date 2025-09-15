@@ -1,5 +1,11 @@
 package org.dylanneve1.aicorechat.data
 
+import org.dylanneve1.aicorechat.data.model.ModelBackend
+
+enum class ModelDownloadStatus {
+    NOT_DOWNLOADED, DOWNLOADING, DOWNLOADED, FAILED
+}
+
 data class ChatMessage(
     val id: Long = System.nanoTime(),
     val text: String,
@@ -40,5 +46,11 @@ data class ChatUiState(
     val memorySearchQuery: String = "",
     val selectedMemoryCategory: MemoryCategory? = null,
     val isMemoryLoading: Boolean = false,
-    val memoryError: String? = null
+    val memoryError: String? = null,
+
+    // New state for model selection and download
+    val selectedBackend: ModelBackend = ModelBackend.AICORE_GEMINI_NANO,
+    val gemmaDownloadStatus: ModelDownloadStatus = ModelDownloadStatus.NOT_DOWNLOADED,
+    val gemmaDownloadProgress: Float = 0f,
+    val isModelSwitching: Boolean = false
 )

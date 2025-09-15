@@ -84,7 +84,8 @@ fun PersonalizationScreen(
     // Custom instructions
     customInstructions: String,
     onCustomInstructionsChange: (String) -> Unit,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    isImageAnalysisSupported: Boolean = true
 ) {
     val scrollState = rememberScrollState()
     val coroutineScope = rememberCoroutineScope()
@@ -135,9 +136,10 @@ fun PersonalizationScreen(
             FeatureToggleCard(
                 icon = Icons.Outlined.CameraAlt,
                 title = "Image Analysis",
-                description = "Enable AI to analyze and describe images",
+                description = if (isImageAnalysisSupported) "Enable AI to analyze and describe images" else "Not available with the current model",
                 checked = multimodalEnabled,
-                onCheckedChange = onMultimodalToggle
+                onCheckedChange = onMultimodalToggle,
+                enabled = isImageAnalysisSupported
             )
 
             FeatureToggleCard(

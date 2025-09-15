@@ -2,6 +2,9 @@ plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.android)
     alias(libs.plugins.kotlin.compose)
+    alias(libs.plugins.hilt.application)
+    alias(libs.plugins.protobuf)
+    kotlin("kapt")
 }
 
 android {
@@ -12,7 +15,7 @@ android {
         applicationId = "org.dylanneve1.aicorechat"
         minSdk = 31
         targetSdk = 36
-        versionCode = 1
+        versionCode = 9
         versionName = "1.1"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
@@ -42,7 +45,21 @@ android {
 dependencies {
     implementation(platform("androidx.compose:compose-bom:2024.09.02"))
     implementation("androidx.compose.material:material-icons-extended")
+
+    // AICore
     implementation("com.google.ai.edge.aicore:aicore:0.0.1-exp01")
+    
+    // MediaPipe
+    implementation(libs.mediapipe.tasks.genai)
+    
+    // Hilt
+    implementation(libs.hilt.android)
+    kapt(libs.hilt.android.compiler)
+    
+    // DataStore + Protobuf
+    implementation(libs.androidx.datastore)
+    implementation(libs.protobuf.javalite)
+
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.lifecycle.viewmodel.compose)
     implementation(libs.androidx.lifecycle.runtime.ktx)
@@ -72,4 +89,15 @@ dependencies {
     androidTestImplementation(libs.androidx.compose.ui.test.junit4)
     debugImplementation(libs.androidx.compose.ui.tooling)
     debugImplementation(libs.androidx.compose.ui.test.manifest)
+}
+
+protobuf {
+    protoc { artifact = "com.google.protobuf:protoc:4.26.1" }
+    generateProtoTasks {
+        all().forEach {
+            it.plugins {
+                create("java") { option("lite") }
+            }
+        }
+    }
 }

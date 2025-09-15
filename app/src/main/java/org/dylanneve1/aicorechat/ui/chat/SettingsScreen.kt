@@ -10,6 +10,7 @@ import androidx.compose.animation.togetherWith
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -52,6 +53,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import org.dylanneve1.aicorechat.data.BioInformation
 import org.dylanneve1.aicorechat.data.MemoryEntry
+import org.dylanneve1.aicorechat.data.model.ModelBackend
 import org.dylanneve1.aicorechat.ui.components.InfoCard
 import org.dylanneve1.aicorechat.ui.components.SettingsNavigationCard
 
@@ -75,6 +77,13 @@ fun SettingsScreen(
     onMultimodalToggle: (Boolean) -> Unit,
     onWipeAllChats: () -> Unit,
     onDismiss: () -> Unit,
+    // Model Selection
+    selectedBackend: ModelBackend,
+    onBackendSelected: (ModelBackend) -> Unit,
+    gemmaDownloadStatus: org.dylanneve1.aicorechat.data.ModelDownloadStatus,
+    gemmaDownloadProgress: Float,
+    onDownloadGemma: () -> Unit,
+    isModelSwitching: Boolean,
     // Memory and Bio parameters
     memoryContextEnabled: Boolean = true,
     onMemoryContextToggle: (Boolean) -> Unit = {},
@@ -106,6 +115,7 @@ fun SettingsScreen(
 ) {
     var confirmWipe by remember { mutableStateOf(false) }
     var destination by remember { mutableStateOf(SettingsDestination.Main) }
+    val isImageAnalysisSupported = selectedBackend == ModelBackend.AICORE_GEMINI_NANO
 
     BackHandler(onBack = {
         when (destination) {
@@ -301,7 +311,13 @@ fun SettingsScreen(
                             topK = topK,
                             onTemperatureChange = onTemperatureChange,
                             onTopKChange = onTopKChange,
-                            onResetModelSettings = onResetModelSettings
+                            onResetModelSettings = onResetModelSettings,
+                            selectedBackend = selectedBackend,
+                            onBackendSelected = onBackendSelected,
+                            gemmaDownloadStatus = gemmaDownloadStatus,
+                            gemmaDownloadProgress = gemmaDownloadProgress,
+                            onDownloadGemma = onDownloadGemma,
+                            isModelSwitching = isModelSwitching
                         )
                     }
                     SettingsDestination.Personalization -> {
@@ -337,7 +353,8 @@ fun SettingsScreen(
                                 onBioLocationChange = onBioLocationChange,
                                 // Custom instructions
                                 customInstructions = customInstructions,
-                                onCustomInstructionsChange = onCustomInstructionsChange
+                                onCustomInstructionsChange = onCustomInstructionsChange,
+                                isImageAnalysisSupported = isImageAnalysisSupported
                             )
                         }
                     }

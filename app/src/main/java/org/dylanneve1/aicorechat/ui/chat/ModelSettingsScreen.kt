@@ -3,6 +3,7 @@ package org.dylanneve1.aicorechat.ui.chat
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -15,9 +16,13 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.Adjust
+import androidx.compose.material.icons.outlined.CheckCircle
+import androidx.compose.material.icons.outlined.CloudDownload
+import androidx.compose.material.icons.outlined.Error
 import androidx.compose.material.icons.outlined.Refresh
 import androidx.compose.material.icons.outlined.RestartAlt
 import androidx.compose.material.icons.outlined.Speed
@@ -28,10 +33,12 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.RadioButton
 import androidx.compose.material3.Slider
 import androidx.compose.material3.SliderDefaults
 import androidx.compose.material3.Text
@@ -43,6 +50,9 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import org.dylanneve1.aicorechat.data.ModelDownloadStatus
+import org.dylanneve1.aicorechat.data.model.ModelBackend
+import org.dylanneve1.aicorechat.data.model.gemma1B_mediapipe
 import org.dylanneve1.aicorechat.ui.components.SectionHeaderCard
 import kotlin.math.roundToInt
 
@@ -53,6 +63,12 @@ fun ModelSettingsScreen(
     onTemperatureChange: (Float) -> Unit,
     onTopKChange: (Int) -> Unit,
     onResetModelSettings: () -> Unit,
+    selectedBackend: ModelBackend,
+    onBackendSelected: (ModelBackend) -> Unit,
+    gemmaDownloadStatus: ModelDownloadStatus,
+    gemmaDownloadProgress: Float,
+    onDownloadGemma: () -> Unit,
+    isModelSwitching: Boolean,
     modifier: Modifier = Modifier
 ) {
     Column(
@@ -65,57 +81,18 @@ fun ModelSettingsScreen(
         SectionHeaderCard(
             icon = Icons.Outlined.Tune,
             title = "Model Parameters",
-            description = "Fine-tune how Gemini Nano generates responses",
+            description = "Fine-tune how the AI generates responses",
             modifier = Modifier.padding(bottom = 8.dp)
         )
-        
-        // Model Info Card
-        Card(
-            colors = CardDefaults.cardColors(
-                containerColor = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.08f)
-            ),
-            elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
-            modifier = Modifier.fillMaxWidth()
-        ) {
-            Row(
-                modifier = Modifier.padding(20.dp),
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Box(
-                    modifier = Modifier
-                        .size(48.dp)
-                        .clip(CircleShape)
-                        .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.1f)),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Icon(
-                        imageVector = Icons.Outlined.Speed,
-                        contentDescription = null,
-                        tint = MaterialTheme.colorScheme.primary,
-                        modifier = Modifier.size(24.dp)
-                    )
-                }
-                Spacer(modifier = Modifier.width(16.dp))
-                Column(modifier = Modifier.weight(1f)) {
-                    Text(
-                        text = "Gemini Nano",
-                        style = MaterialTheme.typography.titleMedium,
-                        fontWeight = FontWeight.Bold
-                    )
-                    Text(
-                        text = "On-device AI model",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                }
-                Text(
-                    text = "Active",
-                    style = MaterialTheme.typography.labelMedium,
-                    color = MaterialTheme.colorScheme.primary,
-                    fontWeight = FontWeight.SemiBold
-                )
-            }
-        }
+
+        ModelSelectionCard(
+            selectedBackend = selectedBackend,
+            onBackendSelected = onBackendSelected,
+            gemmaDownloadStatus = gemmaDownloadStatus,
+            gemmaDownloadProgress = gemmaDownloadProgress,
+            onDownloadGemma = onDownloadGemma,
+            isModelSwitching = isModelSwitching
+        )
 
         // Temperature Control
         Card(
@@ -410,5 +387,127 @@ fun ModelSettingsScreen(
         }
         
         Spacer(modifier = Modifier.height(24.dp))
+    }
+}
+
+
+@Composable
+fun ModelSelectionCard(
+    selectedBackend: ModelBackend,
+    onBackendSelected: (ModelBackend) -> Unit,
+    gemmaDownloadStatus: ModelDownloadStatus,
+    gemmaDownloadProgress: Float,
+    onDownloadGemma: () -> Unit,
+    isModelSwitching: Boolean,
+) {
+    Card(
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f)
+        ),
+        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
+        modifier = Modifier.fillMaxWidth()
+    ) {
+        Column(modifier = Modifier.padding(20.dp)) {
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                modifier = Modifier.padding(bottom = 12.dp)
+            ) {
+                Icon(
+                    imageVector = Icons.Outlined.Speed,
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.primary,
+                    modifier = Modifier.size(20.dp)
+                )
+                Spacer(modifier = Modifier.width(8.dp))
+                Text(
+                    text = "Model Selection",
+                    style = MaterialTheme.typography.titleSmall,
+                    fontWeight = FontWeight.SemiBold
+                )
+            }
+
+            ModelBackend.entries.forEach { backend ->
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clip(RoundedCornerShape(8.dp))
+                        .clickable(enabled = !isModelSwitching) { onBackendSelected(backend) }
+                        .padding(vertical = 8.dp)
+                ) {
+                    RadioButton(
+                        selected = selectedBackend == backend,
+                        onClick = { onBackendSelected(backend) },
+                        enabled = !isModelSwitching
+                    )
+                    Column(modifier = Modifier.weight(1f)) {
+                        Text(
+                            text = backend.displayName,
+                            style = MaterialTheme.typography.bodyLarge,
+                            fontWeight = FontWeight.Medium
+                        )
+                        if (backend == ModelBackend.MEDIAPIPE_GEMMA_1B) {
+                            Text(
+                                text = "Requires one-time ~500MB download",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
+                    }
+                }
+
+                if (backend == ModelBackend.MEDIAPIPE_GEMMA_1B) {
+                    when (gemmaDownloadStatus) {
+                        ModelDownloadStatus.NOT_DOWNLOADED -> {
+                            FilledTonalButton(
+                                onClick = onDownloadGemma,
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(start = 48.dp, top = 8.dp)
+                            ) {
+                                Icon(Icons.Outlined.CloudDownload, contentDescription = null, modifier = Modifier.size(18.dp))
+                                Spacer(Modifier.width(8.dp))
+                                Text("Download Gemma Model")
+                            }
+                        }
+                        ModelDownloadStatus.DOWNLOADING -> {
+                            Column(Modifier.padding(start = 48.dp, top = 8.dp)) {
+                                LinearProgressIndicator(
+                                    progress = { gemmaDownloadProgress },
+                                    modifier = Modifier.fillMaxWidth()
+                                )
+                                Text(
+                                    text = "Downloading... ${(gemmaDownloadProgress * 100).toInt()}%",
+                                    style = MaterialTheme.typography.bodySmall,
+                                    modifier = Modifier.padding(top = 4.dp)
+                                )
+                            }
+                        }
+                        ModelDownloadStatus.DOWNLOADED -> {
+                            Row(Modifier.padding(start = 48.dp, top = 8.dp), verticalAlignment = Alignment.CenterVertically) {
+                                Icon(Icons.Outlined.CheckCircle, contentDescription = "Downloaded", tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(18.dp))
+                                Spacer(Modifier.width(8.dp))
+                                Text(
+                                    "Model downloaded (${"%.0f".format(gemma1B_mediapipe.sizeInBytes / 1_000_000f)} MB)",
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.primary
+                                )
+                            }
+                        }
+                        ModelDownloadStatus.FAILED -> {
+                            Row(Modifier.padding(start = 48.dp, top = 8.dp), verticalAlignment = Alignment.CenterVertically) {
+                                Icon(Icons.Outlined.Error, contentDescription = "Failed", tint = MaterialTheme.colorScheme.error, modifier = Modifier.size(18.dp))
+                                Spacer(Modifier.width(8.dp))
+                                Text(
+                                    "Download failed. Please try again.",
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.error
+                                )
+                            }
+                        }
+                    }
+                }
+            }
+        }
     }
 }

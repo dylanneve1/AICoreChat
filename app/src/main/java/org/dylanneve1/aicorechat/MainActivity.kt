@@ -22,7 +22,8 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.core.view.WindowCompat
-import androidx.lifecycle.viewmodel.compose.viewModel
+import androidx.hilt.navigation.compose.hiltViewModel
+import dagger.hilt.android.AndroidEntryPoint
 import org.dylanneve1.aicorechat.data.ChatViewModel
 import org.dylanneve1.aicorechat.ui.chat.ChatScreen
 import org.dylanneve1.aicorechat.ui.chat.OnboardingScreen
@@ -31,6 +32,7 @@ import org.dylanneve1.aicorechat.ui.theme.AICoreChatTheme
 import org.dylanneve1.aicorechat.util.DeviceSupportStatus
 import org.dylanneve1.aicorechat.util.checkDeviceSupport
 
+@AndroidEntryPoint
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -50,7 +52,7 @@ class MainActivity : ComponentActivity() {
                         supportStatus = checkDeviceSupport(applicationContext)
                     }
 
-                    val chatViewModel: ChatViewModel = viewModel()
+                    val chatViewModel: ChatViewModel = hiltViewModel()
                     val uiState by chatViewModel.uiState.collectAsState()
 
                     var onboardingShown by remember {
