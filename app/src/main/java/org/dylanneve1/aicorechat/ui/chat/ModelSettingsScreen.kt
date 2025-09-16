@@ -42,6 +42,7 @@ import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.RadioButton
+import androidx.compose.material3.RadioButtonDefaults
 import androidx.compose.material3.Slider
 import androidx.compose.material3.SliderDefaults
 import androidx.compose.material3.Text
@@ -444,83 +445,133 @@ fun ModelSelectionCard(
                 )
             }
 
+            val selectionShape = RoundedCornerShape(12.dp)
+            val radioSpacer = 12.dp
+
             ModelBackend.entries.forEach { backend ->
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
+                val isSelected = selectedBackend == backend
+                val backgroundColor by animateColorAsState(
+                    targetValue = if (isSelected) {
+                        MaterialTheme.colorScheme.primary.copy(alpha = 0.12f)
+                    } else {
+                        MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.35f)
+                    },
+                    label = "model_selection_bg"
+                )
+                val titleColor = if (isSelected) {
+                    MaterialTheme.colorScheme.primary
+                } else {
+                    MaterialTheme.colorScheme.onSurface
+                }
+                Column(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .clip(RoundedCornerShape(8.dp))
+                        .padding(vertical = 4.dp)
+                        .clip(selectionShape)
+                        .background(backgroundColor)
                         .clickable(enabled = !isModelSwitching) { onBackendSelected(backend) }
-                        .padding(vertical = 8.dp)
+                        .padding(horizontal = 16.dp, vertical = 12.dp)
                 ) {
-                    RadioButton(
-                        selected = selectedBackend == backend,
-                        onClick = { onBackendSelected(backend) },
-                        enabled = !isModelSwitching
-                    )
-                    Column(modifier = Modifier.weight(1f)) {
-                        Text(
-                            text = backend.displayName,
-                            style = MaterialTheme.typography.bodyLarge,
-                            fontWeight = FontWeight.Medium
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        RadioButton(
+                            selected = isSelected,
+                            onClick = { if (!isModelSwitching) onBackendSelected(backend) },
+                            enabled = !isModelSwitching,
+                            colors = RadioButtonDefaults.colors(selectedColor = MaterialTheme.colorScheme.primary)
                         )
-                        if (backend == ModelBackend.MEDIAPIPE_GEMMA_1B) {
+                        Spacer(modifier = Modifier.width(radioSpacer))
+                        Column(modifier = Modifier.weight(1f)) {
                             Text(
-                                text = "Requires one-time ~500MB download",
-                                style = MaterialTheme.typography.bodySmall,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                                text = backend.displayName,
+                                style = MaterialTheme.typography.bodyLarge,
+                                fontWeight = FontWeight.Medium,
+                                color = titleColor
                             )
+                            if (backend == ModelBackend.MEDIAPIPE_GEMMA_1B) {
+                                Text(
+                                    text = "Requires one-time ~500MB download",
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                            }
                         }
                     }
-                }
 
-                if (backend == ModelBackend.MEDIAPIPE_GEMMA_1B) {
-                    when (gemmaDownloadStatus) {
-                        ModelDownloadStatus.NOT_DOWNLOADED -> {
-                            FilledTonalButton(
-                                onClick = onDownloadGemma,
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .padding(start = 48.dp, top = 8.dp)
-                            ) {
-                                Icon(Icons.Outlined.CloudDownload, contentDescription = null, modifier = Modifier.size(18.dp))
-                                Spacer(Modifier.width(8.dp))
-                                Text("Download Gemma Model")
+                    if (backend == ModelBackend.MEDIAPIPE_GEMMA_1B) {
+                        when (gemmaDownloadStatus) {
+                            ModelDownloadStatus.NOT_DOWNLOADED -> {
+                                FilledTonalButton(
+                                    onClick = onDownloadGemma,
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .padding(top = 12.dp)
+                                ) {
+                                    Icon(Icons.Outlined.CloudDownload, contentDescription = null, modifier = Modifier.size(18.dp))
+                                    Spacer(Modifier.width(8.dp))
+                                    Text("Download Gemma Model")
+                                }
                             }
-                        }
-                        ModelDownloadStatus.DOWNLOADING -> {
-                            Column(Modifier.padding(start = 48.dp, top = 8.dp)) {
-                                LinearProgressIndicator(
-                                    progress = { gemmaDownloadProgress },
-                                    modifier = Modifier.fillMaxWidth()
-                                )
-                                Text(
-                                    text = "Downloading... ${(gemmaDownloadProgress * 100).toInt()}%",
-                                    style = MaterialTheme.typography.bodySmall,
-                                    modifier = Modifier.padding(top = 4.dp)
-                                )
+                            ModelDownloadStatus.DOWNLOADING -> {
+                                Column(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .padding(top = 12.dp)
+                                ) {
+                                    LinearProgressIndicator(
+                                        progress = { gemmaDownloadProgress },
+                                        modifier = Modifier.fillMaxWidth()
+                                    )
+                                    Text(
+                                        text = "Downloading... ${(gemmaDownloadProgress * 100).toInt()}%",
+                                        style = MaterialTheme.typography.bodySmall,
+                                        modifier = Modifier.padding(top = 6.dp)
+                                    )
+                                }
                             }
-                        }
-                        ModelDownloadStatus.DOWNLOADED -> {
-                            Row(Modifier.padding(start = 48.dp, top = 8.dp), verticalAlignment = Alignment.CenterVertically) {
-                                Icon(Icons.Outlined.CheckCircle, contentDescription = "Downloaded", tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(18.dp))
-                                Spacer(Modifier.width(8.dp))
-                                Text(
-                                    "Model downloaded (${"%.0f".format(gemma1B_mediapipe.sizeInBytes / 1_000_000f)} MB)",
-                                    style = MaterialTheme.typography.bodySmall,
-                                    color = MaterialTheme.colorScheme.primary
-                                )
+                            ModelDownloadStatus.DOWNLOADED -> {
+                                Row(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .padding(top = 12.dp),
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    Icon(
+                                        Icons.Outlined.CheckCircle,
+                                        contentDescription = "Downloaded",
+                                        tint = MaterialTheme.colorScheme.primary,
+                                        modifier = Modifier.size(18.dp)
+                                    )
+                                    Spacer(Modifier.width(8.dp))
+                                    Text(
+                                        "Model downloaded (${"%.0f".format(gemma1B_mediapipe.sizeInBytes / 1_000_000f)} MB)",
+                                        style = MaterialTheme.typography.bodySmall,
+                                        color = MaterialTheme.colorScheme.primary
+                                    )
+                                }
                             }
-                        }
-                        ModelDownloadStatus.FAILED -> {
-                            Row(Modifier.padding(start = 48.dp, top = 8.dp), verticalAlignment = Alignment.CenterVertically) {
-                                Icon(Icons.Outlined.Error, contentDescription = "Failed", tint = MaterialTheme.colorScheme.error, modifier = Modifier.size(18.dp))
-                                Spacer(Modifier.width(8.dp))
-                                Text(
-                                    "Download failed. Please try again.",
-                                    style = MaterialTheme.typography.bodySmall,
-                                    color = MaterialTheme.colorScheme.error
-                                )
+                            ModelDownloadStatus.FAILED -> {
+                                Row(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .padding(top = 12.dp),
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    Icon(
+                                        Icons.Outlined.Error,
+                                        contentDescription = "Failed",
+                                        tint = MaterialTheme.colorScheme.error,
+                                        modifier = Modifier.size(18.dp)
+                                    )
+                                    Spacer(Modifier.width(8.dp))
+                                    Text(
+                                        "Download failed. Please try again.",
+                                        style = MaterialTheme.typography.bodySmall,
+                                        color = MaterialTheme.colorScheme.error
+                                    )
+                                }
                             }
                         }
                     }
