@@ -15,7 +15,8 @@ data class Model(
     val sizeInBytes: Long,
 ) {
     fun getPath(context: Context): String {
-        return File(context.filesDir, modelPath).absolutePath
+        val baseDir = context.getExternalFilesDir(null) ?: context.filesDir
+        return File(baseDir, modelPath).absolutePath
     }
 }
 

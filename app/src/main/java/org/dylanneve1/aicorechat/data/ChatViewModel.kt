@@ -80,6 +80,20 @@ class ChatViewModel @Inject constructor(
     private val personalContextBuilder = PersonalContextBuilder(application)
     private val imageDescriptionService = ImageDescriptionService(application)
 
+    private fun deleteLegacyModelFiles(model: org.dylanneve1.aicorechat.data.model.Model) {
+        val appContext = getApplication<Application>()
+        val legacyLocations = listOf(appContext.filesDir, appContext.cacheDir)
+        legacyLocations.forEach { dir ->
+            dir?.let {
+                val legacyFile = File(it, model.modelPath)
+                if (legacyFile.exists()) {
+                    val deleted = legacyFile.delete()
+                    Log.d(TAG, "Deleted legacy model copy at ${legacyFile.absolutePath}: $deleted")
+                }
+            }
+        }
+    }
+
     companion object {
         private const val TAG = "ChatViewModel"
         const val KEY_TEMPERATURE = "temperature"
@@ -270,6 +284,7 @@ class ChatViewModel @Inject constructor(
             val url = URL(model.url)
             var connection: HttpURLConnection? = null
             try {
+                deleteLegacyModelFiles(model)
                 connection = (url.openConnection() as HttpURLConnection).apply {
                     connectTimeout = 30_000
                     readTimeout = 30_000
@@ -309,6 +324,7 @@ class ChatViewModel @Inject constructor(
                 }
 
                 _uiState.update { it.copy(gemmaDownloadStatus = ModelDownloadStatus.DOWNLOADED, gemmaDownloadProgress = 1f) }
+                deleteLegacyModelFiles(model)
                 reinitializeModel()
             } catch (e: Exception) {
                 Log.e(TAG, "Gemma download failed", e)
