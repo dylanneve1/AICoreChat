@@ -82,7 +82,7 @@ class ChatViewModel @Inject constructor(
 
     private fun deleteLegacyModelFiles(model: org.dylanneve1.aicorechat.data.model.Model) {
         val appContext = getApplication<Application>()
-        val legacyLocations = listOf(appContext.filesDir, appContext.cacheDir)
+        val legacyLocations = listOf(appContext.filesDir, appContext.cacheDir, appContext.externalCacheDir)
         legacyLocations.forEach { dir ->
             dir?.let {
                 val legacyFile = File(it, model.modelPath)
@@ -91,6 +91,19 @@ class ChatViewModel @Inject constructor(
                     Log.d(TAG, "Deleted legacy model copy at ${legacyFile.absolutePath}: $deleted")
                 }
             }
+        }
+    }
+
+    private fun clearHttpCache() {
+        try {
+            val cacheDir = getApplication<Application>().cacheDir
+            val httpCache = File(cacheDir, "http")
+            if (httpCache.exists()) {
+                val cleared = httpCache.deleteRecursively()
+                Log.d(TAG, "HTTP cache cleared: $cleared")
+            }
+        } catch (e: Exception) {
+            Log.w(TAG, "Failed to clear HTTP cache", e)
         }
     }
 
@@ -288,7 +301,10 @@ class ChatViewModel @Inject constructor(
                 connection = (url.openConnection() as HttpURLConnection).apply {
                     connectTimeout = 30_000
                     readTimeout = 30_000
+                    useCaches = false
                     setRequestProperty("User-Agent", "AICoreChat/${BuildConfig.VERSION_NAME}")
+                    setRequestProperty("Cache-Control", "no-store")
+                    setRequestProperty("Pragma", "no-cache")
                     val token = _uiState.value.huggingFaceToken.ifBlank { BuildConfig.HUGGING_FACE_TOKEN }
                     if (token.isNotBlank()) {
                         setRequestProperty("Authorization", "Bearer $token")
@@ -325,6 +341,7 @@ class ChatViewModel @Inject constructor(
 
                 _uiState.update { it.copy(gemmaDownloadStatus = ModelDownloadStatus.DOWNLOADED, gemmaDownloadProgress = 1f) }
                 deleteLegacyModelFiles(model)
+                clearHttpCache()
                 reinitializeModel()
             } catch (e: Exception) {
                 Log.e(TAG, "Gemma download failed", e)
@@ -338,6 +355,7 @@ class ChatViewModel @Inject constructor(
                 if (partialFile.exists()) {
                     partialFile.delete()
                 }
+                clearHttpCache()
             } finally {
                 connection?.disconnect()
             }
