@@ -52,5 +52,6 @@ data class ChatUiState(
     val selectedBackend: ModelBackend = ModelBackend.AICORE_GEMINI_NANO,
     val gemmaDownloadStatus: ModelDownloadStatus = ModelDownloadStatus.NOT_DOWNLOADED,
     val gemmaDownloadProgress: Float = 0f,
-    val isModelSwitching: Boolean = false
+    val isModelSwitching: Boolean = false,
+    val huggingFaceToken: String = ""
 )

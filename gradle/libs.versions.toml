@@ -11,9 +11,8 @@ activityCompose = "1.8.0"
 composeBom = "2024.09.00"
 hilt = "2.51.1"
 mediapipeTasksGenai = "0.10.27"
-protobufPlugin = "0.9.5"
-protobufJavalite = "4.26.1"
 datastore = "1.1.1"
+androidxHiltNavigationCompose = "1.2.0"
 
 [libraries]
 androidx-core-ktx = { group = "androidx.core", name = "core-ktx", version.ref = "coreKtx" }
@@ -36,11 +35,11 @@ hilt-android = { module = "com.google.dagger:hilt-android", version.ref = "hilt"
 hilt-android-compiler = { module = "com.google.dagger:hilt-android-compiler", version.ref = "hilt" }
 mediapipe-tasks-genai = { group = "com.google.mediapipe", name = "tasks-genai", version.ref = "mediapipeTasksGenai" }
 androidx-datastore = { group = "androidx.datastore", name = "datastore", version.ref = "datastore" }
-protobuf-javalite = { group = "com.google.protobuf", name = "protobuf-javalite", version.ref = "protobufJavalite" }
+androidx-datastore-preferences = { group = "androidx.datastore", name = "datastore-preferences", version.ref = "datastore" }
+androidx-hilt-navigation-compose = { group = "androidx.hilt", name = "hilt-navigation-compose", version.ref = "androidxHiltNavigationCompose" }
 
 [plugins]
 android-application = { id = "com.android.application", version.ref = "agp" }
 kotlin-android = { id = "org.jetbrains.kotlin.android", version.ref = "kotlin" }
 kotlin-compose = { id = "org.jetbrains.kotlin.plugin.compose", version.ref = "kotlin" }
 hilt-application = { id = "com.google.dagger.hilt.android", version.ref = "hilt" }
-protobuf = { id = "com.google.protobuf", version.ref = "protobufPlugin" }

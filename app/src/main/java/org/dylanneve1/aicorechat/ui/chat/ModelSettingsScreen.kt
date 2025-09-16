@@ -23,12 +23,13 @@ import androidx.compose.material.icons.outlined.Adjust
 import androidx.compose.material.icons.outlined.CheckCircle
 import androidx.compose.material.icons.outlined.CloudDownload
 import androidx.compose.material.icons.outlined.Error
-import androidx.compose.material.icons.outlined.Refresh
 import androidx.compose.material.icons.outlined.RestartAlt
 import androidx.compose.material.icons.outlined.Speed
 import androidx.compose.material.icons.outlined.Thermostat
 import androidx.compose.material.icons.outlined.Token
 import androidx.compose.material.icons.outlined.Tune
+import androidx.compose.material.icons.outlined.Visibility
+import androidx.compose.material.icons.outlined.VisibilityOff
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
@@ -36,19 +37,27 @@ import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.RadioButton
 import androidx.compose.material3.Slider
 import androidx.compose.material3.SliderDefaults
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.PasswordVisualTransformation
+import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.unit.dp
 import org.dylanneve1.aicorechat.data.ModelDownloadStatus
 import org.dylanneve1.aicorechat.data.model.ModelBackend
@@ -69,6 +78,8 @@ fun ModelSettingsScreen(
     gemmaDownloadProgress: Float,
     onDownloadGemma: () -> Unit,
     isModelSwitching: Boolean,
+    huggingFaceToken: String,
+    onHuggingFaceTokenChange: (String) -> Unit,
     modifier: Modifier = Modifier
 ) {
     Column(
@@ -93,6 +104,13 @@ fun ModelSettingsScreen(
             onDownloadGemma = onDownloadGemma,
             isModelSwitching = isModelSwitching
         )
+
+        if (selectedBackend == ModelBackend.MEDIAPIPE_GEMMA_1B) {
+            HuggingFaceTokenCard(
+                token = huggingFaceToken,
+                onTokenChanged = onHuggingFaceTokenChange
+            )
+        }
 
         // Temperature Control
         Card(
@@ -506,6 +524,84 @@ fun ModelSelectionCard(
                             }
                         }
                     }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun HuggingFaceTokenCard(
+    token: String,
+    onTokenChanged: (String) -> Unit
+) {
+    var showToken by remember { mutableStateOf(false) }
+
+    Card(
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f)
+        ),
+        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
+        modifier = Modifier.fillMaxWidth()
+    ) {
+        Column(
+            modifier = Modifier.padding(20.dp),
+            verticalArrangement = Arrangement.spacedBy(12.dp)
+        ) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Icon(
+                    imageVector = Icons.Outlined.Token,
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.primary,
+                    modifier = Modifier.size(20.dp)
+                )
+                Spacer(modifier = Modifier.width(8.dp))
+                Text(
+                    text = "Hugging Face Access Token",
+                    style = MaterialTheme.typography.titleSmall,
+                    fontWeight = FontWeight.SemiBold
+                )
+            }
+
+            Text(
+                text = "Gemma 1B is distributed via a gated Hugging Face repository. Enter a valid personal access token to download the model on this device.",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+
+            OutlinedTextField(
+                value = token,
+                onValueChange = onTokenChanged,
+                label = { Text("huggingface.co token") },
+                placeholder = { Text("hf_...") },
+                singleLine = true,
+                visualTransformation = if (showToken) VisualTransformation.None else PasswordVisualTransformation(),
+                trailingIcon = {
+                    IconButton(onClick = { showToken = !showToken }) {
+                        Icon(
+                            imageVector = if (showToken) Icons.Outlined.VisibilityOff else Icons.Outlined.Visibility,
+                            contentDescription = if (showToken) "Hide token" else "Show token"
+                        )
+                    }
+                },
+                modifier = Modifier.fillMaxWidth()
+            )
+
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(12.dp)
+            ) {
+                Text(
+                    text = "You can generate a token from your Hugging Face account settings.",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.weight(1f, fill = true)
+                )
+                TextButton(
+                    onClick = { onTokenChanged("") },
+                    enabled = token.isNotBlank()
+                ) {
+                    Text("Clear")
                 }
             }
         }

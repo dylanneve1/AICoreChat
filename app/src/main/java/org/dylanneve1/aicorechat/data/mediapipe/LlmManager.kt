@@ -2,7 +2,6 @@ package org.dylanneve1.aicorechat.data.mediapipe
 
 import android.content.Context
 import android.util.Log
-import com.google.ai.edge.gallery.common.cleanUpMediapipeTaskErrorMessage
 import com.google.mediapipe.tasks.genai.llminference.LlmInference
 import com.google.mediapipe.tasks.genai.llminference.LlmInferenceSession
 import dagger.hilt.android.qualifiers.ApplicationContext
@@ -38,7 +37,7 @@ class LlmManager @Inject constructor(@ApplicationContext private val context: Co
         } catch (e: Exception) {
             isInitialized = false
             Log.e(TAG, "Failed to initialize LlmInference", e)
-            cleanUpMediapipeTaskErrorMessage(e.message ?: "Unknown MediaPipe error")
+            e.message ?: "Unknown MediaPipe error"
         }
     }
 
@@ -50,7 +49,10 @@ class LlmManager @Inject constructor(@ApplicationContext private val context: Co
         }
 
         try {
-            currentSession.generateResponseAsync(prompt, resultListener)
+            currentSession.addQueryChunk(prompt)
+            currentSession.generateResponseAsync { chunk, done ->
+                resultListener(chunk ?: "", done)
+            }
         } catch (e: Exception) {
             Log.e(TAG, "Error during generateResponseAsync", e)
             resultListener("Error: ${e.message}", true)

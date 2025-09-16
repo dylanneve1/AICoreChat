@@ -3,7 +3,6 @@ plugins {
     alias(libs.plugins.kotlin.android)
     alias(libs.plugins.kotlin.compose)
     alias(libs.plugins.hilt.application)
-    alias(libs.plugins.protobuf)
     kotlin("kapt")
 }
 
@@ -19,6 +18,9 @@ android {
         versionName = "1.1"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
+
+        val huggingfaceToken = (project.findProperty("huggingfaceToken") as? String)?.replace("\"", "\\\"") ?: ""
+        buildConfigField("String", "HUGGING_FACE_TOKEN", "\"$huggingfaceToken\"")
     }
 
     buildTypes {
@@ -39,6 +41,7 @@ android {
     }
     buildFeatures {
         compose = true
+        buildConfig = true
     }
 }
 
@@ -55,10 +58,11 @@ dependencies {
     // Hilt
     implementation(libs.hilt.android)
     kapt(libs.hilt.android.compiler)
+    implementation(libs.androidx.hilt.navigation.compose)
     
-    // DataStore + Protobuf
+    // DataStore
     implementation(libs.androidx.datastore)
-    implementation(libs.protobuf.javalite)
+    implementation(libs.androidx.datastore.preferences)
 
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.lifecycle.viewmodel.compose)
@@ -89,15 +93,4 @@ dependencies {
     androidTestImplementation(libs.androidx.compose.ui.test.junit4)
     debugImplementation(libs.androidx.compose.ui.tooling)
     debugImplementation(libs.androidx.compose.ui.test.manifest)
-}
-
-protobuf {
-    protoc { artifact = "com.google.protobuf:protoc:4.26.1" }
-    generateProtoTasks {
-        all().forEach {
-            it.plugins {
-                create("java") { option("lite") }
-            }
-        }
-    }
 }

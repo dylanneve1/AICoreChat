@@ -84,6 +84,8 @@ fun SettingsScreen(
     gemmaDownloadProgress: Float,
     onDownloadGemma: () -> Unit,
     isModelSwitching: Boolean,
+    huggingFaceToken: String,
+    onHuggingFaceTokenChange: (String) -> Unit,
     // Memory and Bio parameters
     memoryContextEnabled: Boolean = true,
     onMemoryContextToggle: (Boolean) -> Unit = {},
@@ -317,7 +319,9 @@ fun SettingsScreen(
                             gemmaDownloadStatus = gemmaDownloadStatus,
                             gemmaDownloadProgress = gemmaDownloadProgress,
                             onDownloadGemma = onDownloadGemma,
-                            isModelSwitching = isModelSwitching
+                            isModelSwitching = isModelSwitching,
+                            huggingFaceToken = huggingFaceToken,
+                            onHuggingFaceTokenChange = onHuggingFaceTokenChange
                         )
                     }
                     SettingsDestination.Personalization -> {
