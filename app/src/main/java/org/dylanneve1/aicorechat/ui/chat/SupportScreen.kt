@@ -114,7 +114,9 @@ fun SupportScreen(modifier: Modifier = Modifier) {
                                 .clip(CircleShape)
                                 .background(
                                     when (supportStatus) {
-                                        is DeviceSupportStatus.Supported -> MaterialTheme.colorScheme.primary.copy(alpha = 0.1f)
+                                        is DeviceSupportStatus.Supported -> MaterialTheme.colorScheme.primary.copy(
+                                            alpha = 0.1f,
+                                        )
                                         is DeviceSupportStatus.AICoreMissing, is DeviceSupportStatus.NotReady ->
                                             MaterialTheme.colorScheme.error.copy(alpha = 0.1f)
                                         null -> MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.1f)
@@ -360,10 +362,7 @@ private fun RequirementItem(
 }
 
 @Composable
-private fun FeatureHighlight(
-    icon: androidx.compose.ui.graphics.vector.ImageVector,
-    text: String,
-) {
+private fun FeatureHighlight(icon: androidx.compose.ui.graphics.vector.ImageVector, text: String) {
     Row(
         verticalAlignment = Alignment.CenterVertically,
         modifier = Modifier.fillMaxWidth(),

@@ -91,10 +91,21 @@ fun OnboardingScreen(
     ) { _ -> }
 
     fun requestLocationIfNeeded() {
-        val hasFine = ContextCompat.checkSelfPermission(context, android.Manifest.permission.ACCESS_FINE_LOCATION) == android.content.pm.PackageManager.PERMISSION_GRANTED
-        val hasCoarse = ContextCompat.checkSelfPermission(context, android.Manifest.permission.ACCESS_COARSE_LOCATION) == android.content.pm.PackageManager.PERMISSION_GRANTED
+        val hasFine = ContextCompat.checkSelfPermission(
+            context,
+            android.Manifest.permission.ACCESS_FINE_LOCATION,
+        ) == android.content.pm.PackageManager.PERMISSION_GRANTED
+        val hasCoarse = ContextCompat.checkSelfPermission(
+            context,
+            android.Manifest.permission.ACCESS_COARSE_LOCATION,
+        ) == android.content.pm.PackageManager.PERMISSION_GRANTED
         if (!hasFine && !hasCoarse) {
-            permissionLauncher.launch(arrayOf(android.Manifest.permission.ACCESS_FINE_LOCATION, android.Manifest.permission.ACCESS_COARSE_LOCATION))
+            permissionLauncher.launch(
+                arrayOf(
+                    android.Manifest.permission.ACCESS_FINE_LOCATION,
+                    android.Manifest.permission.ACCESS_COARSE_LOCATION,
+                ),
+            )
         }
     }
 
@@ -397,7 +408,11 @@ fun OnboardingScreen(
                             minLines = 3,
                             maxLines = 5,
                             label = { Text("Custom Instructions") },
-                            placeholder = { Text("e.g., Be concise and direct, use simple language, always be encouraging...") },
+                            placeholder = {
+                                Text(
+                                    "e.g., Be concise and direct, use simple language, always be encouraging...",
+                                )
+                            },
                             modifier = Modifier
                                 .fillMaxWidth()
                                 .padding(top = 20.dp),

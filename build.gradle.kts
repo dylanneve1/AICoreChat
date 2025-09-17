@@ -4,6 +4,7 @@ import io.gitlab.arturbosch.detekt.extensions.DetektExtension
 import org.gradle.api.artifacts.VersionCatalogsExtension
 import org.gradle.kotlin.dsl.apply
 import org.gradle.kotlin.dsl.getByType
+import com.diffplug.spotless.extra.wtp.EclipseWtpFormatterStep
 
 // Top-level build file where you can add configuration options common to all sub-projects/modules.
 plugins {
@@ -48,6 +49,12 @@ subprojects {
             targetExclude("**/build/**")
             trimTrailingWhitespace()
             endWithNewline()
+        }
+
+        format("xml") {
+            target("**/*.xml")
+            targetExclude("**/build/**")
+            eclipseWtp(EclipseWtpFormatterStep.XML)
         }
     }
 

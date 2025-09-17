@@ -290,7 +290,11 @@ fun SettingsScreen(
                                             onDismiss()
                                         }) { Text("Wipe") }
                                     },
-                                    dismissButton = { TextButton(onClick = { confirmWipe = false }) { Text("Cancel") } },
+                                    dismissButton = {
+                                        TextButton(
+                                            onClick = { confirmWipe = false },
+                                        ) { Text("Cancel") }
+                                    },
                                 )
                             }
                         }

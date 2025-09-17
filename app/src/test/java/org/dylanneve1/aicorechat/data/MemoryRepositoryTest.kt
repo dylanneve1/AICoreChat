@@ -131,7 +131,9 @@ class MemoryRepositoryTest {
 
     @Test
     fun exportAllData_includesStoredSections() {
-        repository.saveCustomInstructions(listOf(CustomInstruction(id = "ci1", title = "Tone", instruction = "Friendly")))
+        repository.saveCustomInstructions(
+            listOf(CustomInstruction(id = "ci1", title = "Tone", instruction = "Friendly")),
+        )
         repository.saveMemoryEntries(listOf(MemoryEntry(id = "m1", content = "Enjoys chess")))
         repository.saveBioInformation(BioInformation(id = "bio1", name = "Jamie"))
 

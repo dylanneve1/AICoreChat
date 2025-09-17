@@ -52,11 +52,7 @@ import org.dylanneve1.aicorechat.data.ChatMessage
 
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
-fun MessageRow(
-    message: ChatMessage,
-    onCopy: (String) -> Unit,
-    isSearching: Boolean = false,
-) {
+fun MessageRow(message: ChatMessage, onCopy: (String) -> Unit, isSearching: Boolean = false) {
     val clipboard: ClipboardManager = LocalClipboardManager.current
 
     Row(

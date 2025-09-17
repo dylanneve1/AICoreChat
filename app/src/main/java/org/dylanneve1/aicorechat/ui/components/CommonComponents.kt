@@ -31,12 +31,7 @@ import androidx.compose.ui.unit.dp
  * Standardized section header card with icon, title and description
  */
 @Composable
-fun SectionHeaderCard(
-    icon: ImageVector,
-    title: String,
-    description: String,
-    modifier: Modifier = Modifier,
-) {
+fun SectionHeaderCard(icon: ImageVector, title: String, description: String, modifier: Modifier = Modifier) {
     Card(
         colors = CardDefaults.cardColors(
             containerColor = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.08f),
@@ -238,7 +233,9 @@ fun InfoCard(
     title: String,
     description: String,
     modifier: Modifier = Modifier,
-    containerColor: androidx.compose.ui.graphics.Color = MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.3f),
+    containerColor: androidx.compose.ui.graphics.Color = MaterialTheme.colorScheme.secondaryContainer.copy(
+        alpha = 0.3f,
+    ),
     contentColor: androidx.compose.ui.graphics.Color = MaterialTheme.colorScheme.onSecondaryContainer,
 ) {
     Card(

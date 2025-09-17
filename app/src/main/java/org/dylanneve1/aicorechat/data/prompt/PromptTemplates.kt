@@ -10,10 +10,14 @@ object PromptTemplates {
         sb.append("Conversation formatting (strict):\n")
         sb.append("- User turns MUST be wrapped in [USER] and [/USER].\n")
         sb.append("- Assistant turns MUST be wrapped in [ASSISTANT] and ALWAYS end with [/ASSISTANT].\n")
-        sb.append("- If an [IMAGE_DESCRIPTION] block is present, use it as additional user-provided context. Do not repeat or quote it.\n")
+        sb.append(
+            "- If an [IMAGE_DESCRIPTION] block is present, use it as additional user-provided context. Do not repeat or quote it.\n",
+        )
         sb.append("- Do NOT output tool tags like [WEB_RESULTS]. Do NOT include URLs, citations, or sources.\n")
         if (allowSearch) {
-            sb.append("Tool call: To request a web search, emit ONLY [SEARCH]query[/SEARCH] as the first output and nothing else for that turn.\n")
+            sb.append(
+                "Tool call: To request a web search, emit ONLY [SEARCH]query[/SEARCH] as the first output and nothing else for that turn.\n",
+            )
         } else if (offlineNotice) {
             sb.append("Note: Device is offline; search is unavailable this turn. Do not attempt any tool calls.\n")
         }
@@ -32,13 +36,19 @@ object PromptTemplates {
             append("[USER]\nExplain binary search briefly with a Kotlin example.\n[/USER]\n")
             append("[ASSISTANT]\nBinary search halves the search space each step in a sorted list.\n")
             append("Example Kotlin:\n\n")
-            append("```kotlin\nfun binarySearch(arr: IntArray, target: Int): Int {\n    var lo = 0\n    var hi = arr.lastIndex\n    while (lo <= hi) {\n        val mid = (lo + hi) ushr 1\n        when {\n            arr[mid] == target -> return mid\n            arr[mid] < target -> lo = mid + 1\n            else -> hi = mid - 1\n        }\n    }\n    return -1\n}\n```\n[/ASSISTANT]\n\n")
+            append(
+                "```kotlin\nfun binarySearch(arr: IntArray, target: Int): Int {\n    var lo = 0\n    var hi = arr.lastIndex\n    while (lo <= hi) {\n        val mid = (lo + hi) ushr 1\n        when {\n            arr[mid] == target -> return mid\n            arr[mid] < target -> lo = mid + 1\n            else -> hi = mid - 1\n        }\n    }\n    return -1\n}\n```\n[/ASSISTANT]\n\n",
+            )
 
             // Multi-turn consistency example
             append("[USER]\nI'm planning a 3‑day trip to Tokyo. Day 1 ideas?\n[/USER]\n")
-            append("[ASSISTANT]\nDay 1 (central highlights):\n- Meiji Shrine and Harajuku\n- Omotesando walk\n- Shibuya Crossing and Sky\n- Dinner in Shinjuku Omoide Yokocho\n[/ASSISTANT]\n\n")
+            append(
+                "[ASSISTANT]\nDay 1 (central highlights):\n- Meiji Shrine and Harajuku\n- Omotesando walk\n- Shibuya Crossing and Sky\n- Dinner in Shinjuku Omoide Yokocho\n[/ASSISTANT]\n\n",
+            )
             append("[USER]\nGreat, give me Day 2 with fewer crowds.\n[/USER]\n")
-            append("[ASSISTANT]\nDay 2 (quieter gems):\n- Yanaka Ginza morning stroll\n- Ueno Park museums\n- Kiyosumi Gardens\n- Kagurazaka alleys for dinner\n[/ASSISTANT]\n\n")
+            append(
+                "[ASSISTANT]\nDay 2 (quieter gems):\n- Yanaka Ginza morning stroll\n- Ueno Park museums\n- Kiyosumi Gardens\n- Kagurazaka alleys for dinner\n[/ASSISTANT]\n\n",
+            )
         }
     }
 

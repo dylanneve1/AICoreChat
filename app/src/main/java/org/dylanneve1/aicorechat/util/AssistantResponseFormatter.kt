@@ -27,8 +27,7 @@ object AssistantResponseFormatter {
 
     private val stopTokens = listOf("[/ASSISTANT]", "[ASSISTANT]", "[/USER]", "[USER]")
 
-    private fun String.endsWithIgnoreCase(suffix: String): Boolean =
-        this.endsWith(suffix, ignoreCase = true)
+    private fun String.endsWithIgnoreCase(suffix: String): Boolean = this.endsWith(suffix, ignoreCase = true)
 
     private fun safeWarn(message: String) {
         try {

@@ -154,12 +154,7 @@ fun MemoryManagementScreen(
 }
 
 @Composable
-private fun MemoryCard(
-    memory: MemoryEntry,
-    onToggle: () -> Unit,
-    onEdit: () -> Unit,
-    onDelete: () -> Unit,
-) {
+private fun MemoryCard(memory: MemoryEntry, onToggle: () -> Unit, onEdit: () -> Unit, onDelete: () -> Unit) {
     val dateFormat = java.text.SimpleDateFormat("MMM d, yyyy", java.util.Locale.getDefault())
 
     Card(
@@ -251,11 +246,7 @@ private fun MemoryCard(
 }
 
 @Composable
-private fun MemoryDialog(
-    editingMemory: MemoryEntry?,
-    onDismiss: () -> Unit,
-    onConfirm: (String) -> Unit,
-) {
+private fun MemoryDialog(editingMemory: MemoryEntry?, onDismiss: () -> Unit, onConfirm: (String) -> Unit) {
     var memoryContent by remember(editingMemory) {
         mutableStateOf(editingMemory?.content ?: "")
     }

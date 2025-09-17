@@ -34,12 +34,7 @@ fun DrawerHeader(onNewChat: () -> Unit) {
 
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
-fun SessionItem(
-    meta: ChatSessionMeta,
-    isSelected: Boolean,
-    onClick: () -> Unit,
-    onLongPress: () -> Unit,
-) {
+fun SessionItem(meta: ChatSessionMeta, isSelected: Boolean, onClick: () -> Unit, onLongPress: () -> Unit) {
     val containerColor = if (isSelected) MaterialTheme.colorScheme.surfaceContainerHigh else MaterialTheme.colorScheme.surface
     ElevatedCard(
         modifier = Modifier

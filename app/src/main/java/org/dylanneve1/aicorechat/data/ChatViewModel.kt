@@ -129,7 +129,13 @@ class ChatViewModel(application: Application) : AndroidViewModel(application) {
         sharedPreferences.edit().putBoolean(KEY_MULTIMODAL, enabled).apply()
         _uiState.update { it.copy(multimodalEnabled = enabled) }
         if (!enabled) {
-            _uiState.update { it.copy(pendingImageUri = null, pendingImageDescription = null, isDescribingImage = false) }
+            _uiState.update {
+                it.copy(
+                    pendingImageUri = null,
+                    pendingImageDescription = null,
+                    isDescribingImage = false,
+                )
+            }
         }
     }
 
@@ -229,13 +235,27 @@ class ChatViewModel(application: Application) : AndroidViewModel(application) {
                 val desc = imageDescriptionService.describe(bitmap).trim()
                 if (desc.isBlank()) {
                     // Detach image on failure/blank
-                    _uiState.update { it.copy(isDescribingImage = false, pendingImageDescription = null, pendingImageUri = null, modelError = "Could not generate image description") }
+                    _uiState.update {
+                        it.copy(
+                            isDescribingImage = false,
+                            pendingImageDescription = null,
+                            pendingImageUri = null,
+                            modelError = "Could not generate image description",
+                        )
+                    }
                 } else {
                     _uiState.update { it.copy(isDescribingImage = false, pendingImageDescription = desc) }
                 }
             } catch (e: Exception) {
                 // Detach on error
-                _uiState.update { it.copy(isDescribingImage = false, pendingImageDescription = null, pendingImageUri = null, modelError = e.message ?: "Failed to describe image") }
+                _uiState.update {
+                    it.copy(
+                        isDescribingImage = false,
+                        pendingImageDescription = null,
+                        pendingImageUri = null,
+                        modelError = e.message ?: "Failed to describe image",
+                    )
+                }
             }
         }
     }
@@ -270,8 +290,14 @@ class ChatViewModel(application: Application) : AndroidViewModel(application) {
         return try {
             val ctx = getApplication<Application>().applicationContext
             val fused = LocationServices.getFusedLocationProviderClient(ctx)
-            val hasFine = ContextCompat.checkSelfPermission(ctx, android.Manifest.permission.ACCESS_FINE_LOCATION) == android.content.pm.PackageManager.PERMISSION_GRANTED
-            val hasCoarse = ContextCompat.checkSelfPermission(ctx, android.Manifest.permission.ACCESS_COARSE_LOCATION) == android.content.pm.PackageManager.PERMISSION_GRANTED
+            val hasFine = ContextCompat.checkSelfPermission(
+                ctx,
+                android.Manifest.permission.ACCESS_FINE_LOCATION,
+            ) == android.content.pm.PackageManager.PERMISSION_GRANTED
+            val hasCoarse = ContextCompat.checkSelfPermission(
+                ctx,
+                android.Manifest.permission.ACCESS_COARSE_LOCATION,
+            ) == android.content.pm.PackageManager.PERMISSION_GRANTED
             if (!hasFine && !hasCoarse) return null
             kotlinx.coroutines.suspendCancellableCoroutine { cont ->
                 fused.lastLocation.addOnSuccessListener { cont.resume(it, onCancellation = null) }
@@ -287,7 +313,10 @@ class ChatViewModel(application: Application) : AndroidViewModel(application) {
     }
 
     private suspend fun buildPersonalContext(): String {
-        val now = java.text.SimpleDateFormat("EEE, d MMM yyyy HH:mm z", java.util.Locale.getDefault()).format(java.util.Date())
+        val now = java.text.SimpleDateFormat(
+            "EEE, d MMM yyyy HH:mm z",
+            java.util.Locale.getDefault(),
+        ).format(java.util.Date())
         val device = "${Build.MANUFACTURER} ${Build.MODEL} (Android ${Build.VERSION.RELEASE})"
         val locale = java.util.Locale.getDefault().toString()
         val timeZone = java.util.TimeZone.getDefault().id
@@ -655,8 +684,16 @@ class ChatViewModel(application: Application) : AndroidViewModel(application) {
 
         val currentPendingUri = _uiState.value.pendingImageUri
         val currentPendingDesc = _uiState.value.pendingImageDescription
-        val userMessage = ChatMessage(text = prompt, isFromUser = true, imageUri = currentPendingUri, imageDescription = currentPendingDesc)
-        _uiState.update { it.copy(messages = it.messages + userMessage, pendingImageUri = null, pendingImageDescription = null) }
+        val userMessage =
+            ChatMessage(
+                text = prompt,
+                isFromUser = true,
+                imageUri = currentPendingUri,
+                imageDescription = currentPendingDesc,
+            )
+        _uiState.update {
+            it.copy(messages = it.messages + userMessage, pendingImageUri = null, pendingImageDescription = null)
+        }
         _uiState.value.currentSessionId?.let { repository.appendMessage(it, userMessage) }
 
         generationJob = viewModelScope.launch {
@@ -664,7 +701,9 @@ class ChatViewModel(application: Application) : AndroidViewModel(application) {
                 val allowSearchThisTurn = _uiState.value.webSearchEnabled && webSearchService.isOnline()
                 val offlineNotice = _uiState.value.webSearchEnabled && !allowSearchThisTurn
                 val promptBuilder = StringBuilder()
-                promptBuilder.append(PromptTemplates.systemPreamble(allowSearch = allowSearchThisTurn, offlineNotice = offlineNotice))
+                promptBuilder.append(
+                    PromptTemplates.systemPreamble(allowSearch = allowSearchThisTurn, offlineNotice = offlineNotice),
+                )
 
                 // Add custom instructions if enabled
                 if (_uiState.value.customInstructionsEnabled && _uiState.value.customInstructions.isNotBlank()) {
@@ -692,7 +731,9 @@ class ChatViewModel(application: Application) : AndroidViewModel(application) {
                 if (_uiState.value.multimodalEnabled) {
                     _uiState.value.messages.forEach { msg ->
                         if (!msg.imageDescription.isNullOrBlank()) {
-                            promptBuilder.append("[IMAGE_DESCRIPTION]\n${msg.imageDescription}\n[/IMAGE_DESCRIPTION]\n\n")
+                            promptBuilder.append(
+                                "[IMAGE_DESCRIPTION]\n${msg.imageDescription}\n[/IMAGE_DESCRIPTION]\n\n",
+                            )
                         }
                     }
                 }
@@ -737,12 +778,23 @@ class ChatViewModel(application: Application) : AndroidViewModel(application) {
                             _uiState.update { currentState ->
                                 val updated = currentState.messages.toMutableList()
                                 if (updated.isNotEmpty() && updated.last().isStreaming) {
-                                    val finalText = AssistantResponseFormatter.finalizeAssistantDisplayText(fullResponse, updated.last().text)
-                                    updated[updated.lastIndex] = updated.last().copy(text = finalText, isStreaming = false)
+                                    val finalText = AssistantResponseFormatter.finalizeAssistantDisplayText(
+                                        fullResponse,
+                                        updated.last().text,
+                                    )
+                                    updated[updated.lastIndex] = updated.last().copy(
+                                        text = finalText,
+                                        isStreaming = false,
+                                    )
                                 }
                                 currentState.copy(isGenerating = false, messages = updated)
                             }
-                            _uiState.value.currentSessionId?.let { sid -> repository.replaceMessages(sid, _uiState.value.messages) }
+                            _uiState.value.currentSessionId?.let { sid ->
+                                repository.replaceMessages(
+                                    sid,
+                                    _uiState.value.messages,
+                                )
+                            }
                         }
                     }
                     .catch { e ->
@@ -751,12 +803,20 @@ class ChatViewModel(application: Application) : AndroidViewModel(application) {
                             val updated = currentState.messages.toMutableList()
                             if (updated.isNotEmpty() && updated.last().isStreaming) {
                                 val errorText = "Error: ${e.message}"
-                                val finalText = AssistantResponseFormatter.finalizeAssistantDisplayText(errorText, updated.last().text)
+                                val finalText = AssistantResponseFormatter.finalizeAssistantDisplayText(
+                                    errorText,
+                                    updated.last().text,
+                                )
                                 updated[updated.lastIndex] = updated.last().copy(text = finalText, isStreaming = false)
                             }
                             currentState.copy(isGenerating = false, messages = updated)
                         }
-                        _uiState.value.currentSessionId?.let { sid -> repository.replaceMessages(sid, _uiState.value.messages) }
+                        _uiState.value.currentSessionId?.let { sid ->
+                            repository.replaceMessages(
+                                sid,
+                                _uiState.value.messages,
+                            )
+                        }
                     }
                     .collect { chunk ->
                         fullResponse += chunk.text
@@ -766,7 +826,10 @@ class ChatViewModel(application: Application) : AndroidViewModel(application) {
                             val searchToken = "[SEARCH]"
                             if (!searchStartDetected && firstNonWs != Int.MAX_VALUE) {
                                 val after = fullResponse.substring(firstNonWs)
-                                if (after.isNotEmpty() && after.length < searchToken.length && searchToken.startsWith(after)) {
+                                if (after.isNotEmpty() && after.length < searchToken.length && searchToken.startsWith(
+                                        after,
+                                    )
+                                ) {
                                     searchStartDetected = true
                                     searchStartIndex = firstNonWs
                                     _uiState.update { current ->
@@ -774,7 +837,11 @@ class ChatViewModel(application: Application) : AndroidViewModel(application) {
                                         if (updated.isNotEmpty() && updated.last().isStreaming) {
                                             updated[updated.lastIndex] = updated.last().copy(text = "")
                                         }
-                                        current.copy(isSearchInProgress = true, currentSearchQuery = "", messages = updated)
+                                        current.copy(
+                                            isSearchInProgress = true,
+                                            currentSearchQuery = "",
+                                            messages = updated,
+                                        )
                                     }
                                     return@collect
                                 }
@@ -784,7 +851,9 @@ class ChatViewModel(application: Application) : AndroidViewModel(application) {
                                 searchStartDetected = true
                                 searchStartIndex = startIdx
                                 val partialQuery = if (fullResponse.length >= startIdx + searchToken.length) {
-                                    fullResponse.substring(startIdx + searchToken.length).substringBefore("[/SEARCH]").trim()
+                                    fullResponse.substring(
+                                        startIdx + searchToken.length,
+                                    ).substringBefore("[/SEARCH]").trim()
                                 } else {
                                     ""
                                 }
@@ -793,18 +862,40 @@ class ChatViewModel(application: Application) : AndroidViewModel(application) {
                                     if (updated.isNotEmpty() && updated.last().isStreaming) {
                                         updated[updated.lastIndex] = updated.last().copy(text = "")
                                     }
-                                    current.copy(isSearchInProgress = true, currentSearchQuery = partialQuery, messages = updated)
+                                    current.copy(
+                                        isSearchInProgress = true,
+                                        currentSearchQuery = partialQuery,
+                                        messages = updated,
+                                    )
                                 }
                             }
                             if (searchStartDetected) {
                                 val tokenEndBase = searchStartIndex + searchToken.length
-                                val partialQuery = if (fullResponse.length > tokenEndBase) fullResponse.substring(tokenEndBase).substringBefore("[/SEARCH]").trim() else ""
+                                val partialQuery = if (fullResponse.length > tokenEndBase) {
+                                    fullResponse.substring(
+                                        tokenEndBase,
+                                    ).substringBefore("[/SEARCH]").trim()
+                                } else {
+                                    ""
+                                }
                                 _uiState.update { it.copy(currentSearchQuery = partialQuery) }
-                                val endIdx = if (fullResponse.length > tokenEndBase) fullResponse.indexOf("[/SEARCH]", tokenEndBase) else -1
+                                val endIdx = if (fullResponse.length > tokenEndBase) {
+                                    fullResponse.indexOf(
+                                        "[/SEARCH]",
+                                        tokenEndBase,
+                                    )
+                                } else {
+                                    -1
+                                }
                                 if (endIdx != -1 && !searchTriggered) {
                                     searchTriggered = true
                                     val query = fullResponse.substring(tokenEndBase, endIdx).trim()
-                                    viewModelScope.launch { continueWithSearchResultsUsingExistingBubble(userMessage, query) }
+                                    viewModelScope.launch {
+                                        continueWithSearchResultsUsingExistingBubble(
+                                            userMessage,
+                                            query,
+                                        )
+                                    }
                                     generationJob?.cancel()
                                     return@collect
                                 }
@@ -818,7 +909,11 @@ class ChatViewModel(application: Application) : AndroidViewModel(application) {
                         }
 
                         val earliestIndex = stopTokens
-                            .map { token -> fullResponse.indexOf(token).let { idx -> if (idx >= 0) idx else Int.MAX_VALUE } }
+                            .map { token ->
+                                fullResponse.indexOf(
+                                    token,
+                                ).let { idx -> if (idx >= 0) idx else Int.MAX_VALUE }
+                            }
                             .minOrNull() ?: Int.MAX_VALUE
                         delay(35)
                         _uiState.update { currentState ->
@@ -849,8 +944,18 @@ class ChatViewModel(application: Application) : AndroidViewModel(application) {
                     Log.d("ChatViewModel", "Job cancelled as expected.")
                 } else {
                     Log.e("ChatViewModel", "Exception during generation", e)
-                    _uiState.update { it.copy(isGenerating = false, messages = it.messages + ChatMessage(text = "Error: ${e.message}", isFromUser = false)) }
-                    _uiState.value.currentSessionId?.let { sid -> repository.replaceMessages(sid, _uiState.value.messages) }
+                    _uiState.update {
+                        it.copy(
+                            isGenerating = false,
+                            messages = it.messages + ChatMessage(text = "Error: ${e.message}", isFromUser = false),
+                        )
+                    }
+                    _uiState.value.currentSessionId?.let { sid ->
+                        repository.replaceMessages(
+                            sid,
+                            _uiState.value.messages,
+                        )
+                    }
                 }
             }
         }
@@ -901,18 +1006,32 @@ class ChatViewModel(application: Application) : AndroidViewModel(application) {
             generativeModel!!.generateContentStream(fullPrompt)
                 .onStart {
                     // Hide searching flag and reuse the same streaming bubble
-                    _uiState.update { it.copy(isSearchInProgress = false, currentSearchQuery = null, isGenerating = true) }
+                    _uiState.update {
+                        it.copy(
+                            isSearchInProgress = false,
+                            currentSearchQuery = null,
+                            isGenerating = true,
+                        )
+                    }
                 }
                 .onCompletion {
                     _uiState.update { current ->
                         val updated = current.messages.toMutableList()
                         if (updated.isNotEmpty() && updated.last().isStreaming) {
-                            val finalText = AssistantResponseFormatter.finalizeAssistantDisplayText(fullResponse, updated.last().text)
+                            val finalText = AssistantResponseFormatter.finalizeAssistantDisplayText(
+                                fullResponse,
+                                updated.last().text,
+                            )
                             updated[updated.lastIndex] = updated.last().copy(text = finalText, isStreaming = false)
                         }
                         current.copy(isGenerating = false, messages = updated)
                     }
-                    _uiState.value.currentSessionId?.let { sid -> repository.replaceMessages(sid, _uiState.value.messages) }
+                    _uiState.value.currentSessionId?.let { sid ->
+                        repository.replaceMessages(
+                            sid,
+                            _uiState.value.messages,
+                        )
+                    }
                 }
                 .catch { e ->
                     Log.e("ChatViewModel", "Error generating after search", e)
@@ -920,7 +1039,10 @@ class ChatViewModel(application: Application) : AndroidViewModel(application) {
                         val updated = current.messages.toMutableList()
                         if (updated.isNotEmpty() && updated.last().isStreaming) {
                             val errorText = "Error: ${e.message}"
-                            val finalText = AssistantResponseFormatter.finalizeAssistantDisplayText(errorText, updated.last().text)
+                            val finalText = AssistantResponseFormatter.finalizeAssistantDisplayText(
+                                errorText,
+                                updated.last().text,
+                            )
                             updated[updated.lastIndex] = updated.last().copy(text = finalText, isStreaming = false)
                         }
                         current.copy(isGenerating = false, messages = updated)
@@ -934,7 +1056,11 @@ class ChatViewModel(application: Application) : AndroidViewModel(application) {
                         return@collect
                     }
                     val earliestIndex = stopTokens
-                        .map { token -> fullResponse.indexOf(token).let { idx -> if (idx >= 0) idx else Int.MAX_VALUE } }
+                        .map { token ->
+                            fullResponse.indexOf(
+                                token,
+                            ).let { idx -> if (idx >= 0) idx else Int.MAX_VALUE }
+                        }
                         .minOrNull() ?: Int.MAX_VALUE
                     delay(35)
                     _uiState.update { current ->

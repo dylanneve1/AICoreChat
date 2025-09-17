@@ -53,7 +53,7 @@ class ImageDescriptionService(app: Application) {
                     }
                 })
             }
-            FeatureStatus.UNAVAILABLE -> throw IllegalStateException("Image description feature unavailable on this device")
+            FeatureStatus.UNAVAILABLE -> error("Image description feature unavailable on this device")
         }
     }
 

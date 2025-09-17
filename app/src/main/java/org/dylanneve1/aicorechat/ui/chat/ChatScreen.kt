@@ -110,8 +110,14 @@ fun ChatScreen(viewModel: ChatViewModel) {
     val context = LocalContext.current
 
     // Permission variables accessible to all modal blocks
-    val hasFine = ContextCompat.checkSelfPermission(context, android.Manifest.permission.ACCESS_FINE_LOCATION) == android.content.pm.PackageManager.PERMISSION_GRANTED
-    val hasCoarse = ContextCompat.checkSelfPermission(context, android.Manifest.permission.ACCESS_COARSE_LOCATION) == android.content.pm.PackageManager.PERMISSION_GRANTED
+    val hasFine = ContextCompat.checkSelfPermission(
+        context,
+        android.Manifest.permission.ACCESS_FINE_LOCATION,
+    ) == android.content.pm.PackageManager.PERMISSION_GRANTED
+    val hasCoarse = ContextCompat.checkSelfPermission(
+        context,
+        android.Manifest.permission.ACCESS_COARSE_LOCATION,
+    ) == android.content.pm.PackageManager.PERMISSION_GRANTED
     val focusManager = LocalFocusManager.current
     val locationPermissionLauncher = rememberLauncherForActivityResult(
         ActivityResultContracts.RequestMultiplePermissions(),
@@ -250,7 +256,10 @@ fun ChatScreen(viewModel: ChatViewModel) {
                             try {
                                 val ctx = context
                                 val dir = ctx.getExternalFilesDir(android.os.Environment.DIRECTORY_PICTURES)
-                                val time = java.text.SimpleDateFormat("yyyyMMdd_HHmmss", java.util.Locale.US).format(java.util.Date())
+                                val time = java.text.SimpleDateFormat(
+                                    "yyyyMMdd_HHmmss",
+                                    java.util.Locale.US,
+                                ).format(java.util.Date())
                                 val newFile = java.io.File(dir, "IMG_$time.jpg")
                                 val uri = FileProvider.getUriForFile(ctx, ctx.packageName + ".fileprovider", newFile)
                                 pendingPhotoUri = uri
@@ -372,7 +381,12 @@ fun ChatScreen(viewModel: ChatViewModel) {
             title = { Text("Chat options") },
             text = {
                 Column {
-                    OutlinedTextField(value = name, onValueChange = { name = it }, singleLine = true, label = { Text("Rename chat") })
+                    OutlinedTextField(
+                        value = name,
+                        onValueChange = { name = it },
+                        singleLine = true,
+                        label = { Text("Rename chat") },
+                    )
                     Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
                         TextButton(onClick = {
                             val trimmed = name.trim().ifEmpty { "New Chat" }

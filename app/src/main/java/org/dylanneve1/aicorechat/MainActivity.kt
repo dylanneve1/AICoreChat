@@ -128,7 +128,10 @@ class MainActivity : ComponentActivity() {
                                         chatViewModel.updateMemoryContextEnabled(memoryContextEnabled)
                                         chatViewModel.updateBioContextEnabled(bioContextEnabled)
                                         chatViewModel.updateBioInformation(bioName, bioAge, bioOccupation, bioLocation)
-                                        chatViewModel.updateCustomInstructions(customInstructions, customInstructionsEnabled)
+                                        chatViewModel.updateCustomInstructions(
+                                            customInstructions,
+                                            customInstructionsEnabled,
+                                        )
                                         getSharedPreferences("AICoreChatPrefs", MODE_PRIVATE)
                                             .edit().putBoolean("onboarding_shown", true).apply()
                                         onboardingShown = true

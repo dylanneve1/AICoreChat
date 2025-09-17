@@ -47,8 +47,14 @@ class PersonalContextBuilder(private val app: Application) {
     private suspend fun getLastKnownLocation(): Location? {
         return try {
             val fused = LocationServices.getFusedLocationProviderClient(app)
-            val hasFine = ContextCompat.checkSelfPermission(app, android.Manifest.permission.ACCESS_FINE_LOCATION) == android.content.pm.PackageManager.PERMISSION_GRANTED
-            val hasCoarse = ContextCompat.checkSelfPermission(app, android.Manifest.permission.ACCESS_COARSE_LOCATION) == android.content.pm.PackageManager.PERMISSION_GRANTED
+            val hasFine = ContextCompat.checkSelfPermission(
+                app,
+                android.Manifest.permission.ACCESS_FINE_LOCATION,
+            ) == android.content.pm.PackageManager.PERMISSION_GRANTED
+            val hasCoarse = ContextCompat.checkSelfPermission(
+                app,
+                android.Manifest.permission.ACCESS_COARSE_LOCATION,
+            ) == android.content.pm.PackageManager.PERMISSION_GRANTED
             if (!hasFine && !hasCoarse) return null
             suspendCancellableCoroutine { cont ->
                 fused.lastLocation.addOnSuccessListener { cont.resume(it, onCancellation = null) }

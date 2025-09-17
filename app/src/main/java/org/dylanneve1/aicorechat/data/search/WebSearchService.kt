@@ -137,13 +137,34 @@ class WebSearchService(private val app: Application) {
             }
             val html = sb.toString()
             val title = Regex("<title>(.*?)</title>", RegexOption.IGNORE_CASE).find(html)?.groupValues?.get(1)
-            val metaDesc = Regex("""<meta[^>]*name="description"[^>]*content="(.*?)"[^>]*>""", RegexOption.IGNORE_CASE).find(html)?.groupValues?.get(1)
-                ?: Regex("""<meta[^>]*property="og:description"[^>]*content="(.*?)"[^>]*>""", RegexOption.IGNORE_CASE).find(html)?.groupValues?.get(1)
-            val metaDate = Regex("""<meta[^>]*property="article:published_time"[^>]*content="(.*?)"[^>]*>""", RegexOption.IGNORE_CASE).find(html)?.groupValues?.get(1)
-                ?: Regex("""<meta[^>]*name="pubdate"[^>]*content="(.*?)"[^>]*>""", RegexOption.IGNORE_CASE).find(html)?.groupValues?.get(1)
-                ?: Regex("""<meta[^>]*name="date"[^>]*content="(.*?)"[^>]*>""", RegexOption.IGNORE_CASE).find(html)?.groupValues?.get(1)
-                ?: Regex("""<meta[^>]*itemprop="datePublished"[^>]*content="(.*?)"[^>]*>""", RegexOption.IGNORE_CASE).find(html)?.groupValues?.get(1)
-                ?: Regex("""<meta[^>]*property="og:updated_time"[^>]*content="(.*?)"[^>]*>""", RegexOption.IGNORE_CASE).find(html)?.groupValues?.get(1)
+            val metaDesc = Regex(
+                """<meta[^>]*name="description"[^>]*content="(.*?)"[^>]*>""",
+                RegexOption.IGNORE_CASE,
+            ).find(html)?.groupValues?.get(1)
+                ?: Regex(
+                    """<meta[^>]*property="og:description"[^>]*content="(.*?)"[^>]*>""",
+                    RegexOption.IGNORE_CASE,
+                ).find(html)?.groupValues?.get(1)
+            val metaDate = Regex(
+                """<meta[^>]*property="article:published_time"[^>]*content="(.*?)"[^>]*>""",
+                RegexOption.IGNORE_CASE,
+            ).find(html)?.groupValues?.get(1)
+                ?: Regex(
+                    """<meta[^>]*name="pubdate"[^>]*content="(.*?)"[^>]*>""",
+                    RegexOption.IGNORE_CASE,
+                ).find(html)?.groupValues?.get(1)
+                ?: Regex(
+                    """<meta[^>]*name="date"[^>]*content="(.*?)"[^>]*>""",
+                    RegexOption.IGNORE_CASE,
+                ).find(html)?.groupValues?.get(1)
+                ?: Regex(
+                    """<meta[^>]*itemprop="datePublished"[^>]*content="(.*?)"[^>]*>""",
+                    RegexOption.IGNORE_CASE,
+                ).find(html)?.groupValues?.get(1)
+                ?: Regex(
+                    """<meta[^>]*property="og:updated_time"[^>]*content="(.*?)"[^>]*>""",
+                    RegexOption.IGNORE_CASE,
+                ).find(html)?.groupValues?.get(1)
             Triple(
                 title?.let { htmlDecode(it.replace(Regex("<.*?>"), "").trim()) },
                 metaDesc?.let { htmlDecode(it.trim()) },
@@ -166,10 +187,18 @@ class WebSearchService(private val app: Application) {
             }
             conn.inputStream.bufferedReader().use { reader ->
                 val html = reader.readText()
-                val itemRegex = Regex("""<div class="result.*?</a>.*?</div>""", setOf(RegexOption.DOT_MATCHES_ALL, RegexOption.IGNORE_CASE))
+                val itemRegex =
+                    Regex(
+                        """<div class="result.*?</a>.*?</div>""",
+                        setOf(RegexOption.DOT_MATCHES_ALL, RegexOption.IGNORE_CASE),
+                    )
                 val titleRegex = Regex("""<a[^>]*class="result__a[^"]*"[^>]*>(.*?)</a>""", RegexOption.IGNORE_CASE)
                 val hrefRegex = Regex("""<a[^>]*class="result__a[^"]*"[^>]*href="(.*?)"""", RegexOption.IGNORE_CASE)
-                val snippetRegex = Regex("""(?:class="result__snippet[^"]*"[^>]*>(.*?)</(?:a|span|div)>)""", setOf(RegexOption.IGNORE_CASE, RegexOption.DOT_MATCHES_ALL))
+                val snippetRegex =
+                    Regex(
+                        """(?:class="result__snippet[^"]*"[^>]*>(.*?)</(?:a|span|div)>)""",
+                        setOf(RegexOption.IGNORE_CASE, RegexOption.DOT_MATCHES_ALL),
+                    )
                 val ddgTimeRegex = Regex("""class="result__timestamp"[^>]*>(.*?)<""", RegexOption.IGNORE_CASE)
                 val items = itemRegex.findAll(html).take(5).map { it.value }.toList()
                 if (items.isEmpty()) return@use "No results"
@@ -182,7 +211,13 @@ class WebSearchService(private val app: Application) {
                     val realUrl = decodeDuckRedirect(htmlDecode(rawHref))
                     val host = hostname(realUrl)
                     var title = htmlDecode(rawTitle.replace(Regex("<.*?>"), "").trim())
-                    var snippet = htmlDecode(rawSnippet.replace(Regex("<.*?>"), " ").replace("\n", " ").replace(" +".toRegex(), " ").trim())
+                    var snippet =
+                        htmlDecode(
+                            rawSnippet.replace(
+                                Regex("<.*?>"),
+                                " ",
+                            ).replace("\n", " ").replace(" +".toRegex(), " ").trim(),
+                        )
                     var dateIso: String? = null
                     val (t, d, metaDate) = fetchMeta(realUrl)
                     if (!d.isNullOrBlank() && (snippet.isBlank() || snippet.length < 48)) snippet = d

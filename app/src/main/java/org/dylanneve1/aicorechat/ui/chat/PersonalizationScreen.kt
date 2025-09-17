@@ -302,7 +302,11 @@ fun PersonalizationScreen(
                         value = customInstructions,
                         onValueChange = onCustomInstructionsChange,
                         label = { Text("Custom Instructions") },
-                        placeholder = { Text("e.g., Be concise and direct, use simple language, always be encouraging...") },
+                        placeholder = {
+                            Text(
+                                "e.g., Be concise and direct, use simple language, always be encouraging...",
+                            )
+                        },
                         minLines = 4,
                         maxLines = 8,
                         modifier = Modifier
