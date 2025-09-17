@@ -47,6 +47,7 @@ android {
         warningsAsErrors = true
         checkAllWarnings = true
         explainIssues = true
+        checkReleaseBuilds = true
         baseline = file("lint-baseline.xml")
     }
 }

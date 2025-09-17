@@ -31,6 +31,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 
@@ -117,6 +118,7 @@ fun ToolsSheet(
                         description = "Access real-time information from the web",
                         enabled = webSearchEnabled,
                         onToggle = onWebSearchToggle,
+                        switchTag = ToolToggleTags.WEB_SEARCH,
                     )
 
                     HorizontalDivider(
@@ -130,6 +132,7 @@ fun ToolsSheet(
                         description = "Include device info and location for better responses",
                         enabled = personalContextEnabled,
                         onToggle = onPersonalContextToggle,
+                        switchTag = ToolToggleTags.PERSONAL_CONTEXT,
                     )
 
                     HorizontalDivider(
@@ -143,6 +146,7 @@ fun ToolsSheet(
                         description = "Understand and describe images you share",
                         enabled = multimodalEnabled,
                         onToggle = onMultimodalToggle,
+                        switchTag = ToolToggleTags.IMAGE_ANALYSIS,
                     )
                 }
             }
@@ -157,6 +161,7 @@ private fun ToolToggleItem(
     description: String,
     enabled: Boolean,
     onToggle: (Boolean) -> Unit,
+    switchTag: String,
 ) {
     val iconColor by animateColorAsState(
         targetValue = if (enabled) {
@@ -214,6 +219,13 @@ private fun ToolToggleItem(
                 uncheckedThumbColor = MaterialTheme.colorScheme.outline,
                 uncheckedTrackColor = MaterialTheme.colorScheme.surfaceContainerHighest,
             ),
+            modifier = Modifier.testTag(switchTag),
         )
     }
+}
+
+object ToolToggleTags {
+    const val WEB_SEARCH = "tool_web_search_switch"
+    const val PERSONAL_CONTEXT = "tool_personal_context_switch"
+    const val IMAGE_ANALYSIS = "tool_image_analysis_switch"
 }

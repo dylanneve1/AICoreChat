@@ -24,6 +24,9 @@ naming:
   PackageNaming:
     active: true
     ignoreAnnotated: ['Composable']
+  FunctionNaming:
+    active: true
+    ignoreAnnotated: ['Composable']
 
 complexity:
   LongMethod:
