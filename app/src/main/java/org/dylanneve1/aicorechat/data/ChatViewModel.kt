@@ -37,8 +37,7 @@ import org.dylanneve1.aicorechat.data.image.ImageDescriptionService
 import org.dylanneve1.aicorechat.data.prompt.PromptTemplates
 import org.dylanneve1.aicorechat.data.search.WebSearchService
 import org.dylanneve1.aicorechat.util.AssistantResponseFormatter
-
-private const val PARTIAL_STOP_TOKEN_BUFFER = 3
+import org.dylanneve1.aicorechat.util.findPartialStopSuffixLength
 
 /**
  * ChatViewModel orchestrates sessions, model streaming, tools, and persistence.
@@ -1288,22 +1287,4 @@ class ChatViewModel(application: Application) : AndroidViewModel(application) {
         generativeModel?.close()
         imageDescriptionService.close()
     }
-}
-
-@Suppress("NestedBlockDepth")
-internal fun findPartialStopSuffixLength(text: String, tokens: List<String>): Int {
-    var maxLen = 0
-    tokens.forEach { token ->
-        val maxCheck = minOf(token.length - 1, text.length)
-        for (k in maxCheck downTo 1) {
-            if (text.endsWith(token.substring(0, k))) {
-                if (k > maxLen) {
-                    maxLen = k
-                }
-                break
-            }
-        }
-    }
-    if (maxLen == 0) return 0
-    return maxOf(maxLen, PARTIAL_STOP_TOKEN_BUFFER)
 }

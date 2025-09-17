@@ -2,6 +2,8 @@ package org.dylanneve1.aicorechat.util
 
 import android.util.Log
 
+private const val PARTIAL_BUFFER = DEFAULT_PARTIAL_STOP_BUFFER
+
 /**
  * Normalizes streamed assistant responses coming from Gemini so the UI never
  * gets stuck waiting on a missing closing tag and strips tool annotations that
@@ -51,7 +53,8 @@ object AssistantResponseFormatter {
         }
         sanitized = sanitized.replace('\u00A0', ' ')
         sanitized = sanitized.replace(newlineCollapseRegex, "\n\n")
-        return sanitized.trim()
+        sanitized = sanitized.trim()
+        return trimTrailingPartialStopToken(sanitized, stopTokens, PARTIAL_BUFFER)
     }
 
     fun stripAssistantEndTokens(text: String): String {

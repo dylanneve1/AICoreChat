@@ -1,5 +1,6 @@
 package org.dylanneve1.aicorechat.data
 
+import org.dylanneve1.aicorechat.util.findPartialStopSuffixLength
 import org.junit.Assert.assertEquals
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -14,7 +15,7 @@ class ChatViewModelStopTokenTest {
     fun findPartialStopSuffixLength_enforcesMinimumBuffer() {
         val result = findPartialStopSuffixLength("Answer [/A", listOf("[/ASSISTANT]"))
 
-        assertEquals(3, result)
+        assertEquals(4, result)
     }
 
     @Test
