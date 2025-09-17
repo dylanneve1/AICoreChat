@@ -3,11 +3,14 @@ package org.dylanneve1.aicorechat.data.context
 import android.app.Application
 import android.content.Context
 import android.location.Location
+import android.net.ConnectivityManager
+import android.net.NetworkCapabilities
 import android.os.BatteryManager
 import android.os.Build
 import android.os.Environment
 import androidx.core.content.ContextCompat
 import com.google.android.gms.location.LocationServices
+import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.suspendCancellableCoroutine
 import java.text.SimpleDateFormat
 import java.util.Date
@@ -26,18 +29,21 @@ class PersonalContextBuilder(private val app: Application) {
 
     private fun getNetworkSummary(): String {
         return try {
-            // High-level; detailed interface enumeration is overkill here
-            val cm = app.getSystemService(Context.CONNECTIVITY_SERVICE) as android.net.ConnectivityManager
-            val active = cm.activeNetworkInfo
-            when {
-                active == null || !active.isConnected -> "Offline/unknown"
-                active.type == android.net.ConnectivityManager.TYPE_WIFI -> "Wi‑Fi"
-                active.type == android.net.ConnectivityManager.TYPE_MOBILE -> "Cellular"
-                else -> "Online"
-            }
-        } catch (e: Exception) { "Unknown" }
+            val cm = app.getSystemService(Context.CONNECTIVITY_SERVICE) as ConnectivityManager
+            val network = cm.activeNetwork ?: return "Offline/unknown"
+            val caps = cm.getNetworkCapabilities(network)
+            val parts = mutableListOf<String>()
+            if (caps?.hasTransport(NetworkCapabilities.TRANSPORT_WIFI) == true) parts.add("Wi‑Fi")
+            if (caps?.hasTransport(NetworkCapabilities.TRANSPORT_CELLULAR) == true) parts.add("Cellular")
+            if (caps?.hasTransport(NetworkCapabilities.TRANSPORT_ETHERNET) == true) parts.add("Ethernet")
+            if (caps?.hasTransport(NetworkCapabilities.TRANSPORT_BLUETOOTH) == true) parts.add("Bluetooth")
+            if (parts.isEmpty()) "Online" else parts.joinToString(", ")
+        } catch (e: Exception) {
+            "Unknown"
+        }
     }
 
+    @OptIn(ExperimentalCoroutinesApi::class)
     private suspend fun getLastKnownLocation(): Location? {
         return try {
             val fused = LocationServices.getFusedLocationProviderClient(app)
@@ -48,7 +54,9 @@ class PersonalContextBuilder(private val app: Application) {
                 fused.lastLocation.addOnSuccessListener { cont.resume(it, onCancellation = null) }
                     .addOnFailureListener { cont.resume(null, onCancellation = null) }
             }
-        } catch (e: Exception) { null }
+        } catch (e: Exception) {
+            null
+        }
     }
 
     private fun formatLatLon(loc: Location?): String {
@@ -61,20 +69,24 @@ class PersonalContextBuilder(private val app: Application) {
         val locale = Locale.getDefault().toString()
         val timeZone = java.util.TimeZone.getDefault().id
         val namePart = if (userName.isNotBlank()) "User Name: ${userName}\n" else ""
-        val battery = getBatteryPercent()?.let { "Battery: ${it}%\n" } ?: ""
+        val battery = getBatteryPercent()?.let { "Battery: $it%\n" } ?: ""
         val storageStat = try {
             val stat = android.os.StatFs(Environment.getDataDirectory().path)
             val free = stat.availableBytes / (1024 * 1024)
             val total = stat.totalBytes / (1024 * 1024)
             "Storage: ${free}MB free / ${total}MB total\n"
-        } catch (e: Exception) { "" }
+        } catch (e: Exception) {
+            ""
+        }
         val appVersion = try {
             val pm = app.packageManager
             val pInfo = pm.getPackageInfo(app.packageName, 0)
             "App Version: ${pInfo.versionName} (${pInfo.longVersionCode})\n"
-        } catch (e: Exception) { "" }
+        } catch (e: Exception) {
+            ""
+        }
         val network = "Network: ${getNetworkSummary()}\n"
         val location = "Location: ${formatLatLon(getLastKnownLocation())}\n"
-        return "[PERSONAL_CONTEXT]\n${namePart}Current Time: ${now}\nDevice: ${device}\nLocale: ${locale}\nTime Zone: ${timeZone}\n${battery}${network}${storageStat}${appVersion}${location}[/PERSONAL_CONTEXT]\n\n"
+        return "[PERSONAL_CONTEXT]\n${namePart}Current Time: ${now}\nDevice: ${device}\nLocale: ${locale}\nTime Zone: ${timeZone}\n${battery}${network}${storageStat}${appVersion}$location[/PERSONAL_CONTEXT]\n\n"
     }
 } 

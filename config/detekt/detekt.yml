@@ -1,0 +1,62 @@
+build:
+  maxIssues: 0
+
+config:
+  validation: true
+
+style:
+  MagicNumber:
+    active: true
+    ignoreCompanionObjectPropertyDeclaration: true
+    ignorePropertyDeclaration: true
+    ignoreEnums: true
+    ignoreAnnotation: true
+    ignoreNumbers: ['-1', '0', '1', '2']
+  WildcardImport:
+    active: false
+  MaxLineLength:
+    active: false
+  ReturnCount:
+    active: true
+    max: 6
+
+naming:
+  PackageNaming:
+    active: true
+    ignoreAnnotated: ['Composable']
+
+complexity:
+  LongMethod:
+    active: true
+    threshold: 120
+  LongParameterList:
+    active: true
+    functionThreshold: 12
+  CyclomaticComplexMethod:
+    active: true
+    threshold: 25
+  ComplexCondition:
+    active: true
+    threshold: 5
+  TooManyFunctions:
+    active: true
+    thresholdInClasses: 40
+    ignoreAnnotated: ['Composable']
+
+exceptions:
+  SwallowedException:
+    active: true
+    ignoredExceptionTypes: ['CancellationException']
+  TooGenericExceptionCaught:
+    active: true
+
+potential-bugs:
+  CastNullableToNonNullableType:
+    active: true
+
+performance:
+  SpreadOperator:
+    active: true
+
+empty-blocks:
+  active: true

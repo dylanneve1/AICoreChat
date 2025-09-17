@@ -2,12 +2,12 @@ package org.dylanneve1.aicorechat.ui.chat
 
 import androidx.activity.compose.BackHandler
 import androidx.compose.animation.AnimatedContent
+import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.slideInHorizontally
 import androidx.compose.animation.slideOutHorizontally
 import androidx.compose.animation.togetherWith
-import androidx.compose.animation.core.tween
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
@@ -46,7 +46,6 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -113,7 +112,8 @@ fun SettingsScreen(
             SettingsDestination.Personalization,
             SettingsDestination.Support,
             SettingsDestination.MemoryManagement,
-            SettingsDestination.CustomInstructions -> destination = SettingsDestination.Main
+            SettingsDestination.CustomInstructions,
+            -> destination = SettingsDestination.Main
             SettingsDestination.Main -> onDismiss()
         }
     })
@@ -122,7 +122,7 @@ fun SettingsScreen(
         Scaffold(
             topBar = {
                 TopAppBar(
-                    title = { 
+                    title = {
                         Text(
                             text = when (destination) {
                                 SettingsDestination.Main -> "Settings"
@@ -132,31 +132,31 @@ fun SettingsScreen(
                                 SettingsDestination.MemoryManagement -> "Memory Management"
                                 SettingsDestination.CustomInstructions -> "Custom Instructions"
                             },
-                            style = MaterialTheme.typography.titleLarge
-                        ) 
+                            style = MaterialTheme.typography.titleLarge,
+                        )
                     },
                     navigationIcon = {
                         if (destination != SettingsDestination.Main) {
                             IconButton(onClick = { destination = SettingsDestination.Main }) {
                                 Icon(
-                                    imageVector = Icons.AutoMirrored.Outlined.ArrowBack, 
-                                    contentDescription = "Back"
+                                    imageVector = Icons.AutoMirrored.Outlined.ArrowBack,
+                                    contentDescription = "Back",
                                 )
                             }
                         } else {
-                            IconButton(onClick = onDismiss) { 
+                            IconButton(onClick = onDismiss) {
                                 Icon(
-                                    imageVector = Icons.Outlined.Close, 
-                                    contentDescription = "Close"
-                                ) 
+                                    imageVector = Icons.Outlined.Close,
+                                    contentDescription = "Close",
+                                )
                             }
                         }
                     },
                     colors = TopAppBarDefaults.topAppBarColors(
-                        containerColor = MaterialTheme.colorScheme.surface
-                    )
+                        containerColor = MaterialTheme.colorScheme.surface,
+                    ),
                 )
-            }
+            },
         ) { innerPadding ->
             AnimatedContent(
                 targetState = destination,
@@ -166,17 +166,17 @@ fun SettingsScreen(
                     (
                         slideInHorizontally(
                             animationSpec = tween(durationMillis = 260),
-                            initialOffsetX = offset
+                            initialOffsetX = offset,
                         ) + fadeIn(animationSpec = tween(durationMillis = 200))
-                    ) togetherWith (
+                        ) togetherWith (
                         slideOutHorizontally(
                             animationSpec = tween(durationMillis = 240),
-                            targetOffsetX = offset
+                            targetOffsetX = offset,
                         ) + fadeOut(animationSpec = tween(durationMillis = 180))
-                    )
+                        )
                 },
                 label = "SettingsDestinationTransition",
-                modifier = Modifier.fillMaxSize()
+                modifier = Modifier.fillMaxSize(),
             ) { currentDestination ->
                 when (currentDestination) {
                     SettingsDestination.Main -> {
@@ -184,12 +184,12 @@ fun SettingsScreen(
                             modifier = Modifier
                                 .padding(innerPadding)
                                 .fillMaxSize()
-                                .verticalScroll(rememberScrollState())
+                                .verticalScroll(rememberScrollState()),
                         ) {
                             // Settings Categories
                             Column(
                                 modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
-                                verticalArrangement = Arrangement.spacedBy(12.dp)
+                                verticalArrangement = Arrangement.spacedBy(12.dp),
                             ) {
                                 // AI Configuration Section
                                 Text(
@@ -197,28 +197,28 @@ fun SettingsScreen(
                                     style = MaterialTheme.typography.titleSmall,
                                     color = MaterialTheme.colorScheme.primary,
                                     fontWeight = FontWeight.SemiBold,
-                                    modifier = Modifier.padding(start = 4.dp, top = 8.dp, bottom = 4.dp)
+                                    modifier = Modifier.padding(start = 4.dp, top = 8.dp, bottom = 4.dp),
                                 )
 
                                 SettingsNavigationCard(
                                     icon = Icons.Outlined.Tune,
                                     title = "Model Settings",
                                     description = "Adjust temperature and Top-K for response creativity",
-                                    onClick = { destination = SettingsDestination.ModelSettings }
+                                    onClick = { destination = SettingsDestination.ModelSettings },
                                 )
 
                                 SettingsNavigationCard(
                                     icon = Icons.Outlined.Person,
                                     title = "Personalization",
                                     description = "Personal context, bio, and custom instructions",
-                                    onClick = { destination = SettingsDestination.Personalization }
+                                    onClick = { destination = SettingsDestination.Personalization },
                                 )
 
                                 SettingsNavigationCard(
                                     icon = Icons.Outlined.Memory,
                                     title = "Memory Management",
                                     description = "Manage what the AI remembers about you",
-                                    onClick = { destination = SettingsDestination.MemoryManagement }
+                                    onClick = { destination = SettingsDestination.MemoryManagement },
                                 )
 
                                 // System Section
@@ -227,14 +227,14 @@ fun SettingsScreen(
                                     style = MaterialTheme.typography.titleSmall,
                                     color = MaterialTheme.colorScheme.primary,
                                     fontWeight = FontWeight.SemiBold,
-                                    modifier = Modifier.padding(start = 4.dp, top = 16.dp, bottom = 4.dp)
+                                    modifier = Modifier.padding(start = 4.dp, top = 16.dp, bottom = 4.dp),
                                 )
 
                                 SettingsNavigationCard(
                                     icon = Icons.Outlined.PhoneAndroid,
                                     title = "Device Support",
                                     description = "Check AICore compatibility and status",
-                                    onClick = { destination = SettingsDestination.Support }
+                                    onClick = { destination = SettingsDestination.Support },
                                 )
 
                                 Spacer(modifier = Modifier.height(8.dp))
@@ -245,7 +245,7 @@ fun SettingsScreen(
                                     style = MaterialTheme.typography.titleSmall,
                                     color = MaterialTheme.colorScheme.error,
                                     fontWeight = FontWeight.SemiBold,
-                                    modifier = Modifier.padding(start = 4.dp, top = 16.dp, bottom = 4.dp)
+                                    modifier = Modifier.padding(start = 4.dp, top = 16.dp, bottom = 4.dp),
                                 )
 
                                 InfoCard(
@@ -253,23 +253,23 @@ fun SettingsScreen(
                                     title = "Delete All Chats",
                                     description = "Permanently remove all chat conversations from your device. This action cannot be undone.",
                                     containerColor = MaterialTheme.colorScheme.errorContainer.copy(alpha = 0.12f),
-                                    contentColor = MaterialTheme.colorScheme.error
+                                    contentColor = MaterialTheme.colorScheme.error,
                                 )
 
                                 FilledTonalButton(
                                     onClick = { confirmWipe = true },
                                     colors = ButtonDefaults.filledTonalButtonColors(
                                         containerColor = MaterialTheme.colorScheme.errorContainer,
-                                        contentColor = MaterialTheme.colorScheme.error
+                                        contentColor = MaterialTheme.colorScheme.error,
                                     ),
                                     modifier = Modifier
                                         .fillMaxWidth()
-                                        .padding(top = 8.dp)
+                                        .padding(top = 8.dp),
                                 ) {
                                     Icon(
                                         imageVector = Icons.Outlined.Delete,
                                         contentDescription = null,
-                                        modifier = Modifier.size(18.dp)
+                                        modifier = Modifier.size(18.dp),
                                     )
                                     Spacer(modifier = Modifier.width(8.dp))
                                     Text("Delete All Chats")
@@ -290,7 +290,7 @@ fun SettingsScreen(
                                             onDismiss()
                                         }) { Text("Wipe") }
                                     },
-                                    dismissButton = { TextButton(onClick = { confirmWipe = false }) { Text("Cancel") } }
+                                    dismissButton = { TextButton(onClick = { confirmWipe = false }) { Text("Cancel") } },
                                 )
                             }
                         }
@@ -301,7 +301,7 @@ fun SettingsScreen(
                             topK = topK,
                             onTemperatureChange = onTemperatureChange,
                             onTopKChange = onTopKChange,
-                            onResetModelSettings = onResetModelSettings
+                            onResetModelSettings = onResetModelSettings,
                         )
                     }
                     SettingsDestination.Personalization -> {
@@ -309,7 +309,7 @@ fun SettingsScreen(
                             modifier = Modifier
                                 .fillMaxSize()
                                 .padding(innerPadding),
-                            color = MaterialTheme.colorScheme.background
+                            color = MaterialTheme.colorScheme.background,
                         ) {
                             PersonalizationScreen(
                                 userName = userName,
@@ -337,7 +337,7 @@ fun SettingsScreen(
                                 onBioLocationChange = onBioLocationChange,
                                 // Custom instructions
                                 customInstructions = customInstructions,
-                                onCustomInstructionsChange = onCustomInstructionsChange
+                                onCustomInstructionsChange = onCustomInstructionsChange,
                             )
                         }
                     }
@@ -351,14 +351,14 @@ fun SettingsScreen(
                             onUpdateMemory = onUpdateMemory,
                             onDeleteMemory = onDeleteMemory,
                             onToggleMemory = onToggleMemory,
-                            onDismiss = { destination = SettingsDestination.Main }
+                            onDismiss = { destination = SettingsDestination.Main },
                         )
                     }
                     SettingsDestination.CustomInstructions -> {
                         CustomInstructionsScreen(
                             customInstructions = customInstructions,
                             onCustomInstructionsChange = onCustomInstructionsChange,
-                            onDismiss = { destination = SettingsDestination.Main }
+                            onDismiss = { destination = SettingsDestination.Main },
                         )
                     }
                 }

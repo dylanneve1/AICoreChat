@@ -1,0 +1,123 @@
+<?xml version="1.0" ?>
+<SmellBaseline>
+  <ManuallySuppressedIssues></ManuallySuppressedIssues>
+  <CurrentIssues>
+    <ID>CyclomaticComplexMethod:ChatScreen.kt$@OptIn(ExperimentalMaterial3Api::class) @Composable fun ChatScreen(viewModel: ChatViewModel)</ID>
+    <ID>CyclomaticComplexMethod:ChatViewModel.kt$ChatViewModel$fun sendMessage(prompt: String)</ID>
+    <ID>CyclomaticComplexMethod:SupportScreen.kt$@Composable fun SupportScreen(modifier: Modifier = Modifier)</ID>
+    <ID>EmptyFunctionBlock:ImageDescriptionService.kt$ImageDescriptionService.&lt;no name provided&gt;${ }</ID>
+    <ID>FunctionNaming:ChatDrawer.kt$@Composable fun DrawerHeader(onNewChat: () -&gt; Unit)</ID>
+    <ID>FunctionNaming:ChatDrawer.kt$@OptIn(ExperimentalFoundationApi::class) @Composable fun SessionItem( meta: ChatSessionMeta, isSelected: Boolean, onClick: () -&gt; Unit, onLongPress: () -&gt; Unit, )</ID>
+    <ID>FunctionNaming:ChatScreen.kt$@OptIn(ExperimentalMaterial3Api::class) @Composable fun ChatScreen(viewModel: ChatViewModel)</ID>
+    <ID>FunctionNaming:CommonComponents.kt$@Composable fun EmptyStateView( icon: ImageVector, title: String, description: String, modifier: Modifier = Modifier, action: @Composable (() -&gt; Unit)? = null, )</ID>
+    <ID>FunctionNaming:CommonComponents.kt$@Composable fun FeatureToggleCard( icon: ImageVector, title: String, description: String, checked: Boolean, onCheckedChange: (Boolean) -&gt; Unit, enabled: Boolean = true, modifier: Modifier = Modifier, )</ID>
+    <ID>FunctionNaming:CommonComponents.kt$@Composable fun InfoCard( icon: ImageVector, title: String, description: String, modifier: Modifier = Modifier, containerColor: androidx.compose.ui.graphics.Color = MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.3f), contentColor: androidx.compose.ui.graphics.Color = MaterialTheme.colorScheme.onSecondaryContainer, )</ID>
+    <ID>FunctionNaming:CommonComponents.kt$@Composable fun SectionHeaderCard( icon: ImageVector, title: String, description: String, modifier: Modifier = Modifier, )</ID>
+    <ID>FunctionNaming:CommonComponents.kt$@Composable fun SettingsNavigationCard( icon: ImageVector, title: String, description: String, onClick: () -&gt; Unit, modifier: Modifier = Modifier, trailingContent: @Composable (() -&gt; Unit)? = null, )</ID>
+    <ID>FunctionNaming:CustomInstructionsScreen.kt$@OptIn(ExperimentalMaterial3Api::class) @Composable fun CustomInstructionsScreen( customInstructions: String, onCustomInstructionsChange: (String) -&gt; Unit, onDismiss: () -&gt; Unit, )</ID>
+    <ID>FunctionNaming:MemoryManagementScreen.kt$@Composable private fun MemoryCard( memory: MemoryEntry, onToggle: () -&gt; Unit, onEdit: () -&gt; Unit, onDelete: () -&gt; Unit, )</ID>
+    <ID>FunctionNaming:MemoryManagementScreen.kt$@Composable private fun MemoryDialog( editingMemory: MemoryEntry?, onDismiss: () -&gt; Unit, onConfirm: (String) -&gt; Unit, )</ID>
+    <ID>FunctionNaming:MemoryManagementScreen.kt$@OptIn(ExperimentalMaterial3Api::class) @Composable fun MemoryManagementScreen( memoryEntries: List&lt;MemoryEntry&gt;, onAddMemory: (String) -&gt; Unit, onUpdateMemory: (MemoryEntry) -&gt; Unit, onDeleteMemory: (String) -&gt; Unit, onToggleMemory: (String) -&gt; Unit, onDismiss: () -&gt; Unit, )</ID>
+    <ID>FunctionNaming:MessageBubble.kt$@Composable fun MessageBubble( isFromUser: Boolean, backgroundColor: Color, modifier: Modifier = Modifier, isNewMessage: Boolean = false, content: @Composable () -&gt; Unit, )</ID>
+    <ID>FunctionNaming:MessageInput.kt$@Composable fun MessageInput( modifier: Modifier = Modifier, onSendMessage: (String) -&gt; Unit, onStop: () -&gt; Unit, isGenerating: Boolean, onPickImage: () -&gt; Unit = {}, onTakePhoto: () -&gt; Unit = {}, attachmentUri: String? = null, isDescribingImage: Boolean = false, onRemoveImage: () -&gt; Unit = {}, showPlus: Boolean = true, )</ID>
+    <ID>FunctionNaming:MessageRow.kt$@Composable private fun AssistantAvatar()</ID>
+    <ID>FunctionNaming:MessageRow.kt$@Composable private fun SearchingIndicator(tint: androidx.compose.ui.graphics.Color)</ID>
+    <ID>FunctionNaming:MessageRow.kt$@Composable private fun TypingIndicator(tint: androidx.compose.ui.graphics.Color)</ID>
+    <ID>FunctionNaming:MessageRow.kt$@Composable private fun UserAvatar()</ID>
+    <ID>FunctionNaming:MessageRow.kt$@OptIn(ExperimentalFoundationApi::class) @Composable fun MessageRow( message: ChatMessage, onCopy: (String) -&gt; Unit, isSearching: Boolean = false, )</ID>
+    <ID>FunctionNaming:ModelSettingsScreen.kt$@Composable fun ModelSettingsScreen( temperature: Float, topK: Int, onTemperatureChange: (Float) -&gt; Unit, onTopKChange: (Int) -&gt; Unit, onResetModelSettings: () -&gt; Unit, modifier: Modifier = Modifier, )</ID>
+    <ID>FunctionNaming:OnboardingScreen.kt$@Composable fun OnboardingScreen( initialName: String, initialPersonalContextEnabled: Boolean, onComplete: ( name: String, personalContextEnabled: Boolean, webSearchEnabled: Boolean, multimodalEnabled: Boolean, memoryContextEnabled: Boolean, bioContextEnabled: Boolean, bioName: String, bioAge: String, bioOccupation: String, bioLocation: String, customInstructions: String, customInstructionsEnabled: Boolean, ) -&gt; Unit, )</ID>
+    <ID>FunctionNaming:PersonalizationScreen.kt$@Composable fun PersonalizationScreen( userName: String, personalContextEnabled: Boolean, onUserNameChange: (String) -&gt; Unit, onPersonalContextToggle: (Boolean) -&gt; Unit, webSearchEnabled: Boolean, onWebSearchToggle: (Boolean) -&gt; Unit, multimodalEnabled: Boolean, onMultimodalToggle: (Boolean) -&gt; Unit, memoryContextEnabled: Boolean, onMemoryContextToggle: (Boolean) -&gt; Unit, customInstructionsEnabled: Boolean, onCustomInstructionsToggle: (Boolean) -&gt; Unit, bioContextEnabled: Boolean, onBioContextToggle: (Boolean) -&gt; Unit, // Bio information bioName: String, bioAge: String, bioOccupation: String, bioLocation: String, onBioNameChange: (String) -&gt; Unit, onBioAgeChange: (String) -&gt; Unit, onBioOccupationChange: (String) -&gt; Unit, onBioLocationChange: (String) -&gt; Unit, // Custom instructions customInstructions: String, onCustomInstructionsChange: (String) -&gt; Unit, modifier: Modifier = Modifier, )</ID>
+    <ID>FunctionNaming:SettingsScreen.kt$@OptIn(ExperimentalMaterial3Api::class) @Composable fun SettingsScreen( temperature: Float, topK: Int, onTemperatureChange: (Float) -&gt; Unit, onTopKChange: (Int) -&gt; Unit, onResetModelSettings: () -&gt; Unit, userName: String, personalContextEnabled: Boolean, onUserNameChange: (String) -&gt; Unit, onPersonalContextToggle: (Boolean) -&gt; Unit, webSearchEnabled: Boolean, onWebSearchToggle: (Boolean) -&gt; Unit, multimodalEnabled: Boolean, onMultimodalToggle: (Boolean) -&gt; Unit, onWipeAllChats: () -&gt; Unit, onDismiss: () -&gt; Unit, // Memory and Bio parameters memoryContextEnabled: Boolean = true, onMemoryContextToggle: (Boolean) -&gt; Unit = {}, customInstructionsEnabled: Boolean = true, onCustomInstructionsToggle: (Boolean) -&gt; Unit = {}, bioContextEnabled: Boolean = true, onBioContextToggle: (Boolean) -&gt; Unit = {}, // Bio information bioName: String = "", bioAge: String = "", bioOccupation: String = "", bioLocation: String = "", onBioNameChange: (String) -&gt; Unit = {}, onBioAgeChange: (String) -&gt; Unit = {}, onBioOccupationChange: (String) -&gt; Unit = {}, onBioLocationChange: (String) -&gt; Unit = {}, // Custom instructions customInstructions: String = "", onCustomInstructionsChange: (String) -&gt; Unit = {}, // Memory and Bio management parameters memoryEntries: List&lt;MemoryEntry&gt; = emptyList(), bioInformation: BioInformation? = null, onAddMemory: (String) -&gt; Unit = {}, onUpdateMemory: (MemoryEntry) -&gt; Unit = {}, onDeleteMemory: (String) -&gt; Unit = {}, onToggleMemory: (String) -&gt; Unit = {}, onSaveBio: (BioInformation) -&gt; Unit = {}, onDeleteBio: () -&gt; Unit = {}, )</ID>
+    <ID>FunctionNaming:SupportScreen.kt$@Composable fun SupportScreen(modifier: Modifier = Modifier)</ID>
+    <ID>FunctionNaming:SupportScreen.kt$@Composable private fun FeatureHighlight( icon: androidx.compose.ui.graphics.vector.ImageVector, text: String, )</ID>
+    <ID>FunctionNaming:SupportScreen.kt$@Composable private fun RequirementItem( icon: androidx.compose.ui.graphics.vector.ImageVector, title: String, status: String, isValid: Boolean, )</ID>
+    <ID>FunctionNaming:Theme.kt$@Composable fun AICoreChatTheme( darkTheme: Boolean = isSystemInDarkTheme(), dynamicColor: Boolean = true, // Enhanced to use dynamic colors when available content: @Composable () -&gt; Unit, )</ID>
+    <ID>FunctionNaming:ToolsSheet.kt$@Composable private fun ToolToggleItem( icon: ImageVector, title: String, description: String, enabled: Boolean, onToggle: (Boolean) -&gt; Unit, )</ID>
+    <ID>FunctionNaming:ToolsSheet.kt$@OptIn(ExperimentalMaterial3Api::class) @Composable fun ToolsSheet( webSearchEnabled: Boolean, onWebSearchToggle: (Boolean) -&gt; Unit, personalContextEnabled: Boolean, onPersonalContextToggle: (Boolean) -&gt; Unit, multimodalEnabled: Boolean, onMultimodalToggle: (Boolean) -&gt; Unit, onDismiss: () -&gt; Unit, )</ID>
+    <ID>FunctionNaming:TopBar.kt$@OptIn(ExperimentalMaterial3Api::class, ExperimentalFoundationApi::class) @Composable fun AICoreChatTopAppBar( scrollBehavior: TopAppBarScrollBehavior, isChatNotEmpty: Boolean, onClearClick: () -&gt; Unit, onSettingsClick: () -&gt; Unit, onMenuClick: () -&gt; Unit, title: String, onTitleLongPress: () -&gt; Unit, onTitleClick: () -&gt; Unit, )</ID>
+    <ID>FunctionNaming:UnsupportedDeviceScreen.kt$@Composable fun UnsupportedDeviceScreen(message: String?)</ID>
+    <ID>InstanceOfCheckForException:ChatViewModel.kt$ChatViewModel$e is kotlinx.coroutines.CancellationException</ID>
+    <ID>LargeClass:ChatViewModel.kt$ChatViewModel : AndroidViewModel</ID>
+    <ID>LongMethod:ChatScreen.kt$@OptIn(ExperimentalMaterial3Api::class) @Composable fun ChatScreen(viewModel: ChatViewModel)</ID>
+    <ID>LongMethod:ChatViewModel.kt$ChatViewModel$fun sendMessage(prompt: String)</ID>
+    <ID>LongMethod:CustomInstructionsScreen.kt$@OptIn(ExperimentalMaterial3Api::class) @Composable fun CustomInstructionsScreen( customInstructions: String, onCustomInstructionsChange: (String) -&gt; Unit, onDismiss: () -&gt; Unit, )</ID>
+    <ID>LongMethod:MessageInput.kt$@Composable fun MessageInput( modifier: Modifier = Modifier, onSendMessage: (String) -&gt; Unit, onStop: () -&gt; Unit, isGenerating: Boolean, onPickImage: () -&gt; Unit = {}, onTakePhoto: () -&gt; Unit = {}, attachmentUri: String? = null, isDescribingImage: Boolean = false, onRemoveImage: () -&gt; Unit = {}, showPlus: Boolean = true, )</ID>
+    <ID>LongMethod:ModelSettingsScreen.kt$@Composable fun ModelSettingsScreen( temperature: Float, topK: Int, onTemperatureChange: (Float) -&gt; Unit, onTopKChange: (Int) -&gt; Unit, onResetModelSettings: () -&gt; Unit, modifier: Modifier = Modifier, )</ID>
+    <ID>LongMethod:OnboardingScreen.kt$@Composable fun OnboardingScreen( initialName: String, initialPersonalContextEnabled: Boolean, onComplete: ( name: String, personalContextEnabled: Boolean, webSearchEnabled: Boolean, multimodalEnabled: Boolean, memoryContextEnabled: Boolean, bioContextEnabled: Boolean, bioName: String, bioAge: String, bioOccupation: String, bioLocation: String, customInstructions: String, customInstructionsEnabled: Boolean, ) -&gt; Unit, )</ID>
+    <ID>LongMethod:PersonalizationScreen.kt$@Composable fun PersonalizationScreen( userName: String, personalContextEnabled: Boolean, onUserNameChange: (String) -&gt; Unit, onPersonalContextToggle: (Boolean) -&gt; Unit, webSearchEnabled: Boolean, onWebSearchToggle: (Boolean) -&gt; Unit, multimodalEnabled: Boolean, onMultimodalToggle: (Boolean) -&gt; Unit, memoryContextEnabled: Boolean, onMemoryContextToggle: (Boolean) -&gt; Unit, customInstructionsEnabled: Boolean, onCustomInstructionsToggle: (Boolean) -&gt; Unit, bioContextEnabled: Boolean, onBioContextToggle: (Boolean) -&gt; Unit, // Bio information bioName: String, bioAge: String, bioOccupation: String, bioLocation: String, onBioNameChange: (String) -&gt; Unit, onBioAgeChange: (String) -&gt; Unit, onBioOccupationChange: (String) -&gt; Unit, onBioLocationChange: (String) -&gt; Unit, // Custom instructions customInstructions: String, onCustomInstructionsChange: (String) -&gt; Unit, modifier: Modifier = Modifier, )</ID>
+    <ID>LongMethod:SettingsScreen.kt$@OptIn(ExperimentalMaterial3Api::class) @Composable fun SettingsScreen( temperature: Float, topK: Int, onTemperatureChange: (Float) -&gt; Unit, onTopKChange: (Int) -&gt; Unit, onResetModelSettings: () -&gt; Unit, userName: String, personalContextEnabled: Boolean, onUserNameChange: (String) -&gt; Unit, onPersonalContextToggle: (Boolean) -&gt; Unit, webSearchEnabled: Boolean, onWebSearchToggle: (Boolean) -&gt; Unit, multimodalEnabled: Boolean, onMultimodalToggle: (Boolean) -&gt; Unit, onWipeAllChats: () -&gt; Unit, onDismiss: () -&gt; Unit, // Memory and Bio parameters memoryContextEnabled: Boolean = true, onMemoryContextToggle: (Boolean) -&gt; Unit = {}, customInstructionsEnabled: Boolean = true, onCustomInstructionsToggle: (Boolean) -&gt; Unit = {}, bioContextEnabled: Boolean = true, onBioContextToggle: (Boolean) -&gt; Unit = {}, // Bio information bioName: String = "", bioAge: String = "", bioOccupation: String = "", bioLocation: String = "", onBioNameChange: (String) -&gt; Unit = {}, onBioAgeChange: (String) -&gt; Unit = {}, onBioOccupationChange: (String) -&gt; Unit = {}, onBioLocationChange: (String) -&gt; Unit = {}, // Custom instructions customInstructions: String = "", onCustomInstructionsChange: (String) -&gt; Unit = {}, // Memory and Bio management parameters memoryEntries: List&lt;MemoryEntry&gt; = emptyList(), bioInformation: BioInformation? = null, onAddMemory: (String) -&gt; Unit = {}, onUpdateMemory: (MemoryEntry) -&gt; Unit = {}, onDeleteMemory: (String) -&gt; Unit = {}, onToggleMemory: (String) -&gt; Unit = {}, onSaveBio: (BioInformation) -&gt; Unit = {}, onDeleteBio: () -&gt; Unit = {}, )</ID>
+    <ID>LongMethod:SupportScreen.kt$@Composable fun SupportScreen(modifier: Modifier = Modifier)</ID>
+    <ID>LongMethod:UnsupportedDeviceScreen.kt$@Composable fun UnsupportedDeviceScreen(message: String?)</ID>
+    <ID>LongParameterList:PersonalizationScreen.kt$( userName: String, personalContextEnabled: Boolean, onUserNameChange: (String) -&gt; Unit, onPersonalContextToggle: (Boolean) -&gt; Unit, webSearchEnabled: Boolean, onWebSearchToggle: (Boolean) -&gt; Unit, multimodalEnabled: Boolean, onMultimodalToggle: (Boolean) -&gt; Unit, memoryContextEnabled: Boolean, onMemoryContextToggle: (Boolean) -&gt; Unit, customInstructionsEnabled: Boolean, onCustomInstructionsToggle: (Boolean) -&gt; Unit, bioContextEnabled: Boolean, onBioContextToggle: (Boolean) -&gt; Unit, // Bio information bioName: String, bioAge: String, bioOccupation: String, bioLocation: String, onBioNameChange: (String) -&gt; Unit, onBioAgeChange: (String) -&gt; Unit, onBioOccupationChange: (String) -&gt; Unit, onBioLocationChange: (String) -&gt; Unit, // Custom instructions customInstructions: String, onCustomInstructionsChange: (String) -&gt; Unit, modifier: Modifier = Modifier, )</ID>
+    <ID>LongParameterList:SettingsScreen.kt$( temperature: Float, topK: Int, onTemperatureChange: (Float) -&gt; Unit, onTopKChange: (Int) -&gt; Unit, onResetModelSettings: () -&gt; Unit, userName: String, personalContextEnabled: Boolean, onUserNameChange: (String) -&gt; Unit, onPersonalContextToggle: (Boolean) -&gt; Unit, webSearchEnabled: Boolean, onWebSearchToggle: (Boolean) -&gt; Unit, multimodalEnabled: Boolean, onMultimodalToggle: (Boolean) -&gt; Unit, onWipeAllChats: () -&gt; Unit, onDismiss: () -&gt; Unit, // Memory and Bio parameters memoryContextEnabled: Boolean = true, onMemoryContextToggle: (Boolean) -&gt; Unit = {}, customInstructionsEnabled: Boolean = true, onCustomInstructionsToggle: (Boolean) -&gt; Unit = {}, bioContextEnabled: Boolean = true, onBioContextToggle: (Boolean) -&gt; Unit = {}, // Bio information bioName: String = "", bioAge: String = "", bioOccupation: String = "", bioLocation: String = "", onBioNameChange: (String) -&gt; Unit = {}, onBioAgeChange: (String) -&gt; Unit = {}, onBioOccupationChange: (String) -&gt; Unit = {}, onBioLocationChange: (String) -&gt; Unit = {}, // Custom instructions customInstructions: String = "", onCustomInstructionsChange: (String) -&gt; Unit = {}, // Memory and Bio management parameters memoryEntries: List&lt;MemoryEntry&gt; = emptyList(), bioInformation: BioInformation? = null, onAddMemory: (String) -&gt; Unit = {}, onUpdateMemory: (MemoryEntry) -&gt; Unit = {}, onDeleteMemory: (String) -&gt; Unit = {}, onToggleMemory: (String) -&gt; Unit = {}, onSaveBio: (BioInformation) -&gt; Unit = {}, onDeleteBio: () -&gt; Unit = {}, )</ID>
+    <ID>LoopWithTooManyJumpStatements:ChatViewModel.kt$ChatViewModel$for</ID>
+    <ID>LoopWithTooManyJumpStatements:WebSearchService.kt$WebSearchService$while</ID>
+    <ID>MagicNumber:AssistantResponseFormatter.kt$AssistantResponseFormatter$50</ID>
+    <ID>MagicNumber:ChatScreen.kt$40</ID>
+    <ID>MagicNumber:ChatViewModel.kt$ChatViewModel$0.3f</ID>
+    <ID>MagicNumber:ChatViewModel.kt$ChatViewModel$10</ID>
+    <ID>MagicNumber:ChatViewModel.kt$ChatViewModel$100</ID>
+    <ID>MagicNumber:ChatViewModel.kt$ChatViewModel$1024</ID>
+    <ID>MagicNumber:ChatViewModel.kt$ChatViewModel$24</ID>
+    <ID>MagicNumber:ChatViewModel.kt$ChatViewModel$28</ID>
+    <ID>MagicNumber:ChatViewModel.kt$ChatViewModel$300</ID>
+    <ID>MagicNumber:ChatViewModel.kt$ChatViewModel$35</ID>
+    <ID>MagicNumber:ChatViewModel.kt$ChatViewModel$4</ID>
+    <ID>MagicNumber:ChatViewModel.kt$ChatViewModel$40</ID>
+    <ID>MagicNumber:CustomInstructionsScreen.kt$500</ID>
+    <ID>MagicNumber:DeviceSupport.kt$0.1f</ID>
+    <ID>MagicNumber:DeviceSupport.kt$33</ID>
+    <ID>MagicNumber:MessageBubble.kt$0.8f</ID>
+    <ID>MagicNumber:MessageBubble.kt$1.5f</ID>
+    <ID>MagicNumber:MessageInput.kt$200</ID>
+    <ID>MagicNumber:MessageInput.kt$300</ID>
+    <ID>MagicNumber:MessageRow.kt$100</ID>
+    <ID>MagicNumber:MessageRow.kt$1000</ID>
+    <ID>MagicNumber:MessageRow.kt$3</ID>
+    <ID>MagicNumber:MessageRow.kt$300</ID>
+    <ID>MagicNumber:MessageRow.kt$800</ID>
+    <ID>MagicNumber:PersonalContextBuilder.kt$PersonalContextBuilder$100</ID>
+    <ID>MagicNumber:PersonalContextBuilder.kt$PersonalContextBuilder$1024</ID>
+    <ID>MagicNumber:PersonalizationScreen.kt$300</ID>
+    <ID>MagicNumber:PromptTemplates.kt$PromptTemplates$5</ID>
+    <ID>MagicNumber:TimeUtil.kt$1000</ID>
+    <ID>MagicNumber:TimeUtil.kt$24</ID>
+    <ID>MagicNumber:TimeUtil.kt$5</ID>
+    <ID>MagicNumber:TimeUtil.kt$60</ID>
+    <ID>MagicNumber:ToolsSheet.kt$300</ID>
+    <ID>MagicNumber:WebSearchService.kt$WebSearchService$16</ID>
+    <ID>MagicNumber:WebSearchService.kt$WebSearchService$4000</ID>
+    <ID>MagicNumber:WebSearchService.kt$WebSearchService$48</ID>
+    <ID>MagicNumber:WebSearchService.kt$WebSearchService$48_000</ID>
+    <ID>MagicNumber:WebSearchService.kt$WebSearchService$5</ID>
+    <ID>MagicNumber:WebSearchService.kt$WebSearchService$8000</ID>
+    <ID>MagicNumber:WebSearchService.kt$WebSearchService$8192</ID>
+    <ID>MatchingDeclarationName:DeviceSupport.kt$DeviceSupportStatus</ID>
+    <ID>MatchingDeclarationName:SettingsScreen.kt$SettingsDestination</ID>
+    <ID>NestedBlockDepth:ChatViewModel.kt$ChatViewModel$private fun findPartialStopSuffixLength(text: String, tokens: List&lt;String&gt;): Int</ID>
+    <ID>NestedBlockDepth:WebSearchService.kt$WebSearchService$private fun decodeDuckRedirect(href: String): String</ID>
+    <ID>SwallowedException:ChatViewModel.kt$ChatViewModel$e: Exception</ID>
+    <ID>SwallowedException:DeviceSupport.kt$e: PackageManager.NameNotFoundException</ID>
+    <ID>SwallowedException:ImageDescriptionService.kt$ImageDescriptionService$e: Exception</ID>
+    <ID>SwallowedException:MemoryRepository.kt$MemoryRepository$e: Exception</ID>
+    <ID>SwallowedException:PersonalContextBuilder.kt$PersonalContextBuilder$e: Exception</ID>
+    <ID>SwallowedException:WebSearchService.kt$WebSearchService$e: Exception</ID>
+    <ID>TooGenericExceptionCaught:ChatScreen.kt$e: Exception</ID>
+    <ID>TooGenericExceptionCaught:ChatViewModel.kt$ChatViewModel$e: Exception</ID>
+    <ID>TooGenericExceptionCaught:DeviceSupport.kt$e: Exception</ID>
+    <ID>TooGenericExceptionCaught:ImageDescriptionService.kt$ImageDescriptionService$e: Exception</ID>
+    <ID>TooGenericExceptionCaught:MemoryRepository.kt$MemoryRepository$e: Exception</ID>
+    <ID>TooGenericExceptionCaught:PersonalContextBuilder.kt$PersonalContextBuilder$e: Exception</ID>
+    <ID>TooGenericExceptionCaught:WebSearchService.kt$WebSearchService$e: Exception</ID>
+    <ID>TooManyFunctions:ChatViewModel.kt$ChatViewModel : AndroidViewModel</ID>
+    <ID>UnusedParameter:PersonalizationScreen.kt$bioName: String</ID>
+    <ID>UnusedParameter:PersonalizationScreen.kt$onBioNameChange: (String) -&gt; Unit</ID>
+    <ID>UnusedParameter:SettingsScreen.kt$bioInformation: BioInformation? = null</ID>
+    <ID>UnusedParameter:SettingsScreen.kt$onDeleteBio: () -&gt; Unit = {}</ID>
+    <ID>UnusedParameter:SettingsScreen.kt$onSaveBio: (BioInformation) -&gt; Unit = {}</ID>
+    <ID>UnusedPrivateMember:ChatViewModel.kt$ChatViewModel$private suspend fun buildPersonalContext(): String</ID>
+    <ID>UnusedPrivateProperty:PersonalizationScreen.kt$val keyboardController = LocalSoftwareKeyboardController.current</ID>
+    <ID>UseCheckOrError:ImageDescriptionService.kt$ImageDescriptionService$throw IllegalStateException("Image description feature unavailable on this device")</ID>
+  </CurrentIssues>
+</SmellBaseline>

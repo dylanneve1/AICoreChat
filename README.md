@@ -57,6 +57,24 @@ The application's logic is primarily handled by the `ChatViewModel`.
     -   Select a target device (emulator or physical device).
     -   Click the "Run" button (▶️).
 
+### Quality gates
+
+The project ships with a consolidated quality script that runs formatting, static analysis, Android Lint, and the JVM test suite:
+
+```bash
+./scripts/quality.sh
+```
+
+Under the hood this executes `spotlessCheck`, `detekt`, `lint`, and `test` using JDK 17. Run it locally (or in CI) before opening pull requests to keep the codebase consistent.
+
+If you intentionally fix or introduce code that changes the current lint/detekt findings, regenerate the baselines first and re-run the script:
+
+```bash
+./gradlew lintDebug       # updates app/lint-baseline.xml
+./gradlew detektBaseline  # updates config/detekt/baseline.xml
+./scripts/quality.sh
+```
+
 > **Note:** The Google AICore SDK is experimental (`0.0.1-exp01`). It may require specific device capabilities or participation in an early access program for the on-device model to be available.
 
 ## 📂 Code Structure

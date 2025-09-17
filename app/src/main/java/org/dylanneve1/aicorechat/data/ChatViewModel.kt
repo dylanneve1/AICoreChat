@@ -2,6 +2,7 @@ package org.dylanneve1.aicorechat.data
 
 import android.app.Application
 import android.content.Context
+import android.graphics.ImageDecoder
 import android.location.Location
 import android.net.ConnectivityManager
 import android.net.NetworkCapabilities
@@ -10,6 +11,7 @@ import android.os.BatteryManager
 import android.os.Build
 import android.os.Environment
 import android.os.SystemClock
+import android.provider.MediaStore
 import android.util.Log
 import androidx.core.content.ContextCompat
 import androidx.lifecycle.AndroidViewModel
@@ -17,10 +19,10 @@ import androidx.lifecycle.viewModelScope
 import com.google.ai.edge.aicore.GenerativeModel
 import com.google.ai.edge.aicore.generationConfig
 import com.google.android.gms.location.LocationServices
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.withContext
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -29,19 +31,12 @@ import kotlinx.coroutines.flow.onCompletion
 import kotlinx.coroutines.flow.onStart
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
-import org.dylanneve1.aicorechat.data.search.WebSearchService
+import kotlinx.coroutines.withContext
 import org.dylanneve1.aicorechat.data.context.PersonalContextBuilder
 import org.dylanneve1.aicorechat.data.image.ImageDescriptionService
-import java.io.InputStream
-import android.graphics.ImageDecoder
-import android.provider.MediaStore
 import org.dylanneve1.aicorechat.data.prompt.PromptTemplates
-import org.dylanneve1.aicorechat.data.MemoryRepository
-import org.dylanneve1.aicorechat.data.MemoryEntry
-import org.dylanneve1.aicorechat.data.CustomInstruction
-import org.dylanneve1.aicorechat.data.BioInformation
-import org.dylanneve1.aicorechat.data.MemoryCategory
-import org.dylanneve1.aicorechat.data.MemoryImportance
+import org.dylanneve1.aicorechat.data.search.WebSearchService
+import org.dylanneve1.aicorechat.util.AssistantResponseFormatter
 
 /**
  * ChatViewModel orchestrates sessions, model streaming, tools, and persistence.
@@ -76,75 +71,7 @@ class ChatViewModel(application: Application) : AndroidViewModel(application) {
         const val KEY_CUSTOM_INSTRUCTIONS = "custom_instructions_enabled"
         const val KEY_CUSTOM_INSTRUCTIONS_TEXT = "custom_instructions_text"
         const val KEY_BIO_CONTEXT = "bio_context"
-    }
-
-    private fun sanitizeAssistantText(text: String): String {
-        return text
-            .replace("[WEB_RESULTS]", "")
-            .replace("[/WEB_RESULTS]", "")
-            .replace("[SEARCH]", "")
-            .replace("[/SEARCH]", "")
-            .replace(Regex("\n{3,}"), "\n\n")
-            .trim()
-    }
-
-    private fun stripAssistantEndTokens(text: String): String {
-        val token = "[/ASSISTANT]"
-        var result = text.trimEnd()
-        while (result.endsWith(token)) {
-            result = result.dropLast(token.length).trimEnd()
-        }
-        return result
-    }
-
-    /**
-     * Ensures the assistant response ends with the proper [/ASSISTANT] token to prevent infinite loops.
-     * If the response doesn't end with [/ASSISTANT], appends it automatically.
-     */
-    private fun ensureAssistantEndToken(text: String): String {
-        val trimmed = text.trim()
-
-        // Check if response already ends with [/ASSISTANT]
-        if (trimmed.endsWith("[/ASSISTANT]")) {
-            return trimmed
-        }
-
-        // If it ends with any stop token, return as-is
-        val stopTokens = listOf("[/ASSISTANT]", "[ASSISTANT]", "[/USER]", "[USER]")
-        for (token in stopTokens) {
-            if (trimmed.endsWith(token)) {
-                return trimmed
-            }
-        }
-
-        // If response is empty or only whitespace, return a minimal valid response
-        if (trimmed.isEmpty()) {
-            return "[/ASSISTANT]"
-        }
-
-        // Check if response contains [/ASSISTANT] anywhere and ends with another token
-        if (trimmed.contains("[/ASSISTANT]")) {
-            val lastAssistantIndex = trimmed.lastIndexOf("[/ASSISTANT]")
-            val afterLastToken = trimmed.substring(lastAssistantIndex + "[/ASSISTANT]".length).trim()
-            if (afterLastToken.isEmpty()) {
-                return trimmed
-            }
-            // If there's content after the last [/ASSISTANT], it might be malformed
-            // Return everything up to and including the last [/ASSISTANT]
-            return trimmed.substring(0, lastAssistantIndex + "[/ASSISTANT]".length)
-        }
-
-        // If no [/ASSISTANT] token found, append it to prevent infinite loops
-        Log.w("ChatViewModel", "Response missing [/ASSISTANT] token, appending automatically: ${trimmed.take(50)}...")
-        return "$trimmed\n\n[/ASSISTANT]"
-    }
-
-    private fun finalizeAssistantDisplayText(rawText: String, fallback: String = ""): String {
-        if (rawText.isBlank() && fallback.isBlank()) return ""
-        val source = if (rawText.isBlank()) fallback else rawText
-        val ensured = ensureAssistantEndToken(source)
-        val withoutToken = stripAssistantEndTokens(ensured)
-        return sanitizeAssistantText(withoutToken)
+        private const val PARTIAL_STOP_TOKEN_BUFFER = 3
     }
 
     init {
@@ -177,7 +104,7 @@ class ChatViewModel(application: Application) : AndroidViewModel(application) {
                 memoryContextEnabled = memoryContextEnabled,
                 customInstructionsEnabled = customInstructionsEnabled,
                 customInstructions = customInstructionsText,
-                bioContextEnabled = bioContextEnabled
+                bioContextEnabled = bioContextEnabled,
             )
         }
     }
@@ -218,14 +145,14 @@ class ChatViewModel(application: Application) : AndroidViewModel(application) {
                         customInstructions = customInstructions,
                         memoryEntries = memoryEntries,
                         bioInformation = bioInformation,
-                        isMemoryLoading = false
+                        isMemoryLoading = false,
                     )
                 }
             } catch (e: Exception) {
                 _uiState.update {
                     it.copy(
                         isMemoryLoading = false,
-                        memoryError = "Failed to load memory data: ${e.message}"
+                        memoryError = "Failed to load memory data: ${e.message}",
                     )
                 }
             }
@@ -255,9 +182,11 @@ class ChatViewModel(application: Application) : AndroidViewModel(application) {
                 name = name.takeIf { it.isNotBlank() },
                 age = age.toIntOrNull(),
                 occupation = occupation.takeIf { it.isNotBlank() },
-                location = location.takeIf { it.isNotBlank() }
+                location = location.takeIf { it.isNotBlank() },
             )
-        } else null
+        } else {
+            null
+        }
 
         bio?.let { memoryRepository.saveBioInformation(it) }
         _uiState.update { it.copy(bioInformation = bio) }
@@ -269,7 +198,7 @@ class ChatViewModel(application: Application) : AndroidViewModel(application) {
         _uiState.update {
             it.copy(
                 customInstructionsEnabled = enabled,
-                customInstructions = instructions
+                customInstructions = instructions,
             )
         }
     }
@@ -320,7 +249,9 @@ class ChatViewModel(application: Application) : AndroidViewModel(application) {
         return try {
             val cm = getApplication<Application>().getSystemService(Context.CONNECTIVITY_SERVICE) as ConnectivityManager
             val network = cm.activeNetwork
-            if (network == null) "Offline/unknown" else {
+            if (network == null) {
+                "Offline/unknown"
+            } else {
                 val caps = cm.getNetworkCapabilities(network)
                 val parts = mutableListOf<String>()
                 if (caps?.hasTransport(NetworkCapabilities.TRANSPORT_WIFI) == true) parts.add("Wi‑Fi")
@@ -328,9 +259,12 @@ class ChatViewModel(application: Application) : AndroidViewModel(application) {
                 if (caps?.hasTransport(NetworkCapabilities.TRANSPORT_ETHERNET) == true) parts.add("Ethernet")
                 if (parts.isEmpty()) "Unknown" else parts.joinToString(", ")
             }
-        } catch (e: Exception) { "Unknown" }
+        } catch (e: Exception) {
+            "Unknown"
+        }
     }
 
+    @OptIn(ExperimentalCoroutinesApi::class)
     private suspend fun getLastKnownLocation(): Location? {
         return try {
             val ctx = getApplication<Application>().applicationContext
@@ -342,7 +276,9 @@ class ChatViewModel(application: Application) : AndroidViewModel(application) {
                 fused.lastLocation.addOnSuccessListener { cont.resume(it, onCancellation = null) }
                     .addOnFailureListener { cont.resume(null, onCancellation = null) }
             }
-        } catch (e: Exception) { null }
+        } catch (e: Exception) {
+            null
+        }
     }
 
     private fun formatLatLon(loc: Location?): String {
@@ -355,21 +291,25 @@ class ChatViewModel(application: Application) : AndroidViewModel(application) {
         val locale = java.util.Locale.getDefault().toString()
         val timeZone = java.util.TimeZone.getDefault().id
         val namePart = if (_uiState.value.userName.isNotBlank()) "User Name: ${_uiState.value.userName}\n" else ""
-        val battery = getBatteryPercent()?.let { "Battery: ${it}%\n" } ?: ""
+        val battery = getBatteryPercent()?.let { "Battery: $it%\n" } ?: ""
         val storageStat = try {
             val stat = android.os.StatFs(Environment.getDataDirectory().path)
             val free = stat.availableBytes / (1024 * 1024)
             val total = stat.totalBytes / (1024 * 1024)
             "Storage: ${free}MB free / ${total}MB total\n"
-        } catch (e: Exception) { "" }
+        } catch (e: Exception) {
+            ""
+        }
         val appVersion = try {
             val pm = getApplication<Application>().packageManager
             val pInfo = pm.getPackageInfo(getApplication<Application>().packageName, 0)
             "App Version: ${pInfo.versionName} (${pInfo.longVersionCode})\n"
-        } catch (e: Exception) { "" }
+        } catch (e: Exception) {
+            ""
+        }
         val network = "Network: ${getNetworkSummary()}\n"
         val location = "Location: ${formatLatLon(getLastKnownLocation())}\n"
-        return "[PERSONAL_CONTEXT]\n${namePart}Current Time: ${now}\nDevice: ${device}\nLocale: ${locale}\nTime Zone: ${timeZone}\n${battery}${network}${storageStat}${appVersion}${location}[/PERSONAL_CONTEXT]\n\n"
+        return "[PERSONAL_CONTEXT]\n${namePart}Current Time: ${now}\nDevice: ${device}\nLocale: ${locale}\nTime Zone: ${timeZone}\n${battery}${network}${storageStat}${appVersion}$location[/PERSONAL_CONTEXT]\n\n"
     }
 
     private suspend fun prependPersonalContextIfNeeded(promptBuilder: StringBuilder) {
@@ -394,7 +334,7 @@ class ChatViewModel(application: Application) : AndroidViewModel(application) {
                 },
                 currentSessionId = session.id,
                 currentSessionName = session.name,
-                messages = emptyList()
+                messages = emptyList(),
             )
         }
     }
@@ -429,7 +369,7 @@ class ChatViewModel(application: Application) : AndroidViewModel(application) {
                 sessions = allSessions.map { s -> ChatSessionMeta(s.id, s.name) },
                 currentSessionId = session.id,
                 currentSessionName = session.name,
-                messages = emptyList()
+                messages = emptyList(),
             )
         }
     }
@@ -443,7 +383,7 @@ class ChatViewModel(application: Application) : AndroidViewModel(application) {
             it.copy(
                 currentSessionId = selected.id,
                 currentSessionName = selected.name,
-                messages = selected.messages.toList()
+                messages = selected.messages.toList(),
             )
         }
         if (prevId != null && prevId != sessionId && prevMessages.none { it.isFromUser }) {
@@ -487,7 +427,7 @@ class ChatViewModel(application: Application) : AndroidViewModel(application) {
                     sessions = remaining.map { s -> ChatSessionMeta(s.id, s.name) },
                     currentSessionId = next.id,
                     currentSessionName = next.name,
-                    messages = next.messages.toList()
+                    messages = next.messages.toList(),
                 )
             }
         }
@@ -512,7 +452,7 @@ class ChatViewModel(application: Application) : AndroidViewModel(application) {
             val remaining = repository.loadSessions()
             _uiState.update {
                 it.copy(
-                    sessions = remaining.map { s -> ChatSessionMeta(s.id, s.name) }
+                    sessions = remaining.map { s -> ChatSessionMeta(s.id, s.name) },
                 )
             }
         }
@@ -571,7 +511,7 @@ class ChatViewModel(application: Application) : AndroidViewModel(application) {
                     state.copy(
                         isBulkTitleGenerating = false,
                         sessions = refreshed.map { ChatSessionMeta(it.id, it.name) },
-                        currentSessionName = currentName
+                        currentSessionName = currentName,
                     )
                 }
             } catch (e: Exception) {
@@ -678,10 +618,14 @@ class ChatViewModel(application: Application) : AndroidViewModel(application) {
             val network = cm.activeNetwork ?: return false
             val caps = cm.getNetworkCapabilities(network) ?: return false
             caps.hasCapability(NetworkCapabilities.NET_CAPABILITY_INTERNET) &&
-                (caps.hasTransport(NetworkCapabilities.TRANSPORT_WIFI) ||
-                 caps.hasTransport(NetworkCapabilities.TRANSPORT_CELLULAR) ||
-                 caps.hasTransport(NetworkCapabilities.TRANSPORT_ETHERNET))
-        } catch (e: Exception) { false }
+                (
+                    caps.hasTransport(NetworkCapabilities.TRANSPORT_WIFI) ||
+                        caps.hasTransport(NetworkCapabilities.TRANSPORT_CELLULAR) ||
+                        caps.hasTransport(NetworkCapabilities.TRANSPORT_ETHERNET)
+                    )
+        } catch (e: Exception) {
+            false
+        }
     }
 
     fun onImagePicked(bitmap: android.graphics.Bitmap) {
@@ -736,7 +680,7 @@ class ChatViewModel(application: Application) : AndroidViewModel(application) {
                 if (_uiState.value.memoryContextEnabled) {
                     val relevantMemories = PromptTemplates.buildMemoryContextFromQuery(
                         query = prompt,
-                        allMemories = _uiState.value.memoryEntries
+                        allMemories = _uiState.value.memoryEntries,
                     )
 
                     val bioInfo = if (_uiState.value.bioContextEnabled) _uiState.value.bioInformation else null
@@ -755,8 +699,11 @@ class ChatViewModel(application: Application) : AndroidViewModel(application) {
                 val history = _uiState.value.messages.takeLast(10)
                 history.forEach { message ->
                     if (message.id == userMessage.id) return@forEach
-                    if (message.isFromUser) promptBuilder.append("[USER]\n${message.text}\n[/USER]\n")
-                    else promptBuilder.append("[ASSISTANT]\n${message.text}\n[/ASSISTANT]\n")
+                    if (message.isFromUser) {
+                        promptBuilder.append("[USER]\n${message.text}\n[/USER]\n")
+                    } else {
+                        promptBuilder.append("[ASSISTANT]\n${message.text}\n[/ASSISTANT]\n")
+                    }
                 }
                 promptBuilder.append("[USER]\n$prompt\n[/USER]\n")
                 promptBuilder.append("[ASSISTANT]\n")
@@ -777,7 +724,7 @@ class ChatViewModel(application: Application) : AndroidViewModel(application) {
                         _uiState.update {
                             it.copy(
                                 isGenerating = true,
-                                messages = it.messages + ChatMessage(text = "", isFromUser = false, isStreaming = true)
+                                messages = it.messages + ChatMessage(text = "", isFromUser = false, isStreaming = true),
                             )
                         }
                     }
@@ -789,7 +736,7 @@ class ChatViewModel(application: Application) : AndroidViewModel(application) {
                             _uiState.update { currentState ->
                                 val updated = currentState.messages.toMutableList()
                                 if (updated.isNotEmpty() && updated.last().isStreaming) {
-                                    val finalText = finalizeAssistantDisplayText(fullResponse, updated.last().text)
+                                    val finalText = AssistantResponseFormatter.finalizeAssistantDisplayText(fullResponse, updated.last().text)
                                     updated[updated.lastIndex] = updated.last().copy(text = finalText, isStreaming = false)
                                 }
                                 currentState.copy(isGenerating = false, messages = updated)
@@ -803,7 +750,7 @@ class ChatViewModel(application: Application) : AndroidViewModel(application) {
                             val updated = currentState.messages.toMutableList()
                             if (updated.isNotEmpty() && updated.last().isStreaming) {
                                 val errorText = "Error: ${e.message}"
-                                val finalText = finalizeAssistantDisplayText(errorText, updated.last().text)
+                                val finalText = AssistantResponseFormatter.finalizeAssistantDisplayText(errorText, updated.last().text)
                                 updated[updated.lastIndex] = updated.last().copy(text = finalText, isStreaming = false)
                             }
                             currentState.copy(isGenerating = false, messages = updated)
@@ -837,7 +784,9 @@ class ChatViewModel(application: Application) : AndroidViewModel(application) {
                                 searchStartIndex = startIdx
                                 val partialQuery = if (fullResponse.length >= startIdx + searchToken.length) {
                                     fullResponse.substring(startIdx + searchToken.length).substringBefore("[/SEARCH]").trim()
-                                } else ""
+                                } else {
+                                    ""
+                                }
                                 _uiState.update { current ->
                                     val updated = current.messages.toMutableList()
                                     if (updated.isNotEmpty() && updated.last().isStreaming) {
@@ -874,11 +823,18 @@ class ChatViewModel(application: Application) : AndroidViewModel(application) {
                         _uiState.update { currentState ->
                             val updated = currentState.messages.toMutableList()
                             if (updated.isNotEmpty() && updated.last().isStreaming) {
-                                val displayTextRaw = if (earliestIndex != Int.MAX_VALUE) fullResponse.substring(0, earliestIndex) else {
+                                val displayTextRaw = if (earliestIndex != Int.MAX_VALUE) {
+                                    fullResponse.substring(0, earliestIndex)
+                                } else {
                                     val holdBack = findPartialStopSuffixLength(fullResponse, stopTokens)
-                                    if (holdBack > 0 && fullResponse.length > holdBack) fullResponse.dropLast(holdBack) else fullResponse
+                                    if (holdBack > 0) {
+                                        val safeHoldBack = holdBack.coerceAtMost(fullResponse.length)
+                                        fullResponse.dropLast(safeHoldBack)
+                                    } else {
+                                        fullResponse
+                                    }
                                 }
-                                val displayText = sanitizeAssistantText(displayTextRaw)
+                                val displayText = AssistantResponseFormatter.sanitizeAssistantText(displayTextRaw)
                                 updated[updated.lastIndex] = updated.last().copy(text = displayText)
                             }
                             currentState.copy(messages = updated)
@@ -917,7 +873,7 @@ class ChatViewModel(application: Application) : AndroidViewModel(application) {
             if (_uiState.value.memoryContextEnabled) {
                 val relevantMemories = PromptTemplates.buildMemoryContextFromQuery(
                     query = userMessage.text,
-                    allMemories = _uiState.value.memoryEntries
+                    allMemories = _uiState.value.memoryEntries,
                 )
 
                 val bioInfo = if (_uiState.value.bioContextEnabled) _uiState.value.bioInformation else null
@@ -926,8 +882,11 @@ class ChatViewModel(application: Application) : AndroidViewModel(application) {
             // Build recent history WITHOUT any trailing streaming placeholder bubble (we never persisted it)
             val recent = _uiState.value.messages.filter { !it.isStreaming }
             (recent + userMessage).takeLast(10).forEach { m ->
-                if (m.isFromUser) promptBuilder.append("[USER]\n${m.text}\n[/USER]\n")
-                else promptBuilder.append("[ASSISTANT]\n${m.text}\n[/ASSISTANT]\n")
+                if (m.isFromUser) {
+                    promptBuilder.append("[USER]\n${m.text}\n[/USER]\n")
+                } else {
+                    promptBuilder.append("[ASSISTANT]\n${m.text}\n[/ASSISTANT]\n")
+                }
             }
             promptBuilder.append("[ASSISTANT]\n")
 
@@ -947,7 +906,7 @@ class ChatViewModel(application: Application) : AndroidViewModel(application) {
                     _uiState.update { current ->
                         val updated = current.messages.toMutableList()
                         if (updated.isNotEmpty() && updated.last().isStreaming) {
-                            val finalText = finalizeAssistantDisplayText(fullResponse, updated.last().text)
+                            val finalText = AssistantResponseFormatter.finalizeAssistantDisplayText(fullResponse, updated.last().text)
                             updated[updated.lastIndex] = updated.last().copy(text = finalText, isStreaming = false)
                         }
                         current.copy(isGenerating = false, messages = updated)
@@ -960,7 +919,7 @@ class ChatViewModel(application: Application) : AndroidViewModel(application) {
                         val updated = current.messages.toMutableList()
                         if (updated.isNotEmpty() && updated.last().isStreaming) {
                             val errorText = "Error: ${e.message}"
-                            val finalText = finalizeAssistantDisplayText(errorText, updated.last().text)
+                            val finalText = AssistantResponseFormatter.finalizeAssistantDisplayText(errorText, updated.last().text)
                             updated[updated.lastIndex] = updated.last().copy(text = finalText, isStreaming = false)
                         }
                         current.copy(isGenerating = false, messages = updated)
@@ -980,11 +939,18 @@ class ChatViewModel(application: Application) : AndroidViewModel(application) {
                     _uiState.update { current ->
                         val updated = current.messages.toMutableList()
                         if (updated.isNotEmpty() && updated.last().isStreaming) {
-                            val displayTextRaw = if (earliestIndex != Int.MAX_VALUE) fullResponse.substring(0, earliestIndex) else {
+                            val displayTextRaw = if (earliestIndex != Int.MAX_VALUE) {
+                                fullResponse.substring(0, earliestIndex)
+                            } else {
                                 val holdBack = findPartialStopSuffixLength(fullResponse, stopTokens)
-                                if (holdBack > 0 && fullResponse.length > holdBack) fullResponse.dropLast(holdBack) else fullResponse
+                                if (holdBack > 0) {
+                                    val safeHoldBack = holdBack.coerceAtMost(fullResponse.length)
+                                    fullResponse.dropLast(safeHoldBack)
+                                } else {
+                                    fullResponse
+                                }
                             }
-                            val displayText = sanitizeAssistantText(displayTextRaw)
+                            val displayText = AssistantResponseFormatter.sanitizeAssistantText(displayTextRaw)
                             updated[updated.lastIndex] = updated.last().copy(text = displayText)
                         }
                         current.copy(messages = updated)
@@ -1004,12 +970,15 @@ class ChatViewModel(application: Application) : AndroidViewModel(application) {
             val maxCheck = minOf(token.length - 1, text.length)
             for (k in maxCheck downTo 1) {
                 if (text.endsWith(token.substring(0, k))) {
-                    if (k > maxLen) maxLen = k
+                    if (k > maxLen) {
+                        maxLen = k
+                    }
                     break
                 }
             }
         }
-        return maxLen
+        if (maxLen == 0) return 0
+        return maxOf(maxLen, PARTIAL_STOP_TOKEN_BUFFER)
     }
 
     // Custom Instructions Management
@@ -1019,7 +988,7 @@ class ChatViewModel(application: Application) : AndroidViewModel(application) {
                 val newInstruction = CustomInstruction(
                     title = title,
                     instruction = instruction,
-                    category = category
+                    category = category,
                 )
                 memoryRepository.addCustomInstruction(newInstruction)
                 loadMemoryData()
@@ -1067,7 +1036,7 @@ class ChatViewModel(application: Application) : AndroidViewModel(application) {
         viewModelScope.launch {
             try {
                 val newMemory = MemoryEntry(
-                    content = content
+                    content = content,
                 )
                 memoryRepository.addMemoryEntry(newMemory)
                 loadMemoryData()
@@ -1118,7 +1087,9 @@ class ChatViewModel(application: Application) : AndroidViewModel(application) {
                 val updatedMemories = _uiState.value.memoryEntries.map { memory ->
                     if (memory.id == memoryId) {
                         memory.copy(lastAccessed = System.currentTimeMillis())
-                    } else memory
+                    } else {
+                        memory
+                    }
                 }
                 _uiState.update { it.copy(memoryEntries = updatedMemories) }
             } catch (e: Exception) {
@@ -1166,7 +1137,6 @@ class ChatViewModel(application: Application) : AndroidViewModel(application) {
         loadMemoryData()
         _uiState.update { it.copy(memorySearchQuery = "", selectedMemoryCategory = null) }
     }
-
 
     // Data Import/Export
     fun exportAllMemoryData(): String? {

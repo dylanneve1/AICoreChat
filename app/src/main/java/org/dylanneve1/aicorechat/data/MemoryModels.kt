@@ -11,7 +11,7 @@ data class CustomInstruction(
     val isEnabled: Boolean = true,
     val createdAt: Long = System.currentTimeMillis(),
     val updatedAt: Long = System.currentTimeMillis(),
-    val category: String = "General"
+    val category: String = "General",
 ) {
     companion object {
         private fun generateId(): String = "instruction_${System.nanoTime()}"
@@ -24,7 +24,7 @@ data class MemoryEntry(
     val isEnabled: Boolean = true,
     val createdAt: Long = System.currentTimeMillis(),
     val updatedAt: Long = System.currentTimeMillis(),
-    val lastAccessed: Long = System.currentTimeMillis()
+    val lastAccessed: Long = System.currentTimeMillis(),
 ) {
     companion object {
         private fun generateId(): String = "memory_${System.nanoTime()}"
@@ -40,14 +40,14 @@ enum class MemoryCategory {
     TRAVEL,
     EDUCATION,
     FINANCE,
-    OTHER
+    OTHER,
 }
 
 enum class MemoryImportance {
     LOW,
     MEDIUM,
     HIGH,
-    CRITICAL
+    CRITICAL,
 }
 
 data class BioInformation(
@@ -60,11 +60,12 @@ data class BioInformation(
     val personalityTraits: List<String> = emptyList(),
     val goals: List<String> = emptyList(),
     val preferences: Map<String, String> = emptyMap(),
-    val importantDates: Map<String, String> = emptyMap(), // e.g., "birthday" -> "1990-05-15"
+    // e.g., "birthday" -> "1990-05-15"
+    val importantDates: Map<String, String> = emptyMap(),
     val relationships: List<BioRelationship> = emptyList(),
     val achievements: List<String> = emptyList(),
     val createdAt: Long = System.currentTimeMillis(),
-    val updatedAt: Long = System.currentTimeMillis()
+    val updatedAt: Long = System.currentTimeMillis(),
 ) {
     companion object {
         private fun generateId(): String = "bio_${System.nanoTime()}"
@@ -73,20 +74,22 @@ data class BioInformation(
 
 data class BioRelationship(
     val name: String,
-    val relationship: String, // e.g., "spouse", "parent", "friend", "colleague"
-    val details: String? = null // Additional context about the relationship
+    // e.g., "spouse", "parent", "friend", "colleague"
+    val relationship: String,
+    // Additional context about the relationship
+    val details: String? = null,
 )
 
 data class MemorySearchResult(
     val memory: MemoryEntry,
     val relevanceScore: Float,
     val matchedTags: List<String> = emptyList(),
-    val matchedContent: List<String> = emptyList()
+    val matchedContent: List<String> = emptyList(),
 )
 
 data class MemoryContext(
     val relevantMemories: List<MemoryEntry> = emptyList(),
     val customInstructions: List<CustomInstruction> = emptyList(),
     val bioInformation: BioInformation? = null,
-    val contextSummary: String = ""
+    val contextSummary: String = "",
 )

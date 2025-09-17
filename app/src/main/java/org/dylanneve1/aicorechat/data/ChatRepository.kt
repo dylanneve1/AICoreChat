@@ -85,8 +85,8 @@ class ChatRepository(context: Context) {
                         isStreaming = m.optBoolean("isStreaming", false),
                         timestamp = m.optLong("timestamp", System.currentTimeMillis()),
                         imageUri = imageUri,
-                        imageDescription = imageDescription
-                    )
+                        imageDescription = imageDescription,
+                    ),
                 )
             }
             list.add(
@@ -95,8 +95,8 @@ class ChatRepository(context: Context) {
                     name = name,
                     messages = messages,
                     createdAt = createdAt,
-                    updatedAt = updatedAt
-                )
+                    updatedAt = updatedAt,
+                ),
             )
         }
         return list

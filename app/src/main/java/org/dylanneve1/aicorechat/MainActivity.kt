@@ -42,7 +42,7 @@ class MainActivity : ComponentActivity() {
             AICoreChatTheme {
                 Surface(
                     modifier = Modifier.fillMaxSize(),
-                    color = MaterialTheme.colorScheme.background
+                    color = MaterialTheme.colorScheme.background,
                 ) {
                     var supportStatus by remember { mutableStateOf<DeviceSupportStatus?>(null) }
 
@@ -56,7 +56,7 @@ class MainActivity : ComponentActivity() {
                     var onboardingShown by remember {
                         mutableStateOf(
                             getSharedPreferences("AICoreChatPrefs", MODE_PRIVATE)
-                                .getBoolean("onboarding_shown", false)
+                                .getBoolean("onboarding_shown", false),
                         )
                     }
 
@@ -68,10 +68,10 @@ class MainActivity : ComponentActivity() {
                             MainScreen.Chat
                         }
                         is DeviceSupportStatus.AICoreMissing -> MainScreen.Unsupported(
-                            message = "AICore app is not installed."
+                            message = "AICore app is not installed.",
                         )
                         is DeviceSupportStatus.NotReady -> MainScreen.Unsupported(
-                            message = status.reason ?: "Device is not ready yet."
+                            message = status.reason ?: "Device is not ready yet.",
                         )
                     }
 
@@ -87,14 +87,14 @@ class MainActivity : ComponentActivity() {
                                 (
                                     slideInHorizontally(
                                         animationSpec = tween(durationMillis = 420),
-                                        initialOffsetX = { fullWidth -> direction * fullWidth }
+                                        initialOffsetX = { fullWidth -> direction * fullWidth },
                                     ) + fadeIn(animationSpec = tween(durationMillis = 240))
-                                ) togetherWith (
+                                    ) togetherWith (
                                     slideOutHorizontally(
                                         animationSpec = tween(durationMillis = 420),
-                                        targetOffsetX = { fullWidth -> -direction * fullWidth }
+                                        targetOffsetX = { fullWidth -> -direction * fullWidth },
                                     ) + fadeOut(animationSpec = tween(durationMillis = 200))
-                                )
+                                    )
                             } else {
                                 fadeIn(animationSpec = tween(durationMillis = 220)) togetherWith
                                     fadeOut(animationSpec = tween(durationMillis = 160))
@@ -102,13 +102,13 @@ class MainActivity : ComponentActivity() {
 
                             transition.using(SizeTransform(clip = false))
                         },
-                        label = "MainScreenTransition"
+                        label = "MainScreenTransition",
                     ) { screen ->
                         when (screen) {
                             MainScreen.Loading -> {
                                 Box(
                                     modifier = Modifier.fillMaxSize(),
-                                    contentAlignment = Alignment.Center
+                                    contentAlignment = Alignment.Center,
                                 ) { CircularProgressIndicator() }
                             }
 
@@ -119,7 +119,8 @@ class MainActivity : ComponentActivity() {
                                     onComplete = {
                                             name, personalEnabled, webSearchEnabled, multimodalEnabled,
                                             memoryContextEnabled, bioContextEnabled, bioName, bioAge,
-                                            bioOccupation, bioLocation, customInstructions, customInstructionsEnabled ->
+                                            bioOccupation, bioLocation, customInstructions, customInstructionsEnabled,
+                                        ->
                                         chatViewModel.updateUserName(name)
                                         chatViewModel.updatePersonalContextEnabled(personalEnabled)
                                         chatViewModel.updateWebSearchEnabled(webSearchEnabled)
@@ -131,7 +132,7 @@ class MainActivity : ComponentActivity() {
                                         getSharedPreferences("AICoreChatPrefs", MODE_PRIVATE)
                                             .edit().putBoolean("onboarding_shown", true).apply()
                                         onboardingShown = true
-                                    }
+                                    },
                                 )
                             }
 
@@ -141,7 +142,7 @@ class MainActivity : ComponentActivity() {
 
                             is MainScreen.Unsupported -> {
                                 UnsupportedDeviceScreen(
-                                    message = screen.message
+                                    message = screen.message,
                                 )
                             }
                         }

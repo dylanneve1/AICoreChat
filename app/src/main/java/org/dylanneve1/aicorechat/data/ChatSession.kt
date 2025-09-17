@@ -5,10 +5,10 @@ data class ChatSession(
     var name: String,
     val messages: MutableList<ChatMessage> = mutableListOf(),
     val createdAt: Long = System.currentTimeMillis(),
-    var updatedAt: Long = System.currentTimeMillis()
+    var updatedAt: Long = System.currentTimeMillis(),
 )
 
 data class ChatSessionMeta(
     val id: Long,
-    val name: String
+    val name: String,
 ) 

@@ -1,20 +1,22 @@
 package org.dylanneve1.aicorechat.ui.chat
 
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.expandVertically
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.shrinkVertically
-import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.text.KeyboardOptions
@@ -30,7 +32,6 @@ import androidx.compose.material.icons.outlined.Search
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
@@ -44,20 +45,13 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.ColorFilter
-import androidx.compose.ui.res.painterResource
-import androidx.compose.foundation.layout.size
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
-import androidx.activity.compose.rememberLauncherForActivityResult
-import androidx.activity.result.contract.ActivityResultContracts
-import androidx.compose.ui.platform.LocalContext
 import androidx.core.content.ContextCompat
-import org.dylanneve1.aicorechat.R
 import org.dylanneve1.aicorechat.ui.components.FeatureToggleCard
-import org.dylanneve1.aicorechat.ui.components.SectionHeaderCard
 
 @Composable
 fun OnboardingScreen(
@@ -75,8 +69,8 @@ fun OnboardingScreen(
         bioOccupation: String,
         bioLocation: String,
         customInstructions: String,
-        customInstructionsEnabled: Boolean
-    ) -> Unit
+        customInstructionsEnabled: Boolean,
+    ) -> Unit,
 ) {
     var name by remember { mutableStateOf(initialName) }
     var personalEnabled by remember { mutableStateOf(initialPersonalContextEnabled) }
@@ -93,7 +87,7 @@ fun OnboardingScreen(
 
     val context = LocalContext.current
     val permissionLauncher = rememberLauncherForActivityResult(
-        ActivityResultContracts.RequestMultiplePermissions()
+        ActivityResultContracts.RequestMultiplePermissions(),
     ) { _ -> }
 
     fun requestLocationIfNeeded() {
@@ -105,10 +99,10 @@ fun OnboardingScreen(
     }
 
     val scrollState = rememberScrollState()
-    
+
     Surface(
         modifier = Modifier.fillMaxSize(),
-        color = MaterialTheme.colorScheme.background
+        color = MaterialTheme.colorScheme.background,
     ) {
         Column(
             modifier = Modifier
@@ -116,28 +110,28 @@ fun OnboardingScreen(
                 .imePadding() // Add IME padding to handle keyboard
                 .verticalScroll(scrollState)
                 .padding(24.dp),
-            verticalArrangement = Arrangement.spacedBy(20.dp)
+            verticalArrangement = Arrangement.spacedBy(20.dp),
         ) {
             // Hero Section
             Card(
                 colors = CardDefaults.cardColors(
-                    containerColor = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.08f)
+                    containerColor = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.08f),
                 ),
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(top = 36.dp)
+                    .padding(top = 36.dp),
             ) {
                 Column(
                     horizontalAlignment = Alignment.CenterHorizontally,
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(32.dp)
+                        .padding(32.dp),
                 ) {
                     Icon(
                         imageVector = Icons.Outlined.RocketLaunch,
                         contentDescription = null,
                         tint = MaterialTheme.colorScheme.primary,
-                        modifier = Modifier.size(56.dp)
+                        modifier = Modifier.size(56.dp),
                     )
                     Spacer(modifier = Modifier.height(16.dp))
                     Text(
@@ -145,14 +139,14 @@ fun OnboardingScreen(
                         style = MaterialTheme.typography.headlineMedium,
                         fontWeight = FontWeight.Bold,
                         color = MaterialTheme.colorScheme.primary,
-                        textAlign = TextAlign.Center
+                        textAlign = TextAlign.Center,
                     )
                     Spacer(modifier = Modifier.height(12.dp))
                     Text(
                         text = "Experience private, on-device AI powered by Gemini Nano",
                         style = MaterialTheme.typography.bodyLarge,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        textAlign = TextAlign.Center
+                        textAlign = TextAlign.Center,
                     )
                 }
             }
@@ -160,16 +154,16 @@ fun OnboardingScreen(
             // Your Name Section
             Card(
                 colors = CardDefaults.cardColors(
-                    containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f)
+                    containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f),
                 ),
-                modifier = Modifier.fillMaxWidth()
+                modifier = Modifier.fillMaxWidth(),
             ) {
                 Column(modifier = Modifier.padding(20.dp)) {
                     Text(
                         text = "Let's get to know you",
                         style = MaterialTheme.typography.titleMedium,
                         fontWeight = FontWeight.SemiBold,
-                        color = MaterialTheme.colorScheme.primary
+                        color = MaterialTheme.colorScheme.primary,
                     )
                     Spacer(modifier = Modifier.height(16.dp))
                     OutlinedTextField(
@@ -183,9 +177,9 @@ fun OnboardingScreen(
                             Icon(
                                 imageVector = Icons.Outlined.Badge,
                                 contentDescription = null,
-                                tint = MaterialTheme.colorScheme.primary
+                                tint = MaterialTheme.colorScheme.primary,
                             )
-                        }
+                        },
                     )
                 }
             }
@@ -196,9 +190,9 @@ fun OnboardingScreen(
                 style = MaterialTheme.typography.titleSmall,
                 color = MaterialTheme.colorScheme.primary,
                 fontWeight = FontWeight.SemiBold,
-                modifier = Modifier.padding(start = 4.dp)
+                modifier = Modifier.padding(start = 4.dp),
             )
-            
+
             Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
                 FeatureToggleCard(
                     icon = Icons.Outlined.LocationOn,
@@ -208,7 +202,7 @@ fun OnboardingScreen(
                     onCheckedChange = { checked ->
                         if (checked) requestLocationIfNeeded()
                         personalEnabled = checked
-                    }
+                    },
                 )
 
                 FeatureToggleCard(
@@ -216,7 +210,7 @@ fun OnboardingScreen(
                     title = "Web Search",
                     description = "Search the web for current information",
                     checked = webSearchEnabled,
-                    onCheckedChange = { webSearchEnabled = it }
+                    onCheckedChange = { webSearchEnabled = it },
                 )
 
                 FeatureToggleCard(
@@ -224,7 +218,7 @@ fun OnboardingScreen(
                     title = "Image Analysis",
                     description = "Analyze and describe images you share",
                     checked = multimodalEnabled,
-                    onCheckedChange = { multimodalEnabled = it }
+                    onCheckedChange = { multimodalEnabled = it },
                 )
 
                 FeatureToggleCard(
@@ -232,7 +226,7 @@ fun OnboardingScreen(
                     title = "Memory Context",
                     description = "Use saved memories to personalize responses",
                     checked = memoryContextEnabled,
-                    onCheckedChange = { memoryContextEnabled = it }
+                    onCheckedChange = { memoryContextEnabled = it },
                 )
             }
 
@@ -243,9 +237,9 @@ fun OnboardingScreen(
                 style = MaterialTheme.typography.titleSmall,
                 color = MaterialTheme.colorScheme.primary,
                 fontWeight = FontWeight.SemiBold,
-                modifier = Modifier.padding(start = 4.dp)
+                modifier = Modifier.padding(start = 4.dp),
             )
-            
+
             // Bio Information Card
             Card(
                 colors = CardDefaults.cardColors(
@@ -253,14 +247,14 @@ fun OnboardingScreen(
                         MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.08f)
                     } else {
                         MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f)
-                    }
+                    },
                 ),
-                modifier = Modifier.fillMaxWidth()
+                modifier = Modifier.fillMaxWidth(),
             ) {
                 Column(modifier = Modifier.padding(20.dp)) {
                     Row(
                         verticalAlignment = Alignment.CenterVertically,
-                        modifier = Modifier.fillMaxWidth()
+                        modifier = Modifier.fillMaxWidth(),
                     ) {
                         Icon(
                             imageVector = Icons.Outlined.Badge,
@@ -270,35 +264,35 @@ fun OnboardingScreen(
                             } else {
                                 MaterialTheme.colorScheme.onSurfaceVariant
                             },
-                            modifier = Modifier.size(20.dp)
+                            modifier = Modifier.size(20.dp),
                         )
                         Spacer(modifier = Modifier.width(12.dp))
                         Column(modifier = Modifier.weight(1f)) {
                             Text(
                                 text = "Biographical Details",
                                 style = MaterialTheme.typography.titleSmall,
-                                fontWeight = FontWeight.SemiBold
+                                fontWeight = FontWeight.SemiBold,
                             )
                             Text(
                                 text = "Help the AI understand who you are",
                                 style = MaterialTheme.typography.bodySmall,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
                             )
                         }
                         Switch(
                             checked = bioContextEnabled,
-                            onCheckedChange = { bioContextEnabled = it }
+                            onCheckedChange = { bioContextEnabled = it },
                         )
                     }
 
                     AnimatedVisibility(
                         visible = bioContextEnabled,
                         enter = expandVertically() + fadeIn(),
-                        exit = shrinkVertically() + fadeOut()
+                        exit = shrinkVertically() + fadeOut(),
                     ) {
                         Column(
                             modifier = Modifier.padding(top = 20.dp),
-                            verticalArrangement = Arrangement.spacedBy(12.dp)
+                            verticalArrangement = Arrangement.spacedBy(12.dp),
                         ) {
                             OutlinedTextField(
                                 value = bioName,
@@ -306,7 +300,7 @@ fun OnboardingScreen(
                                 singleLine = true,
                                 label = { Text("Full Name") },
                                 placeholder = { Text("Your full name") },
-                                modifier = Modifier.fillMaxWidth()
+                                modifier = Modifier.fillMaxWidth(),
                             )
 
                             Row(modifier = Modifier.fillMaxWidth()) {
@@ -321,7 +315,7 @@ fun OnboardingScreen(
                                     label = { Text("Age") },
                                     placeholder = { Text("Age") },
                                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                                    modifier = Modifier.weight(1f)
+                                    modifier = Modifier.weight(1f),
                                 )
                                 Spacer(modifier = Modifier.width(12.dp))
                                 OutlinedTextField(
@@ -330,7 +324,7 @@ fun OnboardingScreen(
                                     singleLine = true,
                                     label = { Text("Occupation") },
                                     placeholder = { Text("Your job/role") },
-                                    modifier = Modifier.weight(2f)
+                                    modifier = Modifier.weight(2f),
                                 )
                             }
 
@@ -340,7 +334,7 @@ fun OnboardingScreen(
                                 singleLine = true,
                                 label = { Text("Location") },
                                 placeholder = { Text("City, Country") },
-                                modifier = Modifier.fillMaxWidth()
+                                modifier = Modifier.fillMaxWidth(),
                             )
                         }
                     }
@@ -354,14 +348,14 @@ fun OnboardingScreen(
                         MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.08f)
                     } else {
                         MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f)
-                    }
+                    },
                 ),
-                modifier = Modifier.fillMaxWidth()
+                modifier = Modifier.fillMaxWidth(),
             ) {
                 Column(modifier = Modifier.padding(20.dp)) {
                     Row(
                         verticalAlignment = Alignment.CenterVertically,
-                        modifier = Modifier.fillMaxWidth()
+                        modifier = Modifier.fillMaxWidth(),
                     ) {
                         Icon(
                             imageVector = Icons.Outlined.Psychology,
@@ -371,31 +365,31 @@ fun OnboardingScreen(
                             } else {
                                 MaterialTheme.colorScheme.onSurfaceVariant
                             },
-                            modifier = Modifier.size(20.dp)
+                            modifier = Modifier.size(20.dp),
                         )
                         Spacer(modifier = Modifier.width(12.dp))
                         Column(modifier = Modifier.weight(1f)) {
                             Text(
                                 text = "Response Style",
                                 style = MaterialTheme.typography.titleSmall,
-                                fontWeight = FontWeight.SemiBold
+                                fontWeight = FontWeight.SemiBold,
                             )
                             Text(
                                 text = "Customize how the AI communicates",
                                 style = MaterialTheme.typography.bodySmall,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
                             )
                         }
                         Switch(
                             checked = customInstructionsEnabled,
-                            onCheckedChange = { customInstructionsEnabled = it }
+                            onCheckedChange = { customInstructionsEnabled = it },
                         )
                     }
 
                     AnimatedVisibility(
                         visible = customInstructionsEnabled,
                         enter = expandVertically() + fadeIn(),
-                        exit = shrinkVertically() + fadeOut()
+                        exit = shrinkVertically() + fadeOut(),
                     ) {
                         OutlinedTextField(
                             value = customInstructions,
@@ -410,9 +404,9 @@ fun OnboardingScreen(
                             supportingText = {
                                 Text(
                                     text = "${customInstructions.length} characters",
-                                    style = MaterialTheme.typography.bodySmall
+                                    style = MaterialTheme.typography.bodySmall,
                                 )
-                            }
+                            },
                         )
                     }
                 }
@@ -420,7 +414,7 @@ fun OnboardingScreen(
 
             // Action Buttons
             Spacer(modifier = Modifier.height(8.dp))
-            
+
             Button(
                 onClick = {
                     if (personalEnabled) requestLocationIfNeeded()
@@ -436,34 +430,34 @@ fun OnboardingScreen(
                         bioOccupation.trim(),
                         bioLocation.trim(),
                         customInstructions.trim(),
-                        customInstructionsEnabled
+                        customInstructionsEnabled,
                     )
                 },
                 modifier = Modifier
                     .fillMaxWidth()
                     .height(56.dp),
-                enabled = name.isNotBlank()
+                enabled = name.isNotBlank(),
             ) {
                 Icon(
                     imageVector = Icons.Outlined.RocketLaunch,
                     contentDescription = null,
-                    modifier = Modifier.size(20.dp)
+                    modifier = Modifier.size(20.dp),
                 )
                 Spacer(modifier = Modifier.width(8.dp))
                 Text(
                     text = "Start Chatting",
                     style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.SemiBold
+                    fontWeight = FontWeight.SemiBold,
                 )
             }
-            
+
             // Privacy Note
             Text(
                 text = "All data stays on your device. You can change these settings anytime.",
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 textAlign = TextAlign.Center,
-                modifier = Modifier.padding(vertical = 16.dp)
+                modifier = Modifier.padding(vertical = 16.dp),
             )
         }
     }

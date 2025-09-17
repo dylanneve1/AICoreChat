@@ -19,40 +19,30 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.outlined.ArrowBack
 import androidx.compose.material.icons.outlined.Badge
 import androidx.compose.material.icons.outlined.CameraAlt
-import androidx.compose.material.icons.outlined.Edit
-import androidx.compose.material.icons.outlined.Image
 import androidx.compose.material.icons.outlined.LocationOn
 import androidx.compose.material.icons.outlined.Memory
 import androidx.compose.material.icons.outlined.Person
 import androidx.compose.material.icons.outlined.Psychology
 import androidx.compose.material.icons.outlined.Search
-import androidx.compose.material.icons.outlined.Settings
-import androidx.compose.material.icons.outlined.Visibility
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.focus.FocusRequester
-import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
-import kotlinx.coroutines.delay
-import kotlinx.coroutines.launch
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
 import org.dylanneve1.aicorechat.ui.components.FeatureToggleCard
 import org.dylanneve1.aicorechat.ui.components.SectionHeaderCard
 
@@ -84,26 +74,26 @@ fun PersonalizationScreen(
     // Custom instructions
     customInstructions: String,
     onCustomInstructionsChange: (String) -> Unit,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
 ) {
     val scrollState = rememberScrollState()
     val coroutineScope = rememberCoroutineScope()
     val keyboardController = LocalSoftwareKeyboardController.current
-    
+
     Column(
         modifier = modifier
             .fillMaxWidth()
             .imePadding() // Add IME padding to handle keyboard
             .verticalScroll(scrollState)
             .padding(horizontal = 16.dp, vertical = 8.dp),
-        verticalArrangement = Arrangement.spacedBy(16.dp)
+        verticalArrangement = Arrangement.spacedBy(16.dp),
     ) {
         // Main Header
         SectionHeaderCard(
             icon = Icons.Outlined.Person,
             title = "Personalization",
             description = "Customize how the AI understands and responds to you",
-            modifier = Modifier.padding(bottom = 8.dp)
+            modifier = Modifier.padding(bottom = 8.dp),
         )
 
         // AI Capabilities Section
@@ -112,16 +102,16 @@ fun PersonalizationScreen(
             style = MaterialTheme.typography.titleSmall,
             color = MaterialTheme.colorScheme.primary,
             fontWeight = FontWeight.SemiBold,
-            modifier = Modifier.padding(start = 4.dp)
+            modifier = Modifier.padding(start = 4.dp),
         )
-        
+
         Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
             FeatureToggleCard(
                 icon = Icons.Outlined.LocationOn,
                 title = "Personal Context",
                 description = "Share time, device info, and location for contextual responses",
                 checked = personalContextEnabled,
-                onCheckedChange = onPersonalContextToggle
+                onCheckedChange = onPersonalContextToggle,
             )
 
             FeatureToggleCard(
@@ -129,7 +119,7 @@ fun PersonalizationScreen(
                 title = "Web Search",
                 description = "Allow searching the web for current information",
                 checked = webSearchEnabled,
-                onCheckedChange = onWebSearchToggle
+                onCheckedChange = onWebSearchToggle,
             )
 
             FeatureToggleCard(
@@ -137,7 +127,7 @@ fun PersonalizationScreen(
                 title = "Image Analysis",
                 description = "Enable AI to analyze and describe images",
                 checked = multimodalEnabled,
-                onCheckedChange = onMultimodalToggle
+                onCheckedChange = onMultimodalToggle,
             )
 
             FeatureToggleCard(
@@ -145,7 +135,7 @@ fun PersonalizationScreen(
                 title = "Memory Context",
                 description = "Use saved memories to personalize responses",
                 checked = memoryContextEnabled,
-                onCheckedChange = onMemoryContextToggle
+                onCheckedChange = onMemoryContextToggle,
             )
         }
 
@@ -155,9 +145,9 @@ fun PersonalizationScreen(
             style = MaterialTheme.typography.titleSmall,
             color = MaterialTheme.colorScheme.primary,
             fontWeight = FontWeight.SemiBold,
-            modifier = Modifier.padding(start = 4.dp, top = 8.dp)
+            modifier = Modifier.padding(start = 4.dp, top = 8.dp),
         )
-        
+
         // Bio Information Card
         Card(
             colors = CardDefaults.cardColors(
@@ -165,14 +155,14 @@ fun PersonalizationScreen(
                     MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.08f)
                 } else {
                     MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f)
-                }
+                },
             ),
-            modifier = Modifier.fillMaxWidth()
+            modifier = Modifier.fillMaxWidth(),
         ) {
             Column(modifier = Modifier.padding(20.dp)) {
                 Row(
                     verticalAlignment = Alignment.CenterVertically,
-                    modifier = Modifier.fillMaxWidth()
+                    modifier = Modifier.fillMaxWidth(),
                 ) {
                     androidx.compose.material3.Icon(
                         imageVector = Icons.Outlined.Badge,
@@ -182,35 +172,35 @@ fun PersonalizationScreen(
                         } else {
                             MaterialTheme.colorScheme.onSurfaceVariant
                         },
-                        modifier = Modifier.size(20.dp)
+                        modifier = Modifier.size(20.dp),
                     )
                     Spacer(modifier = Modifier.width(12.dp))
                     Column(modifier = Modifier.weight(1f)) {
                         Text(
                             text = "Biographical Details",
                             style = MaterialTheme.typography.titleSmall,
-                            fontWeight = FontWeight.SemiBold
+                            fontWeight = FontWeight.SemiBold,
                         )
                         Text(
                             text = "Help the AI understand who you are",
                             style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
                         )
                     }
                     Switch(
                         checked = bioContextEnabled,
-                        onCheckedChange = onBioContextToggle
+                        onCheckedChange = onBioContextToggle,
                     )
                 }
 
                 AnimatedVisibility(
                     visible = bioContextEnabled,
                     enter = expandVertically() + fadeIn(),
-                    exit = shrinkVertically() + fadeOut()
+                    exit = shrinkVertically() + fadeOut(),
                 ) {
                     Column(
                         modifier = Modifier.padding(top = 16.dp),
-                        verticalArrangement = Arrangement.spacedBy(12.dp)
+                        verticalArrangement = Arrangement.spacedBy(12.dp),
                     ) {
                         OutlinedTextField(
                             value = userName,
@@ -218,12 +208,12 @@ fun PersonalizationScreen(
                             label = { Text("Preferred Name") },
                             placeholder = { Text("How should I address you?") },
                             singleLine = true,
-                            modifier = Modifier.fillMaxWidth()
+                            modifier = Modifier.fillMaxWidth(),
                         )
 
                         Row(
                             modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.spacedBy(12.dp)
+                            horizontalArrangement = Arrangement.spacedBy(12.dp),
                         ) {
                             OutlinedTextField(
                                 value = bioAge,
@@ -232,16 +222,16 @@ fun PersonalizationScreen(
                                 placeholder = { Text("Optional") },
                                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                                 singleLine = true,
-                                modifier = Modifier.weight(1f)
+                                modifier = Modifier.weight(1f),
                             )
-                            
+
                             OutlinedTextField(
                                 value = bioLocation,
                                 onValueChange = onBioLocationChange,
                                 label = { Text("Location") },
                                 placeholder = { Text("City, Country") },
                                 singleLine = true,
-                                modifier = Modifier.weight(2f)
+                                modifier = Modifier.weight(2f),
                             )
                         }
 
@@ -251,7 +241,7 @@ fun PersonalizationScreen(
                             label = { Text("Occupation") },
                             placeholder = { Text("What do you do? (Optional)") },
                             singleLine = true,
-                            modifier = Modifier.fillMaxWidth()
+                            modifier = Modifier.fillMaxWidth(),
                         )
                     }
                 }
@@ -265,14 +255,14 @@ fun PersonalizationScreen(
                     MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.08f)
                 } else {
                     MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f)
-                }
+                },
             ),
-            modifier = Modifier.fillMaxWidth()
+            modifier = Modifier.fillMaxWidth(),
         ) {
             Column(modifier = Modifier.padding(20.dp)) {
                 Row(
                     verticalAlignment = Alignment.CenterVertically,
-                    modifier = Modifier.fillMaxWidth()
+                    modifier = Modifier.fillMaxWidth(),
                 ) {
                     androidx.compose.material3.Icon(
                         imageVector = Icons.Outlined.Psychology,
@@ -282,31 +272,31 @@ fun PersonalizationScreen(
                         } else {
                             MaterialTheme.colorScheme.onSurfaceVariant
                         },
-                        modifier = Modifier.size(20.dp)
+                        modifier = Modifier.size(20.dp),
                     )
                     Spacer(modifier = Modifier.width(12.dp))
                     Column(modifier = Modifier.weight(1f)) {
                         Text(
                             text = "Response Style",
                             style = MaterialTheme.typography.titleSmall,
-                            fontWeight = FontWeight.SemiBold
+                            fontWeight = FontWeight.SemiBold,
                         )
                         Text(
                             text = "Define how the AI should communicate",
                             style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
                         )
                     }
                     Switch(
                         checked = customInstructionsEnabled,
-                        onCheckedChange = onCustomInstructionsToggle
+                        onCheckedChange = onCustomInstructionsToggle,
                     )
                 }
 
                 AnimatedVisibility(
                     visible = customInstructionsEnabled,
                     enter = expandVertically() + fadeIn(),
-                    exit = shrinkVertically() + fadeOut()
+                    exit = shrinkVertically() + fadeOut(),
                 ) {
                     OutlinedTextField(
                         value = customInstructions,
@@ -330,14 +320,14 @@ fun PersonalizationScreen(
                         supportingText = {
                             Text(
                                 text = "${customInstructions.length} characters",
-                                style = MaterialTheme.typography.bodySmall
+                                style = MaterialTheme.typography.bodySmall,
                             )
-                        }
+                        },
                     )
                 }
             }
         }
-        
+
         Spacer(modifier = Modifier.height(24.dp))
     }
 }

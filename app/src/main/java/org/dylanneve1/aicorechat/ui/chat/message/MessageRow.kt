@@ -1,6 +1,14 @@
 package org.dylanneve1.aicorechat.ui.chat.message
 
+import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.animateContentSize
+import androidx.compose.animation.core.LinearEasing
+import androidx.compose.animation.core.animateFloat
+import androidx.compose.animation.core.infiniteRepeatable
+import androidx.compose.animation.core.rememberInfiniteTransition
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Arrangement
@@ -14,67 +22,63 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.layout.wrapContentWidth
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Search
+import androidx.compose.material.icons.outlined.Person
+import androidx.compose.material.icons.outlined.SmartToy
+import androidx.compose.material3.Icon
+import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Text
 import androidx.compose.material3.Surface
+import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.alpha
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.scale
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.ClipboardManager
 import androidx.compose.ui.platform.LocalClipboardManager
 import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.unit.dp
-import org.dylanneve1.aicorechat.data.ChatMessage
-import com.mikepenz.markdown.m3.Markdown
-import coil.compose.AsyncImage
 import androidx.core.net.toUri
-import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.ui.draw.clip
-import androidx.compose.ui.layout.ContentScale
-import androidx.compose.foundation.background
-import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.material3.Icon
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.outlined.Person
-import androidx.compose.material.icons.outlined.SmartToy
-import androidx.compose.material.icons.filled.Search
-import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.material3.LinearProgressIndicator
-import androidx.compose.animation.core.animateFloat
-import androidx.compose.animation.core.infiniteRepeatable
-import androidx.compose.animation.core.rememberInfiniteTransition
-import androidx.compose.animation.core.tween
-import androidx.compose.animation.fadeIn
-import androidx.compose.animation.fadeOut
-import androidx.compose.animation.AnimatedVisibility
-import androidx.compose.runtime.getValue
-import androidx.compose.ui.draw.alpha
-import androidx.compose.ui.draw.scale
-import androidx.compose.animation.core.LinearEasing
+import coil.compose.AsyncImage
+import com.mikepenz.markdown.m3.Markdown
+import org.dylanneve1.aicorechat.data.ChatMessage
 
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
 fun MessageRow(
     message: ChatMessage,
     onCopy: (String) -> Unit,
-    isSearching: Boolean = false
+    isSearching: Boolean = false,
 ) {
     val clipboard: ClipboardManager = LocalClipboardManager.current
 
     Row(
         modifier = Modifier.fillMaxWidth(),
         horizontalArrangement = if (message.isFromUser) Arrangement.End else Arrangement.Start,
-        verticalAlignment = Alignment.Bottom
+        verticalAlignment = Alignment.Bottom,
     ) {
         if (!message.isFromUser) {
             AssistantAvatar()
             Spacer(Modifier.width(8.dp))
         }
 
-        val bubbleColor = if (message.isFromUser) MaterialTheme.colorScheme.primary
-        else MaterialTheme.colorScheme.surfaceContainerHigh
-        val contentColor = if (message.isFromUser) MaterialTheme.colorScheme.onPrimary
-        else MaterialTheme.colorScheme.onSurface
+        val bubbleColor = if (message.isFromUser) {
+            MaterialTheme.colorScheme.primary
+        } else {
+            MaterialTheme.colorScheme.surfaceContainerHigh
+        }
+        val contentColor = if (message.isFromUser) {
+            MaterialTheme.colorScheme.onPrimary
+        } else {
+            MaterialTheme.colorScheme.onSurface
+        }
 
         // Stack the (optional) image above the bubble for user messages
         Column(horizontalAlignment = Alignment.End) {
@@ -85,13 +89,13 @@ fun MessageRow(
                     color = MaterialTheme.colorScheme.surfaceVariant,
                     modifier = Modifier
                         .size(154.dp)
-                        .padding(bottom = 8.dp)
+                        .padding(bottom = 8.dp),
                 ) {
                     AsyncImage(
                         model = message.imageUri.toUri(),
                         contentDescription = null,
                         contentScale = ContentScale.Crop,
-                        modifier = Modifier.fillMaxWidth()
+                        modifier = Modifier.fillMaxWidth(),
                     )
                 }
             }
@@ -109,11 +113,11 @@ fun MessageRow(
                                 clipboard.setText(AnnotatedString(message.text))
                                 onCopy(message.text)
                             }
-                        }
-                    )
+                        },
+                    ),
             ) {
                 Column(
-                    modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp)
+                    modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp),
                 ) {
                     if (message.isStreaming && message.text.isBlank()) {
                         if (isSearching) SearchingIndicator(contentColor) else TypingIndicator(contentColor)
@@ -122,14 +126,14 @@ fun MessageRow(
                             Text(
                                 text = message.text,
                                 color = contentColor,
-                                style = MaterialTheme.typography.bodyLarge
+                                style = MaterialTheme.typography.bodyLarge,
                             )
                         } else {
                             Markdown(
                                 content = message.text,
                                 modifier = Modifier
                                     .wrapContentWidth()
-                                    .widthIn(max = 320.dp)
+                                    .widthIn(max = 320.dp),
                             )
                         }
                     }
@@ -149,14 +153,14 @@ private fun AssistantAvatar() {
     Surface(
         modifier = Modifier.size(32.dp),
         shape = CircleShape,
-        color = MaterialTheme.colorScheme.primaryContainer
+        color = MaterialTheme.colorScheme.primaryContainer,
     ) {
         Box(contentAlignment = Alignment.Center) {
             Icon(
                 imageVector = Icons.Outlined.SmartToy,
                 contentDescription = "AI Assistant",
                 tint = MaterialTheme.colorScheme.onPrimaryContainer,
-                modifier = Modifier.size(20.dp)
+                modifier = Modifier.size(20.dp),
             )
         }
     }
@@ -167,14 +171,14 @@ private fun UserAvatar() {
     Surface(
         modifier = Modifier.size(32.dp),
         shape = CircleShape,
-        color = MaterialTheme.colorScheme.secondaryContainer
+        color = MaterialTheme.colorScheme.secondaryContainer,
     ) {
         Box(contentAlignment = Alignment.Center) {
             Icon(
                 imageVector = Icons.Outlined.Person,
                 contentDescription = "User",
                 tint = MaterialTheme.colorScheme.onSecondaryContainer,
-                modifier = Modifier.size(20.dp)
+                modifier = Modifier.size(20.dp),
             )
         }
     }
@@ -183,31 +187,31 @@ private fun UserAvatar() {
 @Composable
 private fun SearchingIndicator(tint: androidx.compose.ui.graphics.Color) {
     val infiniteTransition = rememberInfiniteTransition(label = "search_animation")
-    
+
     val scale by infiniteTransition.animateFloat(
         initialValue = 0.9f,
         targetValue = 1.1f,
         animationSpec = infiniteRepeatable(
             animation = tween(1000, easing = LinearEasing),
-            repeatMode = androidx.compose.animation.core.RepeatMode.Reverse
+            repeatMode = androidx.compose.animation.core.RepeatMode.Reverse,
         ),
-        label = "search_scale"
+        label = "search_scale",
     )
-    
+
     val alpha by infiniteTransition.animateFloat(
         initialValue = 0.6f,
         targetValue = 1f,
         animationSpec = infiniteRepeatable(
             animation = tween(800, easing = LinearEasing),
-            repeatMode = androidx.compose.animation.core.RepeatMode.Reverse
+            repeatMode = androidx.compose.animation.core.RepeatMode.Reverse,
         ),
-        label = "search_alpha"
+        label = "search_alpha",
     )
-    
+
     Row(
         horizontalArrangement = Arrangement.spacedBy(8.dp),
         verticalAlignment = Alignment.CenterVertically,
-        modifier = Modifier.padding(vertical = 4.dp)
+        modifier = Modifier.padding(vertical = 4.dp),
     ) {
         Icon(
             Icons.Filled.Search,
@@ -216,31 +220,31 @@ private fun SearchingIndicator(tint: androidx.compose.ui.graphics.Color) {
                 .size(18.dp)
                 .scale(scale)
                 .alpha(alpha),
-            tint = tint
+            tint = tint,
         )
-        
+
         Column {
             AnimatedVisibility(
                 visible = true,
                 enter = fadeIn(animationSpec = tween(300)),
-                exit = fadeOut(animationSpec = tween(300))
+                exit = fadeOut(animationSpec = tween(300)),
             ) {
                 Text(
                     "Searching the web...",
                     style = MaterialTheme.typography.bodyMedium,
                     color = tint,
-                    modifier = Modifier.alpha(alpha)
+                    modifier = Modifier.alpha(alpha),
                 )
             }
-            
+
             Spacer(Modifier.size(2.dp))
-            
+
             LinearProgressIndicator(
                 modifier = Modifier
                     .width(120.dp)
                     .clip(RoundedCornerShape(2.dp)),
                 color = tint,
-                trackColor = tint.copy(alpha = 0.2f)
+                trackColor = tint.copy(alpha = 0.2f),
             )
         }
     }
@@ -249,11 +253,11 @@ private fun SearchingIndicator(tint: androidx.compose.ui.graphics.Color) {
 @Composable
 private fun TypingIndicator(tint: androidx.compose.ui.graphics.Color) {
     val infiniteTransition = rememberInfiniteTransition(label = "typing_animation")
-    
+
     Row(
         horizontalArrangement = Arrangement.spacedBy(4.dp),
         verticalAlignment = Alignment.CenterVertically,
-        modifier = Modifier.padding(vertical = 8.dp, horizontal = 4.dp)
+        modifier = Modifier.padding(vertical = 8.dp, horizontal = 4.dp),
     ) {
         repeat(3) { index ->
             val delay = index * 100
@@ -264,13 +268,13 @@ private fun TypingIndicator(tint: androidx.compose.ui.graphics.Color) {
                     animation = tween(
                         durationMillis = 600,
                         delayMillis = delay,
-                        easing = LinearEasing
+                        easing = LinearEasing,
                     ),
-                    repeatMode = androidx.compose.animation.core.RepeatMode.Reverse
+                    repeatMode = androidx.compose.animation.core.RepeatMode.Reverse,
                 ),
-                label = "dot_alpha_$index"
+                label = "dot_alpha_$index",
             )
-            
+
             val scale by infiniteTransition.animateFloat(
                 initialValue = 0.8f,
                 targetValue = 1.2f,
@@ -278,20 +282,20 @@ private fun TypingIndicator(tint: androidx.compose.ui.graphics.Color) {
                     animation = tween(
                         durationMillis = 600,
                         delayMillis = delay,
-                        easing = LinearEasing
+                        easing = LinearEasing,
                     ),
-                    repeatMode = androidx.compose.animation.core.RepeatMode.Reverse
+                    repeatMode = androidx.compose.animation.core.RepeatMode.Reverse,
                 ),
-                label = "dot_scale_$index"
+                label = "dot_scale_$index",
             )
-            
+
             Surface(
                 modifier = Modifier
                     .size(6.dp)
                     .scale(scale)
                     .alpha(alpha),
                 shape = CircleShape,
-                color = tint
+                color = tint,
             ) {}
         }
     }

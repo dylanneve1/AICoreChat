@@ -185,8 +185,8 @@ class MemoryRepository(context: Context) {
                     isEnabled = o.optBoolean("isEnabled", true),
                     createdAt = o.optLong("createdAt", System.currentTimeMillis()),
                     updatedAt = o.optLong("updatedAt", System.currentTimeMillis()),
-                    category = o.optString("category", "General")
-                )
+                    category = o.optString("category", "General"),
+                ),
             )
         }
         return list
@@ -204,8 +204,8 @@ class MemoryRepository(context: Context) {
                     isEnabled = o.optBoolean("isEnabled", true),
                     createdAt = o.optLong("createdAt", System.currentTimeMillis()),
                     updatedAt = o.optLong("updatedAt", System.currentTimeMillis()),
-                    lastAccessed = o.optLong("lastAccessed", System.currentTimeMillis())
-                )
+                    lastAccessed = o.optLong("lastAccessed", System.currentTimeMillis()),
+                ),
             )
         }
         return list
@@ -253,8 +253,8 @@ class MemoryRepository(context: Context) {
                     BioRelationship(
                         name = relObj.getString("name"),
                         relationship = relObj.getString("relationship"),
-                        details = relObj.optString("details")
-                    )
+                        details = relObj.optString("details"),
+                    ),
                 )
             }
 
@@ -278,7 +278,7 @@ class MemoryRepository(context: Context) {
                 relationships = relationships,
                 achievements = achievements,
                 createdAt = o.optLong("createdAt", System.currentTimeMillis()),
-                updatedAt = o.optLong("updatedAt", System.currentTimeMillis())
+                updatedAt = o.optLong("updatedAt", System.currentTimeMillis()),
             )
         } catch (e: Exception) {
             null

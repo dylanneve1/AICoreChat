@@ -7,7 +7,7 @@ data class ChatMessage(
     val isStreaming: Boolean = false,
     val timestamp: Long = System.currentTimeMillis(),
     val imageUri: String? = null,
-    val imageDescription: String? = null
+    val imageDescription: String? = null,
 )
 
 data class ChatUiState(
@@ -40,5 +40,5 @@ data class ChatUiState(
     val memorySearchQuery: String = "",
     val selectedMemoryCategory: MemoryCategory? = null,
     val isMemoryLoading: Boolean = false,
-    val memoryError: String? = null
+    val memoryError: String? = null,
 )

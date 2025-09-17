@@ -11,21 +11,19 @@ import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.outlined.Add
 import androidx.compose.material.icons.automirrored.outlined.ArrowBack
+import androidx.compose.material.icons.outlined.Add
 import androidx.compose.material.icons.outlined.Delete
 import androidx.compose.material.icons.outlined.Edit
 import androidx.compose.material.icons.outlined.Memory
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -52,7 +50,7 @@ fun MemoryManagementScreen(
     onUpdateMemory: (MemoryEntry) -> Unit,
     onDeleteMemory: (String) -> Unit,
     onToggleMemory: (String) -> Unit,
-    onDismiss: () -> Unit
+    onDismiss: () -> Unit,
 ) {
     var showDialog by remember { mutableStateOf(false) }
     var editingMemory by remember { mutableStateOf<MemoryEntry?>(null) }
@@ -66,7 +64,7 @@ fun MemoryManagementScreen(
                         IconButton(onClick = onDismiss) {
                             Icon(Icons.AutoMirrored.Outlined.ArrowBack, contentDescription = "Back")
                         }
-                    }
+                    },
                 )
             },
             floatingActionButton = {
@@ -75,24 +73,24 @@ fun MemoryManagementScreen(
                         editingMemory = null
                         showDialog = true
                     },
-                    modifier = Modifier.padding(16.dp)
+                    modifier = Modifier.padding(16.dp),
                 ) {
                     Icon(Icons.Outlined.Add, contentDescription = "Add Memory")
                 }
-            }
+            },
         ) { innerPadding ->
             Column(
                 modifier = Modifier
                     .padding(innerPadding)
                     .padding(horizontal = 16.dp)
-                    .padding(vertical = 8.dp)
+                    .padding(vertical = 8.dp),
             ) {
                 // Header using SectionHeaderCard for consistency
                 org.dylanneve1.aicorechat.ui.components.SectionHeaderCard(
                     icon = Icons.Outlined.Memory,
                     title = "Memory Entries",
                     description = "${memoryEntries.size} ${if (memoryEntries.size == 1) "entry" else "entries"} stored",
-                    modifier = Modifier.padding(bottom = 16.dp)
+                    modifier = Modifier.padding(bottom = 16.dp),
                 )
 
                 if (memoryEntries.isEmpty()) {
@@ -100,12 +98,12 @@ fun MemoryManagementScreen(
                         icon = Icons.Outlined.Memory,
                         title = "No Memories Yet",
                         description = "Add memory entries to help the AI remember important information about you",
-                        modifier = Modifier.padding(vertical = 48.dp)
+                        modifier = Modifier.padding(vertical = 48.dp),
                     )
                 } else {
                     LazyColumn(
                         modifier = Modifier.fillMaxSize(),
-                        verticalArrangement = Arrangement.spacedBy(12.dp)
+                        verticalArrangement = Arrangement.spacedBy(12.dp),
                     ) {
                         items(memoryEntries, key = { it.id }) { memory ->
                             MemoryCard(
@@ -115,7 +113,7 @@ fun MemoryManagementScreen(
                                     editingMemory = memory
                                     showDialog = true
                                 },
-                                onDelete = { onDeleteMemory(memory.id) }
+                                onDelete = { onDeleteMemory(memory.id) },
                             )
                         }
                         item {
@@ -141,7 +139,7 @@ fun MemoryManagementScreen(
                     // Update existing memory
                     val updatedMemory = editingMemory!!.copy(
                         content = content,
-                        updatedAt = System.currentTimeMillis()
+                        updatedAt = System.currentTimeMillis(),
                     )
                     onUpdateMemory(updatedMemory)
                 } else {
@@ -150,7 +148,7 @@ fun MemoryManagementScreen(
                 }
                 showDialog = false
                 editingMemory = null
-            }
+            },
         )
     }
 }
@@ -160,7 +158,7 @@ private fun MemoryCard(
     memory: MemoryEntry,
     onToggle: () -> Unit,
     onEdit: () -> Unit,
-    onDelete: () -> Unit
+    onDelete: () -> Unit,
 ) {
     val dateFormat = java.text.SimpleDateFormat("MMM d, yyyy", java.util.Locale.getDefault())
 
@@ -171,19 +169,19 @@ private fun MemoryCard(
                 MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.12f)
             } else {
                 MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f)
-            }
+            },
         ),
-        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
+        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
     ) {
         Column(modifier = Modifier.padding(20.dp)) {
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.Top
+                verticalAlignment = Alignment.Top,
             ) {
                 Row(
                     modifier = Modifier.weight(1f),
-                    verticalAlignment = Alignment.Top
+                    verticalAlignment = Alignment.Top,
                 ) {
                     Icon(
                         imageVector = Icons.Outlined.Memory,
@@ -195,7 +193,7 @@ private fun MemoryCard(
                         },
                         modifier = Modifier
                             .size(20.dp)
-                            .padding(top = 2.dp)
+                            .padding(top = 2.dp),
                     )
                     Spacer(modifier = Modifier.width(12.dp))
                     Column(modifier = Modifier.weight(1f)) {
@@ -207,13 +205,13 @@ private fun MemoryCard(
                             } else {
                                 MaterialTheme.colorScheme.onSurfaceVariant
                             },
-                            modifier = Modifier.padding(bottom = 8.dp)
+                            modifier = Modifier.padding(bottom = 8.dp),
                         )
 
                         Text(
                             text = dateFormat.format(java.util.Date(memory.updatedAt)),
                             style = MaterialTheme.typography.labelSmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f)
+                            color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f),
                         )
                     }
                 }
@@ -222,7 +220,7 @@ private fun MemoryCard(
                     androidx.compose.material3.Switch(
                         checked = memory.isEnabled,
                         onCheckedChange = { onToggle() },
-                        modifier = Modifier.padding(bottom = 8.dp)
+                        modifier = Modifier.padding(bottom = 8.dp),
                     )
                     Row {
                         androidx.compose.material3.IconButton(onClick = onEdit, modifier = Modifier.size(32.dp)) {
@@ -234,7 +232,7 @@ private fun MemoryCard(
                                 } else {
                                     MaterialTheme.colorScheme.onSurfaceVariant
                                 },
-                                modifier = Modifier.size(18.dp)
+                                modifier = Modifier.size(18.dp),
                             )
                         }
                         androidx.compose.material3.IconButton(onClick = onDelete, modifier = Modifier.size(32.dp)) {
@@ -242,7 +240,7 @@ private fun MemoryCard(
                                 Icons.Outlined.Delete,
                                 contentDescription = "Delete",
                                 tint = MaterialTheme.colorScheme.error,
-                                modifier = Modifier.size(18.dp)
+                                modifier = Modifier.size(18.dp),
                             )
                         }
                     }
@@ -252,12 +250,11 @@ private fun MemoryCard(
     }
 }
 
-
 @Composable
 private fun MemoryDialog(
     editingMemory: MemoryEntry?,
     onDismiss: () -> Unit,
-    onConfirm: (String) -> Unit
+    onConfirm: (String) -> Unit,
 ) {
     var memoryContent by remember(editingMemory) {
         mutableStateOf(editingMemory?.content ?: "")
@@ -267,18 +264,18 @@ private fun MemoryDialog(
     androidx.compose.ui.window.Dialog(onDismissRequest = onDismiss) {
         androidx.compose.material3.Surface(
             shape = MaterialTheme.shapes.large,
-            modifier = Modifier.fillMaxWidth()
+            modifier = Modifier.fillMaxWidth(),
         ) {
             Column(
                 modifier = Modifier
                     .padding(24.dp)
                     .verticalScroll(rememberScrollState())
-                    .heightIn(max = 600.dp)
+                    .heightIn(max = 600.dp),
             ) {
                 Text(
                     text = if (editingMemory != null) "Edit Memory" else "Add Memory",
                     style = MaterialTheme.typography.headlineSmall,
-                    fontWeight = FontWeight.SemiBold
+                    fontWeight = FontWeight.SemiBold,
                 )
 
                 Spacer(modifier = Modifier.height(20.dp))
@@ -290,14 +287,14 @@ private fun MemoryDialog(
                     placeholder = { Text("What should the AI remember about you?") },
                     minLines = 4,
                     maxLines = 8,
-                    modifier = Modifier.fillMaxWidth()
+                    modifier = Modifier.fillMaxWidth(),
                 )
 
                 Spacer(modifier = Modifier.height(24.dp))
 
                 androidx.compose.foundation.layout.Row(
                     modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.End
+                    horizontalArrangement = Arrangement.End,
                 ) {
                     androidx.compose.material3.TextButton(onClick = onDismiss) {
                         Text("Cancel")
@@ -305,7 +302,7 @@ private fun MemoryDialog(
                     Spacer(modifier = Modifier.width(12.dp))
                     androidx.compose.material3.Button(
                         onClick = { onConfirm(memoryContent.trim()) },
-                        enabled = isValid
+                        enabled = isValid,
                     ) {
                         Text(if (editingMemory != null) "Update" else "Save")
                     }

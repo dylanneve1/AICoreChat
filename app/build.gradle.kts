@@ -23,7 +23,7 @@ android {
             isMinifyEnabled = false
             proguardFiles(
                 getDefaultProguardFile("proguard-android-optimize.txt"),
-                "proguard-rules.pro"
+                "proguard-rules.pro",
             )
         }
     }
@@ -36,6 +36,18 @@ android {
     }
     buildFeatures {
         compose = true
+    }
+
+    testOptions {
+        unitTests.isIncludeAndroidResources = true
+    }
+
+    lint {
+        abortOnError = true
+        warningsAsErrors = true
+        checkAllWarnings = true
+        explainIssues = true
+        baseline = file("lint-baseline.xml")
     }
 }
 
@@ -66,6 +78,8 @@ dependencies {
     implementation("io.coil-kt:coil-compose:2.6.0")
 
     testImplementation(libs.junit)
+    testImplementation(libs.androidx.test.core)
+    testImplementation("org.robolectric:robolectric:4.12.1")
     androidTestImplementation(libs.androidx.junit)
     androidTestImplementation(libs.androidx.espresso.core)
     androidTestImplementation(platform(libs.androidx.compose.bom))

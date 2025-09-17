@@ -3,11 +3,11 @@ package org.dylanneve1.aicorechat.ui.theme
 import androidx.compose.ui.graphics.Color
 
 // Primary AI Core Brand Colors
-val AICorePrimary = Color(0xFF6366F1)      // Indigo-500
-val AICorePrimaryDark = Color(0xFF4F46E5)  // Indigo-600
+val AICorePrimary = Color(0xFF6366F1) // Indigo-500
+val AICorePrimaryDark = Color(0xFF4F46E5) // Indigo-600
 val AICorePrimaryLight = Color(0xFF8B5CF6) // Violet-500
-val AICoreAccent = Color(0xFF06B6D4)       // Cyan-500
-val AICoreAccentLight = Color(0xFF67E8F9)  // Cyan-300
+val AICoreAccent = Color(0xFF06B6D4) // Cyan-500
+val AICoreAccentLight = Color(0xFF67E8F9) // Cyan-300
 
 // Neutral Background Colors
 val Neutral50 = Color(0xFFFAFAFA)
@@ -22,10 +22,10 @@ val Neutral800 = Color(0xFF424242)
 val Neutral900 = Color(0xFF212121)
 
 // Semantic Colors
-val Success = Color(0xFF10B981)    // Emerald-500
-val Warning = Color(0xFFF59E0B)    // Amber-500
-val Error = Color(0xFFEF4444)      // Red-500
-val Info = Color(0xFF3B82F6)       // Blue-500
+val Success = Color(0xFF10B981) // Emerald-500
+val Warning = Color(0xFFF59E0B) // Amber-500
+val Error = Color(0xFFEF4444) // Red-500
+val Info = Color(0xFF3B82F6) // Blue-500
 
 // Gradient Colors for Enhanced Visual Appeal
 val GradientStart = Color(0xFF6366F1)

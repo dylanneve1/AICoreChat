@@ -1,8 +1,7 @@
 package org.dylanneve1.aicorechat.data.prompt
 
-import org.dylanneve1.aicorechat.data.CustomInstruction
-import org.dylanneve1.aicorechat.data.MemoryEntry
 import org.dylanneve1.aicorechat.data.BioInformation
+import org.dylanneve1.aicorechat.data.MemoryEntry
 
 object PromptTemplates {
     fun systemPreamble(allowSearch: Boolean, offlineNotice: Boolean): String {

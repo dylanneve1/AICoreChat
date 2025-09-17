@@ -44,7 +44,7 @@ private val LightColorScheme = lightColorScheme(
     surfaceContainerLow = Neutral50,
     surfaceContainerLowest = Neutral50,
     outlineVariant = Neutral300,
-    scrim = Color.Black.copy(alpha = 0.32f)
+    scrim = Color.Black.copy(alpha = 0.32f),
 )
 
 private val DarkColorScheme = darkColorScheme(
@@ -80,14 +80,14 @@ private val DarkColorScheme = darkColorScheme(
     surfaceContainerLow = Neutral900,
     surfaceContainerLowest = Neutral900,
     outlineVariant = Neutral600,
-    scrim = Color.Black.copy(alpha = 0.6f)
+    scrim = Color.Black.copy(alpha = 0.6f),
 )
 
 @Composable
 fun AICoreChatTheme(
     darkTheme: Boolean = isSystemInDarkTheme(),
     dynamicColor: Boolean = true, // Enhanced to use dynamic colors when available
-    content: @Composable () -> Unit
+    content: @Composable () -> Unit,
 ) {
     val colorScheme = when {
         dynamicColor && Build.VERSION.SDK_INT >= Build.VERSION_CODES.S -> {
@@ -101,6 +101,6 @@ fun AICoreChatTheme(
     MaterialTheme(
         colorScheme = colorScheme,
         typography = EnhancedTypography,
-        content = content
+        content = content,
     )
 }

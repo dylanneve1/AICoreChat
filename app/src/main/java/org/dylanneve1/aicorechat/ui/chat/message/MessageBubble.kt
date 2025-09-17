@@ -3,19 +3,16 @@ package org.dylanneve1.aicorechat.ui.chat.message
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.FastOutSlowInEasing
-import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.scaleIn
-import androidx.compose.animation.scaleOut
 import androidx.compose.animation.slideInHorizontally
 import androidx.compose.animation.slideOutHorizontally
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -31,7 +28,6 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.drawscope.DrawScope
-import androidx.compose.ui.graphics.drawscope.clipPath
 import androidx.compose.ui.unit.dp
 
 @Composable
@@ -54,15 +50,15 @@ fun MessageBubble(
                 targetValue = 1f,
                 animationSpec = tween(
                     durationMillis = 400,
-                    easing = FastOutSlowInEasing
-                )
+                    easing = FastOutSlowInEasing,
+                ),
             )
             alphaAnim.animateTo(
                 targetValue = 1f,
                 animationSpec = tween(
                     durationMillis = 300,
-                    delayMillis = 100
-                )
+                    delayMillis = 100,
+                ),
             )
         }
     }
@@ -72,32 +68,32 @@ fun MessageBubble(
         enter = if (isNewMessage) {
             slideInHorizontally(
                 initialOffsetX = { if (isFromUser) it else -it },
-                animationSpec = tween(durationMillis = 400, easing = FastOutSlowInEasing)
+                animationSpec = tween(durationMillis = 400, easing = FastOutSlowInEasing),
             ) + fadeIn(animationSpec = tween(durationMillis = 300))
         } else {
             fadeIn() + scaleIn()
         },
         exit = slideOutHorizontally(
-            targetOffsetX = { if (isFromUser) it else -it }
-        ) + fadeOut()
+            targetOffsetX = { if (isFromUser) it else -it },
+        ) + fadeOut(),
     ) {
         val bubbleColor = if (isFromUser) {
             Brush.linearGradient(
                 colors = listOf(
                     backgroundColor,
-                    backgroundColor.copy(alpha = 0.9f)
+                    backgroundColor.copy(alpha = 0.9f),
                 ),
                 start = Offset(0f, 0f),
-                end = Offset(Float.POSITIVE_INFINITY, Float.POSITIVE_INFINITY)
+                end = Offset(Float.POSITIVE_INFINITY, Float.POSITIVE_INFINITY),
             )
         } else {
             Brush.linearGradient(
                 colors = listOf(
                     backgroundColor,
-                    backgroundColor.copy(alpha = 0.95f)
+                    backgroundColor.copy(alpha = 0.95f),
                 ),
                 start = Offset(Float.POSITIVE_INFINITY, 0f),
-                end = Offset(0f, Float.POSITIVE_INFINITY)
+                end = Offset(0f, Float.POSITIVE_INFINITY),
             )
         }
 
@@ -112,20 +108,20 @@ fun MessageBubble(
                         brush = bubbleColor,
                         cornerRadius = cornerRadius.toPx(),
                         tailSize = tailSize.toPx(),
-                        alpha = alphaAnim.value
+                        alpha = alphaAnim.value,
                     )
                 }
                 .padding(
                     start = tailSize,
                     end = tailSize,
                     top = 8.dp,
-                    bottom = tailSize + 4.dp
-                )
+                    bottom = tailSize + 4.dp,
+                ),
         ) {
             Box(
                 modifier = Modifier
                     .clip(RoundedCornerShape(cornerRadius))
-                    .background(Color.Transparent)
+                    .background(Color.Transparent),
             ) {
                 content()
             }
@@ -138,7 +134,7 @@ private fun DrawScope.drawMessageBubble(
     brush: Brush,
     cornerRadius: Float,
     tailSize: Float,
-    alpha: Float = 1f
+    alpha: Float = 1f,
 ) {
     val path = Path()
     val width = size.width
@@ -151,8 +147,8 @@ private fun DrawScope.drawMessageBubble(
             top = 0f,
             right = width,
             bottom = bodyHeight,
-            cornerRadius = CornerRadius(cornerRadius)
-        )
+            cornerRadius = CornerRadius(cornerRadius),
+        ),
     )
 
     val tailPath = Path()
@@ -178,6 +174,6 @@ private fun DrawScope.drawMessageBubble(
     drawPath(
         path = path,
         brush = brush,
-        alpha = alpha
+        alpha = alpha,
     )
 } 

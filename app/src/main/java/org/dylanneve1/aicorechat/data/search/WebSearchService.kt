@@ -25,10 +25,14 @@ class WebSearchService(private val app: Application) {
             val network = cm.activeNetwork ?: return false
             val caps = cm.getNetworkCapabilities(network) ?: return false
             caps.hasCapability(NetworkCapabilities.NET_CAPABILITY_INTERNET) &&
-                (caps.hasTransport(NetworkCapabilities.TRANSPORT_WIFI) ||
-                 caps.hasTransport(NetworkCapabilities.TRANSPORT_CELLULAR) ||
-                 caps.hasTransport(NetworkCapabilities.TRANSPORT_ETHERNET))
-        } catch (e: Exception) { false }
+                (
+                    caps.hasTransport(NetworkCapabilities.TRANSPORT_WIFI) ||
+                        caps.hasTransport(NetworkCapabilities.TRANSPORT_CELLULAR) ||
+                        caps.hasTransport(NetworkCapabilities.TRANSPORT_ETHERNET)
+                    )
+        } catch (e: Exception) {
+            false
+        }
     }
 
     private fun htmlDecode(input: String): String {
@@ -62,16 +66,24 @@ class WebSearchService(private val app: Application) {
                     val end = h.indexOf('&', start).let { if (it == -1) h.length else it }
                     val enc = h.substring(start, end)
                     URLDecoder.decode(enc, "UTF-8")
-                } else h
-            } else h
-        } catch (e: Exception) { href }
+                } else {
+                    h
+                }
+            } else {
+                h
+            }
+        } catch (e: Exception) {
+            href
+        }
     }
 
     private fun hostname(url: String): String {
         return try {
             val u = URL(if (url.startsWith("http")) url else "https://$url")
             u.host.removePrefix("www.")
-        } catch (e: Exception) { url }
+        } catch (e: Exception) {
+            url
+        }
     }
 
     private fun parseDateToIso(dateRaw: String): String? {
@@ -85,7 +97,7 @@ class WebSearchService(private val app: Application) {
             "dd MMM yyyy",
             "d MMM yyyy",
             "MMM d, yyyy",
-            "MMMM d, yyyy"
+            "MMMM d, yyyy",
         )
         for (p in candidates) {
             try {
@@ -135,9 +147,11 @@ class WebSearchService(private val app: Application) {
             Triple(
                 title?.let { htmlDecode(it.replace(Regex("<.*?>"), "").trim()) },
                 metaDesc?.let { htmlDecode(it.trim()) },
-                metaDate?.let { parseDateToIso(it.trim()) }
+                metaDate?.let { parseDateToIso(it.trim()) },
             )
-        } catch (e: Exception) { Triple(null, null, null) }
+        } catch (e: Exception) {
+            Triple(null, null, null)
+        }
     }
 
     suspend fun search(query: String): String = withContext(Dispatchers.IO) {
@@ -173,12 +187,14 @@ class WebSearchService(private val app: Application) {
                     val (t, d, metaDate) = fetchMeta(realUrl)
                     if (!d.isNullOrBlank() && (snippet.isBlank() || snippet.length < 48)) snippet = d
                     if (!t.isNullOrBlank() && title.isBlank()) title = t
-                    if (!metaDate.isNullOrBlank()) dateIso = metaDate else {
+                    if (!metaDate.isNullOrBlank()) {
+                        dateIso = metaDate
+                    } else {
                         if (!ddgTime.contains("ago", ignoreCase = true)) parseDateToIso(ddgTime)?.let { dateIso = it }
                     }
                     if (title.isBlank() && snippet.isBlank()) continue
-                    val header = if (!dateIso.isNullOrBlank()) "${dateIso} — ${host} — ${title}" else "${host} — ${title}"
-                    lines.add("${idx + 1}. ${header}\n- ${snippet}")
+                    val header = if (!dateIso.isNullOrBlank()) "$dateIso — $host — $title" else "$host — $title"
+                    lines.add("${idx + 1}. ${header}\n- $snippet")
                 }
                 if (lines.isEmpty()) "No results" else lines.joinToString("\n\n")
             }
