@@ -69,4 +69,13 @@ class AssistantResponseFormatterTest {
 
         assertEquals("Answer body", result)
     }
+
+    @Test
+    fun sanitizeAssistantText_removesSearchBlocks() {
+        val raw = "Intro text\n[SEARCH]query[/SEARCH]\nTrailing"
+
+        val result = AssistantResponseFormatter.sanitizeAssistantText(raw)
+
+        assertEquals("Intro text\n\nTrailing", result)
+    }
 }

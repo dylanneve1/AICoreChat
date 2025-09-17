@@ -67,6 +67,22 @@ The project ships with a consolidated quality script that runs formatting, stati
 
 Under the hood this executes `spotlessCheck`, `detekt`, `lint`, and `test` using JDK 17. Run it locally (or in CI) before opening pull requests to keep the codebase consistent.
 
+For a one-stop build helper you can use `run_all.sh` from the repository root:
+
+```bash
+# Run full clean build + QA gates + assembleDebug
+./run_all.sh
+
+# Only run unit tests
+./run_all.sh tests
+
+# Build the app
+./run_all.sh assemble
+
+# Execute connected Android tests (requires device/emulator)
+./run_all.sh connected
+```
+
 If you intentionally fix or introduce code that changes the current lint/detekt findings, regenerate the baselines first and re-run the script:
 
 ```bash
