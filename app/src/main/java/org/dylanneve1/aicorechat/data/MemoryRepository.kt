@@ -1,6 +1,7 @@
 package org.dylanneve1.aicorechat.data
 
 import android.content.Context
+import androidx.core.content.edit
 import org.json.JSONArray
 import org.json.JSONObject
 
@@ -14,7 +15,7 @@ class MemoryRepository(context: Context) {
     }
 
     fun saveCustomInstructions(instructions: List<CustomInstruction>) {
-        prefs.edit().putString(KEY_CUSTOM_INSTRUCTIONS, customInstructionsToJson(instructions)).apply()
+        prefs.edit { putString(KEY_CUSTOM_INSTRUCTIONS, customInstructionsToJson(instructions)) }
     }
 
     fun addCustomInstruction(instruction: CustomInstruction) {
@@ -54,7 +55,7 @@ class MemoryRepository(context: Context) {
     }
 
     fun saveMemoryEntries(memories: List<MemoryEntry>) {
-        prefs.edit().putString(KEY_MEMORY_ENTRIES, memoryEntriesToJson(memories)).apply()
+        prefs.edit { putString(KEY_MEMORY_ENTRIES, memoryEntriesToJson(memories)) }
     }
 
     fun addMemoryEntry(memory: MemoryEntry) {
@@ -103,11 +104,11 @@ class MemoryRepository(context: Context) {
     }
 
     fun saveBioInformation(bio: BioInformation) {
-        prefs.edit().putString(KEY_BIO_INFORMATION, bioInformationToJson(bio)).apply()
+        prefs.edit { putString(KEY_BIO_INFORMATION, bioInformationToJson(bio)) }
     }
 
     fun deleteBioInformation() {
-        prefs.edit().remove(KEY_BIO_INFORMATION).apply()
+        prefs.edit { remove(KEY_BIO_INFORMATION) }
     }
 
     // Search and Filter Methods

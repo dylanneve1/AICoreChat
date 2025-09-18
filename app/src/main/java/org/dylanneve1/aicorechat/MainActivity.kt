@@ -21,6 +21,7 @@ import androidx.compose.material3.Surface
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.core.content.edit
 import androidx.core.view.WindowCompat
 import androidx.lifecycle.viewmodel.compose.viewModel
 import org.dylanneve1.aicorechat.data.ChatViewModel
@@ -133,7 +134,7 @@ class MainActivity : ComponentActivity() {
                                             customInstructionsEnabled,
                                         )
                                         getSharedPreferences("AICoreChatPrefs", MODE_PRIVATE)
-                                            .edit().putBoolean("onboarding_shown", true).apply()
+                                            .edit { putBoolean("onboarding_shown", true) }
                                         onboardingShown = true
                                     },
                                 )

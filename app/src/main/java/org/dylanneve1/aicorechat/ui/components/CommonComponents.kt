@@ -78,8 +78,8 @@ fun FeatureToggleCard(
     description: String,
     checked: Boolean,
     onCheckedChange: (Boolean) -> Unit,
-    enabled: Boolean = true,
     modifier: Modifier = Modifier,
+    enabled: Boolean = true,
 ) {
     Card(
         colors = CardDefaults.cardColors(
@@ -164,7 +164,7 @@ fun SettingsNavigationCard(
     description: String,
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
-    trailingContent: @Composable (() -> Unit)? = null,
+    content: @Composable (() -> Unit)? = null,
 ) {
     Card(
         onClick = onClick,
@@ -210,8 +210,8 @@ fun SettingsNavigationCard(
                     )
                 }
             }
-            if (trailingContent != null) {
-                trailingContent()
+            if (content != null) {
+                content()
             } else {
                 Icon(
                     imageVector = Icons.AutoMirrored.Outlined.KeyboardArrowRight,

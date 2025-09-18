@@ -1,6 +1,7 @@
 package org.dylanneve1.aicorechat.data
 
 import android.content.Context
+import androidx.core.content.edit
 import org.json.JSONArray
 import org.json.JSONObject
 
@@ -13,7 +14,7 @@ class ChatRepository(context: Context) {
     }
 
     fun saveSessions(sessions: List<ChatSession>) {
-        prefs.edit().putString(KEY_SESSIONS, sessionsToJson(sessions)).apply()
+        prefs.edit { putString(KEY_SESSIONS, sessionsToJson(sessions)) }
     }
 
     fun createNewSession(): ChatSession {
@@ -131,4 +132,4 @@ class ChatRepository(context: Context) {
     companion object {
         private const val KEY_SESSIONS = "sessions"
     }
-} 
+}

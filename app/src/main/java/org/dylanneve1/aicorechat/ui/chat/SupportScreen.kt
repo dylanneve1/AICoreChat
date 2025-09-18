@@ -1,7 +1,6 @@
 package org.dylanneve1.aicorechat.ui.chat
 
 import android.content.Intent
-import android.net.Uri
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -49,6 +48,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.core.net.toUri
 import org.dylanneve1.aicorechat.ui.components.SectionHeaderCard
 import org.dylanneve1.aicorechat.util.DeviceSupportStatus
 import org.dylanneve1.aicorechat.util.checkDeviceSupport
@@ -181,7 +181,7 @@ fun SupportScreen(modifier: Modifier = Modifier) {
                     if (supportStatus is DeviceSupportStatus.AICoreMissing) {
                         Button(
                             onClick = {
-                                context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(playStoreUrl)))
+                                context.startActivity(Intent(Intent.ACTION_VIEW, playStoreUrl.toUri()))
                             },
                             modifier = Modifier.fillMaxWidth(),
                         ) {
@@ -298,7 +298,7 @@ fun SupportScreen(modifier: Modifier = Modifier) {
                 Spacer(modifier = Modifier.height(16.dp))
 
                 OutlinedButton(
-                    onClick = { context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(githubUrl))) },
+                    onClick = { context.startActivity(Intent(Intent.ACTION_VIEW, githubUrl.toUri())) },
                     modifier = Modifier.fillMaxWidth(),
                 ) {
                     Icon(

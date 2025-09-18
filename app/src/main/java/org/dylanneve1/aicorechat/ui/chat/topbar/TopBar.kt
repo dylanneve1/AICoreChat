@@ -68,4 +68,4 @@ fun AICoreChatTopAppBar(
             ),
         )
     }
-} 
+}

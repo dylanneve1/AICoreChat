@@ -60,4 +60,4 @@ class ImageDescriptionService(app: Application) {
     fun close() {
         imageDescriber.close()
     }
-} 
+}

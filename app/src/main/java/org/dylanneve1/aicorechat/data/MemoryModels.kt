@@ -5,31 +5,23 @@ package org.dylanneve1.aicorechat.data
  */
 
 data class CustomInstruction(
-    val id: String = generateId(),
+    val id: String = newInstructionId(),
     val title: String,
     val instruction: String,
     val isEnabled: Boolean = true,
     val createdAt: Long = System.currentTimeMillis(),
     val updatedAt: Long = System.currentTimeMillis(),
     val category: String = "General",
-) {
-    companion object {
-        private fun generateId(): String = "instruction_${System.nanoTime()}"
-    }
-}
+)
 
 data class MemoryEntry(
-    val id: String = generateId(),
+    val id: String = newMemoryId(),
     val content: String,
     val isEnabled: Boolean = true,
     val createdAt: Long = System.currentTimeMillis(),
     val updatedAt: Long = System.currentTimeMillis(),
     val lastAccessed: Long = System.currentTimeMillis(),
-) {
-    companion object {
-        private fun generateId(): String = "memory_${System.nanoTime()}"
-    }
-}
+)
 
 enum class MemoryCategory {
     PERSONAL,
@@ -51,7 +43,7 @@ enum class MemoryImportance {
 }
 
 data class BioInformation(
-    val id: String = generateId(),
+    val id: String = newBioId(),
     val name: String? = null,
     val age: Int? = null,
     val occupation: String? = null,
@@ -66,11 +58,7 @@ data class BioInformation(
     val achievements: List<String> = emptyList(),
     val createdAt: Long = System.currentTimeMillis(),
     val updatedAt: Long = System.currentTimeMillis(),
-) {
-    companion object {
-        private fun generateId(): String = "bio_${System.nanoTime()}"
-    }
-}
+)
 
 data class BioRelationship(
     val name: String,
@@ -93,3 +81,12 @@ data class MemoryContext(
     val bioInformation: BioInformation? = null,
     val contextSummary: String = "",
 )
+
+@PublishedApi
+internal fun newInstructionId(): String = "instruction_${System.nanoTime()}"
+
+@PublishedApi
+internal fun newMemoryId(): String = "memory_${System.nanoTime()}"
+
+@PublishedApi
+internal fun newBioId(): String = "bio_${System.nanoTime()}"

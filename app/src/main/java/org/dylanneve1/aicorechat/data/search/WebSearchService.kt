@@ -237,4 +237,4 @@ class WebSearchService(private val app: Application) {
             "No results (error: ${e.message})"
         }
     }
-} 
+}

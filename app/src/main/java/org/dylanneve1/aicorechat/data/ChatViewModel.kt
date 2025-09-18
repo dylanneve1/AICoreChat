@@ -11,9 +11,9 @@ import android.os.BatteryManager
 import android.os.Build
 import android.os.Environment
 import android.os.SystemClock
-import android.provider.MediaStore
 import android.util.Log
 import androidx.core.content.ContextCompat
+import androidx.core.content.edit
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.google.ai.edge.aicore.GenerativeModel
@@ -37,7 +37,7 @@ import org.dylanneve1.aicorechat.data.image.ImageDescriptionService
 import org.dylanneve1.aicorechat.data.prompt.PromptTemplates
 import org.dylanneve1.aicorechat.data.search.WebSearchService
 import org.dylanneve1.aicorechat.util.AssistantResponseFormatter
-import org.dylanneve1.aicorechat.util.findPartialStopSuffixLength
+import org.dylanneve1.aicorechat.util.trimTrailingPartialStopToken
 
 /**
  * ChatViewModel orchestrates sessions, model streaming, tools, and persistence.
@@ -110,22 +110,22 @@ class ChatViewModel(application: Application) : AndroidViewModel(application) {
     }
 
     fun updateUserName(name: String) {
-        sharedPreferences.edit().putString(KEY_USER_NAME, name).apply()
+        sharedPreferences.edit { putString(KEY_USER_NAME, name) }
         _uiState.update { it.copy(userName = name) }
     }
 
     fun updatePersonalContextEnabled(enabled: Boolean) {
-        sharedPreferences.edit().putBoolean(KEY_PERSONAL_CONTEXT, enabled).apply()
+        sharedPreferences.edit { putBoolean(KEY_PERSONAL_CONTEXT, enabled) }
         _uiState.update { it.copy(personalContextEnabled = enabled) }
     }
 
     fun updateWebSearchEnabled(enabled: Boolean) {
-        sharedPreferences.edit().putBoolean(KEY_WEB_SEARCH, enabled).apply()
+        sharedPreferences.edit { putBoolean(KEY_WEB_SEARCH, enabled) }
         _uiState.update { it.copy(webSearchEnabled = enabled) }
     }
 
     fun updateMultimodalEnabled(enabled: Boolean) {
-        sharedPreferences.edit().putBoolean(KEY_MULTIMODAL, enabled).apply()
+        sharedPreferences.edit { putBoolean(KEY_MULTIMODAL, enabled) }
         _uiState.update { it.copy(multimodalEnabled = enabled) }
         if (!enabled) {
             _uiState.update {
@@ -167,17 +167,17 @@ class ChatViewModel(application: Application) : AndroidViewModel(application) {
 
     // Memory Context Settings
     fun updateMemoryContextEnabled(enabled: Boolean) {
-        sharedPreferences.edit().putBoolean(KEY_MEMORY_CONTEXT, enabled).apply()
+        sharedPreferences.edit { putBoolean(KEY_MEMORY_CONTEXT, enabled) }
         _uiState.update { it.copy(memoryContextEnabled = enabled) }
     }
 
     fun updateCustomInstructionsEnabled(enabled: Boolean) {
-        sharedPreferences.edit().putBoolean(KEY_CUSTOM_INSTRUCTIONS, enabled).apply()
+        sharedPreferences.edit { putBoolean(KEY_CUSTOM_INSTRUCTIONS, enabled) }
         _uiState.update { it.copy(customInstructionsEnabled = enabled) }
     }
 
     fun updateBioContextEnabled(enabled: Boolean) {
-        sharedPreferences.edit().putBoolean(KEY_BIO_CONTEXT, enabled).apply()
+        sharedPreferences.edit { putBoolean(KEY_BIO_CONTEXT, enabled) }
         _uiState.update { it.copy(bioContextEnabled = enabled) }
     }
 
@@ -199,8 +199,10 @@ class ChatViewModel(application: Application) : AndroidViewModel(application) {
     }
 
     fun updateCustomInstructions(instructions: String, enabled: Boolean) {
-        sharedPreferences.edit().putBoolean(KEY_CUSTOM_INSTRUCTIONS, enabled).apply()
-        sharedPreferences.edit().putString(KEY_CUSTOM_INSTRUCTIONS_TEXT, instructions).apply()
+        sharedPreferences.edit {
+            putBoolean(KEY_CUSTOM_INSTRUCTIONS, enabled)
+            putString(KEY_CUSTOM_INSTRUCTIONS_TEXT, instructions)
+        }
         _uiState.update {
             it.copy(
                 customInstructionsEnabled = enabled,
@@ -223,13 +225,8 @@ class ChatViewModel(application: Application) : AndroidViewModel(application) {
             try {
                 val bitmap = withContext(Dispatchers.IO) {
                     val ctx = getApplication<Application>().applicationContext
-                    if (Build.VERSION.SDK_INT >= 28) {
-                        val src = ImageDecoder.createSource(ctx.contentResolver, uri)
-                        ImageDecoder.decodeBitmap(src)
-                    } else {
-                        @Suppress("DEPRECATION")
-                        MediaStore.Images.Media.getBitmap(ctx.contentResolver, uri)
-                    }
+                    val src = ImageDecoder.createSource(ctx.contentResolver, uri)
+                    ImageDecoder.decodeBitmap(src)
                 }
                 val desc = imageDescriptionService.describe(bitmap).trim()
                 if (desc.isBlank()) {
@@ -550,13 +547,13 @@ class ChatViewModel(application: Application) : AndroidViewModel(application) {
     }
 
     fun updateTemperature(temperature: Float) {
-        sharedPreferences.edit().putFloat(KEY_TEMPERATURE, temperature).apply()
+        sharedPreferences.edit { putFloat(KEY_TEMPERATURE, temperature) }
         _uiState.update { it.copy(temperature = temperature) }
         reinitializeModel()
     }
 
     fun updateTopK(topK: Int) {
-        sharedPreferences.edit().putInt(KEY_TOP_K, topK).apply()
+        sharedPreferences.edit { putInt(KEY_TOP_K, topK) }
         _uiState.update { it.copy(topK = topK) }
         reinitializeModel()
     }
@@ -564,10 +561,10 @@ class ChatViewModel(application: Application) : AndroidViewModel(application) {
     fun resetModelSettings() {
         val defaultTemperature = 0.3f
         val defaultTopK = 40
-        sharedPreferences.edit()
-            .putFloat(KEY_TEMPERATURE, defaultTemperature)
-            .putInt(KEY_TOP_K, defaultTopK)
-            .apply()
+        sharedPreferences.edit {
+            putFloat(KEY_TEMPERATURE, defaultTemperature)
+            putInt(KEY_TOP_K, defaultTopK)
+        }
         _uiState.update { it.copy(temperature = defaultTemperature, topK = defaultTopK) }
         reinitializeModel()
     }
@@ -750,7 +747,7 @@ class ChatViewModel(application: Application) : AndroidViewModel(application) {
                 promptBuilder.append("[ASSISTANT]\n")
 
                 val fullPrompt = promptBuilder.toString()
-                Log.d("ChatViewModel", "Sending prompt:\n$fullPrompt")
+                debugLog("Sending prompt:\n$fullPrompt")
 
                 var fullResponse = ""
                 val stopTokens = listOf("[/ASSISTANT]", "[ASSISTANT]", "[/USER]", "[USER]")
@@ -921,16 +918,16 @@ class ChatViewModel(application: Application) : AndroidViewModel(application) {
                                 val displayTextRaw = if (earliestIndex != Int.MAX_VALUE) {
                                     fullResponse.substring(0, earliestIndex)
                                 } else {
-                                    val holdBack = findPartialStopSuffixLength(fullResponse, stopTokens)
-                                    if (holdBack > 0) {
-                                        val safeHoldBack = holdBack.coerceAtMost(fullResponse.length)
-                                        fullResponse.dropLast(safeHoldBack)
-                                    } else {
-                                        fullResponse
-                                    }
+                                    trimTrailingPartialStopToken(fullResponse, stopTokens)
                                 }
                                 val displayText = AssistantResponseFormatter.sanitizeAssistantText(displayTextRaw)
-                                updated[updated.lastIndex] = updated.last().copy(text = displayText)
+                                val previousText = updated.last().text
+                                val stableText = if (displayText.length < previousText.length) {
+                                    previousText
+                                } else {
+                                    displayText
+                                }
+                                updated[updated.lastIndex] = updated.last().copy(text = stableText)
                             }
                             currentState.copy(messages = updated)
                         }
@@ -940,7 +937,7 @@ class ChatViewModel(application: Application) : AndroidViewModel(application) {
                     }
             } catch (e: Exception) {
                 if (e is kotlinx.coroutines.CancellationException) {
-                    Log.d("ChatViewModel", "Job cancelled as expected.")
+                    debugLog("Job cancelled as expected.")
                 } else {
                     Log.e("ChatViewModel", "Exception during generation", e)
                     _uiState.update {
@@ -996,7 +993,7 @@ class ChatViewModel(application: Application) : AndroidViewModel(application) {
             promptBuilder.append("[ASSISTANT]\n")
 
             val fullPrompt = promptBuilder.toString()
-            Log.d("ChatViewModel", "Follow-up with web results (reuse bubble):\n$fullPrompt")
+            debugLog("Follow-up with web results (reuse bubble):\n$fullPrompt")
 
             var fullResponse = ""
             val stopTokens = listOf("[/ASSISTANT]", "[ASSISTANT]", "[/USER]", "[USER]")
@@ -1068,16 +1065,16 @@ class ChatViewModel(application: Application) : AndroidViewModel(application) {
                             val displayTextRaw = if (earliestIndex != Int.MAX_VALUE) {
                                 fullResponse.substring(0, earliestIndex)
                             } else {
-                                val holdBack = findPartialStopSuffixLength(fullResponse, stopTokens)
-                                if (holdBack > 0) {
-                                    val safeHoldBack = holdBack.coerceAtMost(fullResponse.length)
-                                    fullResponse.dropLast(safeHoldBack)
-                                } else {
-                                    fullResponse
-                                }
+                                trimTrailingPartialStopToken(fullResponse, stopTokens)
                             }
                             val displayText = AssistantResponseFormatter.sanitizeAssistantText(displayTextRaw)
-                            updated[updated.lastIndex] = updated.last().copy(text = displayText)
+                            val previousText = updated.last().text
+                            val stableText = if (displayText.length < previousText.length) {
+                                previousText
+                            } else {
+                                displayText
+                            }
+                            updated[updated.lastIndex] = updated.last().copy(text = stableText)
                         }
                         current.copy(messages = updated)
                     }
@@ -1286,5 +1283,13 @@ class ChatViewModel(application: Application) : AndroidViewModel(application) {
         generationJob?.cancel()
         generativeModel?.close()
         imageDescriptionService.close()
+    }
+
+    private fun debugLog(message: String) {
+        val isDebuggable =
+            (getApplication<Application>().applicationInfo.flags and android.content.pm.ApplicationInfo.FLAG_DEBUGGABLE) != 0
+        if (isDebuggable || Log.isLoggable("ChatViewModel", Log.DEBUG)) {
+            Log.d("ChatViewModel", message)
+        }
     }
 }

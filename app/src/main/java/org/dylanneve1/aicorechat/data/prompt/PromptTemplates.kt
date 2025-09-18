@@ -147,4 +147,4 @@ object PromptTemplates {
 
         return scoredMemories.map { it.first }
     }
-} 
+}

@@ -58,4 +58,4 @@ suspend fun checkDeviceSupport(context: Context): DeviceSupportStatus = withCont
         } catch (_: Exception) {
         }
     }
-} 
+}

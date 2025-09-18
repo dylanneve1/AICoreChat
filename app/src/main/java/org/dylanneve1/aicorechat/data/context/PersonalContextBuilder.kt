@@ -95,4 +95,4 @@ class PersonalContextBuilder(private val app: Application) {
         val location = "Location: ${formatLatLon(getLastKnownLocation())}\n"
         return "[PERSONAL_CONTEXT]\n${namePart}Current Time: ${now}\nDevice: ${device}\nLocale: ${locale}\nTime Zone: ${timeZone}\n${battery}${network}${storageStat}${appVersion}$location[/PERSONAL_CONTEXT]\n\n"
     }
-} 
+}

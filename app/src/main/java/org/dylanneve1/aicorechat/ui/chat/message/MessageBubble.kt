@@ -176,4 +176,4 @@ private fun DrawScope.drawMessageBubble(
         brush = brush,
         alpha = alpha,
     )
-} 
+}

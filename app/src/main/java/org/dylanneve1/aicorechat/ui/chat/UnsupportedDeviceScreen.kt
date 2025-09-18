@@ -1,7 +1,6 @@
 package org.dylanneve1.aicorechat.ui.chat
 
 import android.content.Intent
-import android.net.Uri
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -35,6 +34,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import androidx.core.net.toUri
 
 @Composable
 fun UnsupportedDeviceScreen(message: String?) {
@@ -176,7 +176,7 @@ fun UnsupportedDeviceScreen(message: String?) {
 
             // Step 1
             Card(
-                onClick = { context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(groupUrl))) },
+                onClick = { context.startActivity(Intent(Intent.ACTION_VIEW, groupUrl.toUri())) },
                 colors = CardDefaults.cardColors(
                     containerColor = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.08f),
                 ),
@@ -227,7 +227,7 @@ fun UnsupportedDeviceScreen(message: String?) {
 
             // Step 2
             Card(
-                onClick = { context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(testingUrl))) },
+                onClick = { context.startActivity(Intent(Intent.ACTION_VIEW, testingUrl.toUri())) },
                 colors = CardDefaults.cardColors(
                     containerColor = MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.08f),
                 ),

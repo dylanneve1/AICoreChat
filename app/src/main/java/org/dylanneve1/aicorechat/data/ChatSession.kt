@@ -11,4 +11,4 @@ data class ChatSession(
 data class ChatSessionMeta(
     val id: Long,
     val name: String,
-) 
+)

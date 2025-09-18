@@ -48,4 +48,4 @@ fun SessionItem(meta: ChatSessionMeta, isSelected: Boolean, onClick: () -> Unit,
             modifier = Modifier.padding(horizontal = 16.dp, vertical = 12.dp),
         )
     }
-} 
+}
