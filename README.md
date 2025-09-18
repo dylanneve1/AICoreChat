@@ -1,63 +1,58 @@
 # AICore Chat
 
-AICore Chat is a simple, modern Android chat application built to demonstrate the capabilities of Google's on-device **AICore SDK**. It provides a real-time, streaming chat experience with a generative AI model running directly on your Android device.
+AICore Chat is a modern, Jetpack Compose Android application that showcases Google's on-device **AICore SDK** with a fully offline-capable chat experience. The app focuses on demonstrating how Gemini Nano can be embedded inside a polished messaging workflow that feels comparable to cloud-backed assistants while keeping all inference on device.
 
 ## ✨ Features
 
--   **On-Device AI:** All generative AI processing happens locally on the device, ensuring privacy and offline capability.
--   **Streaming Responses:** The model's responses are streamed word-by-word for a fluid, real-time user experience.
--   **Modern UI:** Built entirely with Jetpack Compose and Material 3, following modern Android development practices.
--   **Conversation History:** The chat history is maintained in memory and used as context for subsequent prompts.
--   **Core Chat Functionality:**
-    -   Stop ongoing message generation.
-    -   Copy messages to the clipboard with a long-press.
-    -   Clear the entire conversation.
-    -   Auto-scroll to the latest message.
-    -   "Scroll to Bottom" button for navigating long chats.
--   **Robust State Management:** Utilizes a `ViewModel` and Kotlin `StateFlow` to manage UI state effectively.
+- **On-Device Gemini Nano** – All text generation happens locally through the experimental `com.google.ai.edge.aicore:aicore` SDK for private and low-latency responses.
+- **Streaming Conversation Flow** – Messages stream token-by-token with controls to stop generation, retry, copy, clear, and jump back to the latest turn in long threads.
+- **Multi-Session Workspace** – A navigation drawer lets you create, rename, and delete conversations, with automatic cleanup of empty chats and in-memory persistence of history.
+- **Personalized Onboarding & Settings** – Collect a preferred name, toggle personal context, bio context, web search, multimodal support, memory usage, and custom instructions before entering the chat.
+- **Local Memory Management** – Curate what the assistant should remember about you by adding, editing, toggling, or deleting memory entries and optional biographical details stored on device.
+- **Multimodal Attachments** – Attach camera shots or gallery images. ML Kit's on-device Image Description API generates captions that are injected into the prompt when multimodal mode is enabled.
+- **Contextual Awareness Tools** – Opt-in personal context includes device model, battery, locale, storage, time, and coarse location. A built-in web search tool (DuckDuckGo HTML results) fetches fresh snippets when online.
+- **Device Support Guardrails** – The app verifies AICore availability and gracefully surfaces onboarding, unsupported, and loading states before the main chat renders.
 
 ## 🛠️ Tech Stack & Key Libraries
 
--   **Language:** [Kotlin](https://kotlinlang.org/)
--   **UI Toolkit:** [Jetpack Compose](https://developer.android.com/jetpack/compose)
--   **AI Library:** [Google AICore SDK](https://developer.android.com/ml/aicore) (`com.google.ai.edge.aicore:aicore`)
--   **Architecture:** MVVM (Model-View-ViewModel)
--   **Asynchronous Programming:** Kotlin Coroutines and Flow
--   **Material Design:** [Material 3](https://m3.material.io/)
+- **Language:** [Kotlin](https://kotlinlang.org/)
+- **UI Toolkit:** [Jetpack Compose](https://developer.android.com/jetpack/compose) with Material 3 components
+- **AI Runtime:** [Google AICore SDK](https://developer.android.com/ml/aicore)
+- **Async & State:** Kotlin Coroutines, Flow, and `AndroidViewModel`
+- **Location & Services:** Google Play Services Location, Android connectivity & battery APIs
+- **Multimodal Support:** ML Kit Generative AI Image Description and Coil for image loading
+- **Architecture:** MVVM-inspired with dedicated repositories for chat sessions, memory, and tool integrations
 
 ## ⚙️ How It Works
 
-The application's logic is primarily handled by the `ChatViewModel`.
-
-1.  **Model Initialization:** On startup, the `ViewModel` initializes the `GenerativeModel` from the AICore SDK. It prepares the inference engine for use, a process that happens once.
-2.  **Prompt Construction:** When a user sends a message, the `ViewModel` constructs a detailed prompt. This prompt includes a preamble, a few-shot example, and the entire conversation history, formatted with `[USER]` and `[ASSISTANT]` tags to provide context to the model.
-3.  **Streaming Generation:** The app calls `generativeModel.generateContentStream(prompt)`. This returns a Kotlin `Flow` that emits response chunks as the model generates them.
-4.  **UI Updates:** The `ViewModel` collects this flow and updates its `ChatUiState`, which is exposed to the Compose UI via a `StateFlow`. The UI observes this state and recomposes automatically, displaying the streamed text as it arrives.
-5.  **Error and State Handling:** The `ViewModel` manages loading, generating, and error states, ensuring the UI always reflects the current status of the model.
+1. **ViewModel Orchestration** – `ChatViewModel` bootstraps settings, restores sessions via `ChatRepository`, loads memory and bio data from `MemoryRepository`, and prepares the AICore `GenerativeModel`.
+2. **Prompt Assembly** – Each turn composes a system preamble, few-shot examples, optional personal context, custom instructions, relevant memories, pending image descriptions, and the full `[USER]` / `[ASSISTANT]` formatted transcript.
+3. **Tooling Pipeline** – Web searches are requested with `[SEARCH]` tags when enabled and online, image attachments run through `ImageDescriptionService`, and location/device metadata is injected through `PersonalContextBuilder`.
+4. **Streaming & Persistence** – Responses stream into a `StateFlow`, updating Compose UI in real time while persisting chat content back to disk so session switching is instantaneous.
 
 ## 🚀 Getting Started
 
 ### Prerequisites
 
--   Android Studio
--   An Android device or emulator running API level 31 or higher.
+- Android Studio
+- An Android device or emulator running API level 31 or higher with the AICore Gemini Nano preview installed
 
 ### Build and Run
 
-1.  **Clone the repository:**
-    ```bash
-    git clone <repository-url>
-    ```
-2.  **Open in Android Studio:**
-    -   Open Android Studio.
-    -   Click on `File -> Open` and select the cloned project directory.
-3.  **Sync Gradle:**
-    -   Let Android Studio sync the project and download all the required dependencies.
-4.  **Run the app:**
-    -   Select a target device (emulator or physical device).
-    -   Click the "Run" button (▶️).
+1. **Clone the repository:**
+   ```bash
+   git clone <repository-url>
+   ```
+2. **Open in Android Studio:**
+   - Open Android Studio.
+   - Click on `File -> Open` and select the cloned project directory.
+3. **Sync Gradle:**
+   - Let Android Studio sync the project and download all the required dependencies.
+4. **Run the app:**
+   - Select a target device (emulator or physical device).
+   - Click the "Run" button (▶️).
 
-### Quality gates
+### Running Quality Checks
 
 The project ships with a consolidated quality script that runs formatting, static analysis, Android Lint, and the JVM test suite:
 
@@ -91,15 +86,21 @@ If you intentionally fix or introduce code that changes the current lint/detekt 
 ./scripts/quality.sh
 ```
 
-> **Note:** The Google AICore SDK is experimental (`0.0.1-exp01`). It may require specific device capabilities or participation in an early access program for the on-device model to be available.
+### Permissions
 
-## 📂 Code Structure
+The sample declares the following runtime capabilities:
 
-The project follows a standard Android application structure. All the core application logic and UI are located in one place for easy reference:
+- `INTERNET` and `ACCESS_NETWORK_STATE` for web search and connectivity checks
+- `ACCESS_FINE_LOCATION` and `ACCESS_COARSE_LOCATION` to include coarse device context when enabled
+- Scoped storage access via a `FileProvider` for photo capture attachments
 
--   `app/src/main/java/org/dylanneve1/aicorechat/MainActivity.kt`: Contains the `ChatViewModel`, all Jetpack Composables (`ChatScreen`, `MessageRow`, etc.), and the `MainActivity`.
--   `app/src/main/java/org/dylanneve1/aicorechat/ui/theme/`: Standard files for Compose theming (Color, Theme, Type).
--   `app/build.gradle.kts`: The app-level build script where the AICore SDK dependency is declared.
+## 🗂️ Project Structure
+
+- `app/src/main/java/org/dylanneve1/aicorechat/MainActivity.kt` – Hosts the Compose hierarchy, onboarding flow, and device support gating.
+- `app/src/main/java/org/dylanneve1/aicorechat/data/` – `ChatViewModel`, session & memory repositories, prompt utilities, and integrations for search, personal context, and image description.
+- `app/src/main/java/org/dylanneve1/aicorechat/ui/` – Compose screens for chat, onboarding, settings, memory management, and shared UI components/themes.
+- `app/src/main/java/org/dylanneve1/aicorechat/util/` – Utility helpers for device checks, formatting, and token cleanup.
+- `scripts/` – Automation helpers such as `quality.sh` for enforcing formatting and analysis gates.
 
 ## 📄 License
 
