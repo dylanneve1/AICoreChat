@@ -47,11 +47,6 @@ import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.unit.dp
 import androidx.core.net.toUri
 import coil.compose.AsyncImage
-import com.mikepenz.markdown.compose.MarkdownElement
-import com.mikepenz.markdown.m3.Markdown
-import com.mikepenz.markdown.m3.markdownColor
-import com.mikepenz.markdown.m3.markdownTypography
-import com.mikepenz.markdown.model.markdownPadding
 import org.dylanneve1.aicorechat.data.ChatMessage
 
 @OptIn(ExperimentalFoundationApi::class)
@@ -133,43 +128,11 @@ fun MessageRow(message: ChatMessage, onCopy: (String) -> Unit, isSearching: Bool
                                 modifier = contentModifier,
                             )
                         } else {
-                            Markdown(
-                                content = message.text,
+                            Text(
+                                text = message.text,
+                                color = contentColor,
+                                style = MaterialTheme.typography.bodyLarge,
                                 modifier = contentModifier,
-                                colors = markdownColor(text = contentColor),
-                                typography = markdownTypography(
-                                    text = MaterialTheme.typography.bodyLarge,
-                                    paragraph = MaterialTheme.typography.bodyLarge,
-                                    ordered = MaterialTheme.typography.bodyLarge,
-                                    bullet = MaterialTheme.typography.bodyLarge,
-                                    list = MaterialTheme.typography.bodyLarge,
-                                ),
-                                padding = markdownPadding(
-                                    block = 0.dp,
-                                    list = 2.dp,
-                                    listItemTop = 0.dp,
-                                    listItemBottom = 0.dp,
-                                ),
-                                loading = { modifier ->
-                                    Text(
-                                        text = message.text,
-                                        color = contentColor,
-                                        style = MaterialTheme.typography.bodyLarge,
-                                        modifier = modifier,
-                                    )
-                                },
-                                success = { state, components, modifier ->
-                                    Column(modifier = modifier) {
-                                        state.node.children.forEach { node ->
-                                            MarkdownElement(
-                                                node = node,
-                                                components = components,
-                                                content = state.content,
-                                                includeSpacer = false,
-                                            )
-                                        }
-                                    }
-                                },
                             )
                         }
                     }

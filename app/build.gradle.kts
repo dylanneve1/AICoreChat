@@ -66,9 +66,6 @@ dependencies {
     implementation(libs.androidx.compose.material3)
     implementation(libs.play.services.location)
 
-    // Markdown renderer for Compose Material 3
-    implementation(libs.markdown.renderer)
-
     // ML Kit GenAI Image Description
     implementation(libs.mlkit.image.description)
     implementation(libs.coroutines.play.services)

@@ -10,6 +10,7 @@ object PromptTemplates {
         sb.append("Conversation formatting (strict):\n")
         sb.append("- User turns MUST be wrapped in [USER] and [/USER].\n")
         sb.append("- Assistant turns MUST be wrapped in [ASSISTANT] and ALWAYS end with [/ASSISTANT].\n")
+        sb.append("- DO NOT USE ANY FORM OF MARKDOWN.\n")
         sb.append(
             "- If an [IMAGE_DESCRIPTION] block is present, use it as additional user-provided context. Do not repeat or quote it.\n",
         )
