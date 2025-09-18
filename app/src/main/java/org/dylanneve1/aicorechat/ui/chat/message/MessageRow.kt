@@ -132,13 +132,6 @@ fun MessageRow(message: ChatMessage, onCopy: (String) -> Unit, isSearching: Bool
                                 style = MaterialTheme.typography.bodyLarge,
                                 modifier = contentModifier,
                             )
-                        } else if (message.isStreaming) {
-                            Text(
-                                text = message.text,
-                                color = contentColor,
-                                style = MaterialTheme.typography.bodyLarge,
-                                modifier = contentModifier,
-                            )
                         } else {
                             Markdown(
                                 content = message.text,
