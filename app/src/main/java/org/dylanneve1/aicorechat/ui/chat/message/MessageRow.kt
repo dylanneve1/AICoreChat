@@ -47,7 +47,7 @@ import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.unit.dp
 import androidx.core.net.toUri
 import coil.compose.AsyncImage
-import org.dylanneve1.aicorechat.data.ChatMessage
+import org.dylanneve1.aicorechat.data.chat.model.ChatMessage
 
 @OptIn(ExperimentalFoundationApi::class)
 @Composable

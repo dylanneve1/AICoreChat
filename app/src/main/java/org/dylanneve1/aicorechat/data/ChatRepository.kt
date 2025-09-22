@@ -2,6 +2,8 @@ package org.dylanneve1.aicorechat.data
 
 import android.content.Context
 import androidx.core.content.edit
+import org.dylanneve1.aicorechat.data.chat.model.ChatMessage
+import org.dylanneve1.aicorechat.data.chat.model.ChatSession
 import org.json.JSONArray
 import org.json.JSONObject
 

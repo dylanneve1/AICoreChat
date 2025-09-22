@@ -1,4 +1,8 @@
-package org.dylanneve1.aicorechat.data
+package org.dylanneve1.aicorechat.data.chat.model
+
+import org.dylanneve1.aicorechat.data.BioInformation
+import org.dylanneve1.aicorechat.data.MemoryCategory
+import org.dylanneve1.aicorechat.data.MemoryEntry
 
 data class ChatMessage(
     val id: Long = System.nanoTime(),

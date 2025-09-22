@@ -1,54 +1,17 @@
 package org.dylanneve1.aicorechat.ui.chat
 
+import android.net.Uri
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.PickVisualMediaRequest
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.activity.result.contract.ActivityResultContracts.PickVisualMedia
 import androidx.activity.result.contract.ActivityResultContracts.TakePicture
-import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.MutableTransitionState
-import androidx.compose.animation.core.tween
-import androidx.compose.animation.fadeIn
-import androidx.compose.animation.fadeOut
-import androidx.compose.animation.slideInVertically
-import androidx.compose.animation.slideOutVertically
-import androidx.compose.foundation.Image
-import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.PaddingValues
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.imePadding
-import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.outlined.ArrowDownward
-import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.DrawerValue
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.FilledTonalButton
-import androidx.compose.material3.FloatingActionButton
-import androidx.compose.material3.Icon
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.ModalDrawerSheet
-import androidx.compose.material3.ModalNavigationDrawer
-import androidx.compose.material3.OutlinedTextField
-import androidx.compose.material3.Scaffold
-import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
-import androidx.compose.material3.Surface
-import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.material3.rememberDrawerState
 import androidx.compose.runtime.Composable
@@ -60,24 +23,13 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
-import androidx.compose.ui.Alignment
-import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.ColorFilter
-import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalFocusManager
-import androidx.compose.ui.res.painterResource
-import androidx.compose.ui.unit.dp
 import androidx.core.content.ContextCompat
 import androidx.core.content.FileProvider
 import kotlinx.coroutines.launch
-import org.dylanneve1.aicorechat.R
-import org.dylanneve1.aicorechat.data.ChatViewModel
-import org.dylanneve1.aicorechat.ui.chat.drawer.DrawerHeader
-import org.dylanneve1.aicorechat.ui.chat.drawer.SessionItem
-import org.dylanneve1.aicorechat.ui.chat.message.MessageInput
-import org.dylanneve1.aicorechat.ui.chat.message.MessageRow
-import org.dylanneve1.aicorechat.ui.chat.topbar.AICoreChatTopAppBar
+import org.dylanneve1.aicorechat.data.chat.ChatViewModel
+import org.dylanneve1.aicorechat.ui.chat.SettingsDestination
 import java.io.File
 import java.text.SimpleDateFormat
 import java.util.Date
@@ -92,24 +44,24 @@ fun ChatScreen(viewModel: ChatViewModel) {
     val drawerListState = rememberLazyListState()
     val snackbarHostState = remember { SnackbarHostState() }
     val scope = rememberCoroutineScope()
+
     var showClearDialog by remember { mutableStateOf(false) }
     var showSettingsSheet by remember { mutableStateOf(false) }
-    // Navigation state for settings sub-screens
     var currentSettingsDestination by remember { mutableStateOf<SettingsDestination?>(null) }
     val settingsVisibilityState = remember { MutableTransitionState(false) }
     settingsVisibilityState.targetState = showSettingsSheet
     val scrimInteractionSource = remember { MutableInteractionSource() }
 
     val scrollBehavior = TopAppBarDefaults.pinnedScrollBehavior()
-
     val drawerState = rememberDrawerState(DrawerValue.Closed)
-    var showRenameDialog by remember { mutableStateOf<Pair<Long, String>?>(null) }
-    var showDeleteDialog by remember { mutableStateOf<Long?>(null) }
+
+    var renameDialogState by remember { mutableStateOf<Pair<Long, String>?>(null) }
+    var deleteDialogId by remember { mutableStateOf<Long?>(null) }
     var renameTitleDialog by remember { mutableStateOf(false) }
 
     val context = LocalContext.current
+    val focusManager = LocalFocusManager.current
 
-    // Permission variables accessible to all modal blocks
     val hasFine = ContextCompat.checkSelfPermission(
         context,
         android.Manifest.permission.ACCESS_FINE_LOCATION,
@@ -118,26 +70,24 @@ fun ChatScreen(viewModel: ChatViewModel) {
         context,
         android.Manifest.permission.ACCESS_COARSE_LOCATION,
     ) == android.content.pm.PackageManager.PERMISSION_GRANTED
-    val focusManager = LocalFocusManager.current
+
     val locationPermissionLauncher = rememberLauncherForActivityResult(
         ActivityResultContracts.RequestMultiplePermissions(),
-    ) { /* results ignored; ViewModel will use if granted */ }
+    ) { }
 
-    var pendingPhotoUri by remember { mutableStateOf(android.net.Uri.EMPTY) }
+    var pendingPhotoUri by remember { mutableStateOf(Uri.EMPTY) }
     val takePictureLauncher = rememberLauncherForActivityResult(TakePicture()) { success ->
-        if (success && pendingPhotoUri != android.net.Uri.EMPTY) {
+        if (success && pendingPhotoUri != Uri.EMPTY) {
             viewModel.onImageSelected(pendingPhotoUri)
-        } else {
-            pendingPhotoUri = android.net.Uri.EMPTY
         }
+        pendingPhotoUri = Uri.EMPTY
     }
 
     val pickImageLauncher = rememberLauncherForActivityResult(PickVisualMedia()) { uri ->
         if (uri != null) {
-            try {
-                viewModel.onImageSelected(uri)
-            } catch (e: Exception) {
-                scope.launch { snackbarHostState.showSnackbar(e.message ?: "Failed to attach image") }
+            scope.launch {
+                runCatching { viewModel.onImageSelected(uri) }
+                    .onFailure { snackbarHostState.showSnackbar(it.message ?: "Failed to attach image") }
             }
         }
     }
@@ -159,7 +109,9 @@ fun ChatScreen(viewModel: ChatViewModel) {
     }
 
     LaunchedEffect(uiState.modelError) {
-        uiState.modelError?.let { snackbarHostState.showSnackbar(it) }
+        uiState.modelError?.let { message ->
+            scope.launch { snackbarHostState.showSnackbar(message) }
+        }
     }
 
     val showScrollToBottom by remember {
@@ -171,431 +123,133 @@ fun ChatScreen(viewModel: ChatViewModel) {
         }
     }
 
-    ModalNavigationDrawer(
-        drawerState = drawerState,
-        gesturesEnabled = true,
-        drawerContent = {
-            ModalDrawerSheet {
-                DrawerHeader(
-                    onNewChat = {
-                        viewModel.newChat()
-                        scope.launch { drawerState.close() }
-                    },
-                )
-                LazyColumn(
-                    state = drawerListState,
-                    modifier = Modifier.weight(1f, fill = true),
-                    contentPadding = PaddingValues(vertical = 8.dp),
-                ) {
-                    items(uiState.sessions, key = { it.id }) { meta ->
-                        SessionItem(
-                            meta = meta,
-                            isSelected = meta.id == uiState.currentSessionId,
-                            onClick = {
-                                viewModel.selectChat(meta.id)
-                                scope.launch { drawerState.close() }
-                            },
-                            onLongPress = { showRenameDialog = meta.id to meta.name },
-                        )
-                    }
-                }
-                FilledTonalButton(
-                    onClick = { viewModel.generateTitlesForAllChats() },
-                    modifier = Modifier
-                        .padding(16.dp)
-                        .fillMaxWidth(),
-                ) { Text("Generate titles for all chats") }
-            }
-        },
-    ) {
-        Scaffold(
-            modifier = Modifier
-                .fillMaxSize()
-                .nestedScroll(scrollBehavior.nestedScrollConnection)
-                .imePadding(),
-            topBar = {
-                AICoreChatTopAppBar(
-                    scrollBehavior = scrollBehavior,
-                    isChatNotEmpty = uiState.messages.isNotEmpty(),
-                    onClearClick = { showClearDialog = true },
-                    onSettingsClick = {
-                        focusManager.clearFocus(force = true)
-                        showSettingsSheet = true
-                    },
-                    onMenuClick = { scope.launch { drawerState.open() } },
-                    title = uiState.currentSessionName,
-                    onTitleLongPress = { renameTitleDialog = true },
-                    onTitleClick = {
-                        if (!uiState.isGenerating && uiState.messages.any { it.isFromUser }) {
-                            viewModel.generateChatTitle()
-                        } else {
-                            scope.launch {
-                                val msg = if (uiState.isGenerating) "Please wait for the response to finish." else "Chat is empty."
-                                snackbarHostState.showSnackbar(msg)
-                            }
-                        }
-                    },
-                )
-            },
-            bottomBar = {
-                MessageInput(
-                    onSendMessage = viewModel::sendMessage,
-                    onStop = viewModel::stopGeneration,
-                    isGenerating = uiState.isGenerating,
-                    onPickImage = {
-                        if (!uiState.multimodalEnabled) {
-                            scope.launch { snackbarHostState.showSnackbar("Multimodal is disabled in Settings") }
-                        } else {
-                            pickImageLauncher.launch(PickVisualMediaRequest(PickVisualMedia.ImageOnly))
-                        }
-                    },
-                    onTakePhoto = {
-                        if (!uiState.multimodalEnabled) {
-                            scope.launch { snackbarHostState.showSnackbar("Multimodal is disabled in Settings") }
-                        } else {
-                            try {
-                                val ctx = context
-                                val dir = ctx.getExternalFilesDir(android.os.Environment.DIRECTORY_PICTURES)
-                                val time = java.text.SimpleDateFormat(
-                                    "yyyyMMdd_HHmmss",
-                                    java.util.Locale.US,
-                                ).format(java.util.Date())
-                                val newFile = java.io.File(dir, "IMG_$time.jpg")
-                                val uri = FileProvider.getUriForFile(ctx, ctx.packageName + ".fileprovider", newFile)
-                                pendingPhotoUri = uri
-                                takePictureLauncher.launch(uri)
-                            } catch (e: Exception) {
-                                scope.launch { snackbarHostState.showSnackbar(e.message ?: "Failed to open camera") }
-                            }
-                        }
-                    },
-                    attachmentUri = uiState.pendingImageUri,
-                    isDescribingImage = uiState.isDescribingImage,
-                    onRemoveImage = viewModel::clearPendingImage,
-                    showPlus = uiState.multimodalEnabled,
-                )
-            },
-            floatingActionButton = {
-                AnimatedVisibility(
-                    visible = showScrollToBottom,
-                    enter = fadeIn() + slideInVertically { it },
-                    exit = fadeOut() + slideOutVertically { it },
-                ) {
-                    FloatingActionButton(
-                        onClick = {
-                            scope.launch { listState.animateScrollToItem(uiState.messages.size - 1) }
-                        },
-                    ) { Icon(Icons.Outlined.ArrowDownward, contentDescription = "Scroll to bottom") }
-                }
-            },
-            snackbarHost = { SnackbarHost(hostState = snackbarHostState) },
-            content = { innerPadding ->
-                if (uiState.messages.isEmpty()) {
-                    Column(
-                        modifier = Modifier
-                            .fillMaxSize()
-                            .padding(innerPadding),
-                        verticalArrangement = Arrangement.Center,
-                        horizontalAlignment = Alignment.CenterHorizontally,
-                    ) {
-                        Image(
-                            painter = painterResource(id = R.drawable.ic_launcher_foreground),
-                            contentDescription = null,
-                            colorFilter = ColorFilter.tint(MaterialTheme.colorScheme.primary),
-                        )
-                        Spacer(Modifier.width(8.dp))
-                        Text(
-                            "Ask anything, powered by Gemini Nano",
-                            style = MaterialTheme.typography.bodyLarge,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            modifier = Modifier.padding(top = 12.dp),
-                        )
-                    }
-                } else {
-                    LazyColumn(
-                        state = listState,
-                        modifier = Modifier
-                            .fillMaxSize()
-                            .padding(innerPadding),
-                        verticalArrangement = Arrangement.spacedBy(12.dp),
-                        contentPadding = PaddingValues(start = 16.dp, end = 16.dp, top = 16.dp, bottom = 16.dp),
-                    ) {
-                        items(items = uiState.messages, key = { it.id }) { message ->
-                            val isLast = message.id == uiState.messages.lastOrNull()?.id
-                            MessageRow(
-                                message = message,
-                                onCopy = { copiedText: String ->
-                                    scope.launch {
-                                        val shortText = copiedText.take(40).replace("\n", " ")
-                                        snackbarHostState.showSnackbar(
-                                            "Copied: \"$shortText${if (copiedText.length > 40) "…" else ""}\"",
-                                        )
-                                    }
-                                },
-                                isSearching = isLast && message.isStreaming && uiState.isSearchInProgress,
-                            )
-                        }
-                    }
-                }
-            },
-        )
+    val showSnackbar: (String) -> Unit = { message ->
+        scope.launch { snackbarHostState.showSnackbar(message) }
+        Unit
+    }
+    val openDrawer: () -> Unit = {
+        scope.launch { drawerState.open() }
+        Unit
+    }
+    val closeDrawer: () -> Unit = {
+        scope.launch { drawerState.close() }
+        Unit
+    }
+    val scrollToBottom: () -> Unit = {
+        scope.launch { listState.animateScrollToItem(max(0, uiState.messages.size - 1)) }
+        Unit
     }
 
-    if (uiState.isTitleGenerating) {
-        AlertDialog(
-            onDismissRequest = { /* not dismissible */ },
-            title = { Text("Generating title") },
-            text = {
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    CircularProgressIndicator()
-                    Spacer(Modifier.width(12.dp))
-                    Text("Using chat context…")
-                }
-            },
-            confirmButton = {},
-            dismissButton = {},
-        )
+    val onPickImage = {
+        pickImageLauncher.launch(PickVisualMediaRequest(PickVisualMedia.ImageOnly))
     }
 
-    if (uiState.isBulkTitleGenerating) {
-        AlertDialog(
-            onDismissRequest = { /* not dismissible */ },
-            title = { Text("Generating titles") },
-            text = {
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    CircularProgressIndicator()
-                    Spacer(Modifier.width(12.dp))
-                    Text("Processing all chats…")
-                }
-            },
-            confirmButton = {},
-            dismissButton = {},
-        )
-    }
-
-    if (showRenameDialog != null) {
-        val (id, currentName) = showRenameDialog!!
-        var name by remember(currentName) { mutableStateOf(currentName) }
-        AlertDialog(
-            onDismissRequest = { showRenameDialog = null },
-            title = { Text("Chat options") },
-            text = {
-                Column {
-                    OutlinedTextField(
-                        value = name,
-                        onValueChange = { name = it },
-                        singleLine = true,
-                        label = { Text("Rename chat") },
-                    )
-                    Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
-                        TextButton(onClick = {
-                            val trimmed = name.trim().ifEmpty { "New Chat" }
-                            viewModel.renameChat(id, trimmed)
-                            showRenameDialog = null
-                        }) { Text("Save") }
-                        Spacer(Modifier.width(8.dp))
-                        TextButton(onClick = {
-                            showRenameDialog = null
-                            showDeleteDialog = id
-                        }) { Text("Delete", color = MaterialTheme.colorScheme.error) }
-                    }
-                }
-            },
-            confirmButton = {},
-            dismissButton = { TextButton(onClick = { showRenameDialog = null }) { Text("Close") } },
-        )
-    }
-
-    if (showDeleteDialog != null) {
-        val deleteId = showDeleteDialog!!
-        AlertDialog(
-            onDismissRequest = { showDeleteDialog = null },
-            title = { Text("Delete chat?") },
-            text = { Text("This will permanently remove this chat.") },
-            confirmButton = {
-                TextButton(onClick = {
-                    viewModel.deleteChat(deleteId)
-                    showDeleteDialog = null
-                }) { Text("Delete", color = MaterialTheme.colorScheme.error) }
-            },
-            dismissButton = { TextButton(onClick = { showDeleteDialog = null }) { Text("Cancel") } },
-        )
-    }
-
-    if (renameTitleDialog) {
-        var name by remember(uiState.currentSessionName) { mutableStateOf(uiState.currentSessionName) }
-        AlertDialog(
-            onDismissRequest = { renameTitleDialog = false },
-            title = { Text("Rename chat") },
-            text = { OutlinedTextField(value = name, onValueChange = { name = it }, singleLine = true) },
-            confirmButton = {
-                TextButton(onClick = {
-                    val t = name.trim().ifEmpty { "New Chat" }
-                    viewModel.renameCurrentChat(t)
-                    renameTitleDialog = false
-                }) { Text("Save") }
-            },
-            dismissButton = { TextButton(onClick = { renameTitleDialog = false }) { Text("Cancel") } },
-        )
-    }
-
-    if (showClearDialog) {
-        AlertDialog(
-            onDismissRequest = { showClearDialog = false },
-            title = { Text("Clear conversation?") },
-            text = { Text("This will remove this chat completely and start a new one.") },
-            confirmButton = {
-                TextButton(onClick = {
-                    viewModel.clearChat()
-                    showClearDialog = false
-                }) { Text("Delete chat") }
-            },
-            dismissButton = { TextButton(onClick = { showClearDialog = false }) { Text("Cancel") } },
-        )
-    }
-
-    // Single settings modal that handles all sub-navigation
-    AnimatedVisibility(
-        visibleState = settingsVisibilityState,
-        enter = fadeIn(animationSpec = tween(durationMillis = 150)),
-        exit = fadeOut(animationSpec = tween(durationMillis = 150)),
-    ) {
-        Box(modifier = Modifier.fillMaxSize()) {
-            Box(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .background(MaterialTheme.colorScheme.scrim.copy(alpha = 0.45f))
-                    .clickable(
-                        indication = null,
-                        interactionSource = scrimInteractionSource,
-                    ) {
-                        showSettingsSheet = false
-                        currentSettingsDestination = null
-                    },
-            )
-
-            AnimatedVisibility(
-                visibleState = settingsVisibilityState,
-                enter = slideInVertically(
-                    animationSpec = tween(durationMillis = 260),
-                    initialOffsetY = { fullHeight -> fullHeight },
-                ) + fadeIn(animationSpec = tween(durationMillis = 240)),
-                exit = slideOutVertically(
-                    animationSpec = tween(durationMillis = 220),
-                    targetOffsetY = { fullHeight -> fullHeight },
-                ) + fadeOut(animationSpec = tween(durationMillis = 200)),
-                modifier = Modifier.align(Alignment.BottomCenter),
-            ) {
-                Surface(
-                    modifier = Modifier.fillMaxSize(),
-                    color = MaterialTheme.colorScheme.background,
-                ) {
-                    when (currentSettingsDestination) {
-                        null -> {
-                            SettingsScreen(
-                                temperature = uiState.temperature,
-                                topK = uiState.topK,
-                                onTemperatureChange = viewModel::updateTemperature,
-                                onTopKChange = viewModel::updateTopK,
-                                onResetModelSettings = viewModel::resetModelSettings,
-                                userName = uiState.userName,
-                                personalContextEnabled = uiState.personalContextEnabled,
-                                onUserNameChange = viewModel::updateUserName,
-                                onPersonalContextToggle = { enabled ->
-                                    if (enabled && !hasFine && !hasCoarse) {
-                                        locationPermissionLauncher.launch(
-                                            arrayOf(
-                                                android.Manifest.permission.ACCESS_FINE_LOCATION,
-                                                android.Manifest.permission.ACCESS_COARSE_LOCATION,
-                                            ),
-                                        )
-                                    }
-                                    viewModel.updatePersonalContextEnabled(enabled)
-                                },
-                                webSearchEnabled = uiState.webSearchEnabled,
-                                onWebSearchToggle = viewModel::updateWebSearchEnabled,
-                                multimodalEnabled = uiState.multimodalEnabled,
-                                onMultimodalToggle = viewModel::updateMultimodalEnabled,
-                                onWipeAllChats = viewModel::wipeAllChats,
-                                onDismiss = {
-                                    showSettingsSheet = false
-                                    currentSettingsDestination = null
-                                },
-                                // Memory and Bio parameters
-                                memoryContextEnabled = uiState.memoryContextEnabled,
-                                onMemoryContextToggle = viewModel::updateMemoryContextEnabled,
-                                customInstructionsEnabled = uiState.customInstructionsEnabled,
-                                onCustomInstructionsToggle = viewModel::updateCustomInstructionsEnabled,
-                                bioContextEnabled = uiState.bioContextEnabled,
-                                onBioContextToggle = viewModel::updateBioContextEnabled,
-                                // Bio information
-                                bioName = uiState.bioInformation?.name ?: "",
-                                bioAge = uiState.bioInformation?.age?.toString() ?: "",
-                                bioOccupation = uiState.bioInformation?.occupation ?: "",
-                                bioLocation = uiState.bioInformation?.location ?: "",
-                                onBioNameChange = { name ->
-                                    val currentBio = uiState.bioInformation
-                                    viewModel.updateBioInformation(
-                                        name = name,
-                                        age = currentBio?.age?.toString() ?: "",
-                                        occupation = currentBio?.occupation ?: "",
-                                        location = currentBio?.location ?: "",
-                                    )
-                                },
-                                onBioAgeChange = { age ->
-                                    val currentBio = uiState.bioInformation
-                                    viewModel.updateBioInformation(
-                                        name = currentBio?.name ?: "",
-                                        age = age,
-                                        occupation = currentBio?.occupation ?: "",
-                                        location = currentBio?.location ?: "",
-                                    )
-                                },
-                                onBioOccupationChange = { occupation ->
-                                    val currentBio = uiState.bioInformation
-                                    viewModel.updateBioInformation(
-                                        name = currentBio?.name ?: "",
-                                        age = currentBio?.age?.toString() ?: "",
-                                        occupation = occupation,
-                                        location = currentBio?.location ?: "",
-                                    )
-                                },
-                                onBioLocationChange = { location ->
-                                    val currentBio = uiState.bioInformation
-                                    viewModel.updateBioInformation(
-                                        name = currentBio?.name ?: "",
-                                        age = currentBio?.age?.toString() ?: "",
-                                        occupation = currentBio?.occupation ?: "",
-                                        location = location,
-                                    )
-                                },
-                                // Custom instructions
-                                customInstructions = uiState.customInstructions,
-                                onCustomInstructionsChange = { instructions ->
-                                    viewModel.updateCustomInstructions(
-                                        instructions,
-                                        uiState.customInstructionsEnabled,
-                                    )
-                                },
-                                // Memory and Bio management parameters
-                                memoryEntries = uiState.memoryEntries,
-                                bioInformation = uiState.bioInformation,
-                                onAddMemory = viewModel::addMemoryEntry,
-                                onUpdateMemory = viewModel::updateMemoryEntry,
-                                onDeleteMemory = viewModel::deleteMemoryEntry,
-                                onToggleMemory = viewModel::toggleMemoryEntry,
-                                onSaveBio = viewModel::saveBioInformation,
-                                onDeleteBio = viewModel::deleteBioInformation,
-                            )
-                        }
-
-                        else -> {
-                            showSettingsSheet = false
-                            currentSettingsDestination = null
-                        }
-                    }
-                }
-            }
+    val onTakePhoto = {
+        try {
+            val dir = context.getExternalFilesDir(android.os.Environment.DIRECTORY_PICTURES)
+            val time = SimpleDateFormat("yyyyMMdd_HHmmss", Locale.US).format(Date())
+            val newFile = File(dir, "IMG_$time.jpg")
+            val uri = FileProvider.getUriForFile(context, context.packageName + ".fileprovider", newFile)
+            pendingPhotoUri = uri
+            takePictureLauncher.launch(uri)
+        } catch (e: Exception) {
+            showSnackbar(e.message ?: "Failed to open camera")
         }
     }
+
+    ChatLayout(
+        uiState = uiState,
+        listState = listState,
+        drawerState = drawerState,
+        drawerListState = drawerListState,
+        snackbarHostState = snackbarHostState,
+        scrollBehavior = scrollBehavior,
+        showScrollToBottom = showScrollToBottom,
+        onNewChat = viewModel::newChat,
+        onSelectChat = viewModel::selectChat,
+        onShowRenameOptions = { id, name -> renameDialogState = id to name },
+        onGenerateTitlesForAllChats = viewModel::generateTitlesForAllChats,
+        onClearChatRequested = { showClearDialog = true },
+        onOpenSettings = {
+            focusManager.clearFocus(force = true)
+            showSettingsSheet = true
+        },
+        onTitleClick = viewModel::generateChatTitle,
+        onTitleLongPress = { renameTitleDialog = true },
+        onDrawerOpen = openDrawer,
+        onDrawerClose = closeDrawer,
+        onSendMessage = viewModel::sendMessage,
+        onStopGeneration = viewModel::stopGeneration,
+        onPickImage = onPickImage,
+        onTakePhoto = onTakePhoto,
+        onRemoveImage = viewModel::clearPendingImage,
+        onScrollToBottom = scrollToBottom,
+        showSnackbar = showSnackbar,
+    )
+
+    ChatOverlays(
+        uiState = uiState,
+        renameDialogState = renameDialogState,
+        onRenameSave = viewModel::renameChat,
+        onRenameDismiss = { renameDialogState = null },
+        deleteDialogId = deleteDialogId,
+        onRequestDelete = { id -> deleteDialogId = id },
+        onDeleteConfirm = { id ->
+            viewModel.deleteChat(id)
+            deleteDialogId = null
+        },
+        onDeleteDismiss = { deleteDialogId = null },
+        renameTitleDialog = renameTitleDialog,
+        onRenameTitleConfirm = { newName ->
+            viewModel.renameCurrentChat(newName)
+            renameTitleDialog = false
+        },
+        onRenameTitleDismiss = { renameTitleDialog = false },
+        clearDialogVisible = showClearDialog,
+        onClearConfirm = {
+            viewModel.clearChat()
+            showClearDialog = false
+        },
+        onClearDismiss = { showClearDialog = false },
+    )
+
+    ChatSettingsSheet(
+        uiState = uiState,
+        settingsVisibilityState = settingsVisibilityState,
+        scrimInteractionSource = scrimInteractionSource,
+        currentDestination = currentSettingsDestination,
+        hasFineLocation = hasFine,
+        hasCoarseLocation = hasCoarse,
+        onRequestLocationPermissions = {
+            locationPermissionLauncher.launch(
+                arrayOf(
+                    android.Manifest.permission.ACCESS_FINE_LOCATION,
+                    android.Manifest.permission.ACCESS_COARSE_LOCATION,
+                ),
+            )
+        },
+        onDismiss = {
+            showSettingsSheet = false
+            currentSettingsDestination = null
+        },
+        onUpdateTemperature = viewModel::updateTemperature,
+        onUpdateTopK = viewModel::updateTopK,
+        onResetModelSettings = viewModel::resetModelSettings,
+        onUpdateUserName = viewModel::updateUserName,
+        onUpdatePersonalContext = viewModel::updatePersonalContextEnabled,
+        onUpdateWebSearch = viewModel::updateWebSearchEnabled,
+        onUpdateMultimodal = viewModel::updateMultimodalEnabled,
+        onWipeAllChats = viewModel::wipeAllChats,
+        onUpdateMemoryContext = viewModel::updateMemoryContextEnabled,
+        onUpdateCustomInstructionsEnabled = viewModel::updateCustomInstructionsEnabled,
+        onUpdateBioContext = viewModel::updateBioContextEnabled,
+        onUpdateBioInformation = viewModel::updateBioInformation,
+        onUpdateCustomInstructions = viewModel::updateCustomInstructions,
+        onAddMemory = viewModel::addMemoryEntry,
+        onUpdateMemory = viewModel::updateMemoryEntry,
+        onDeleteMemory = viewModel::deleteMemoryEntry,
+        onToggleMemory = viewModel::toggleMemoryEntry,
+        onSaveBio = viewModel::saveBioInformation,
+        onDeleteBio = viewModel::deleteBioInformation,
+    )
 }

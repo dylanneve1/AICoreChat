@@ -24,7 +24,7 @@ import androidx.compose.ui.Modifier
 import androidx.core.content.edit
 import androidx.core.view.WindowCompat
 import androidx.lifecycle.viewmodel.compose.viewModel
-import org.dylanneve1.aicorechat.data.ChatViewModel
+import org.dylanneve1.aicorechat.data.chat.ChatViewModel
 import org.dylanneve1.aicorechat.ui.chat.ChatScreen
 import org.dylanneve1.aicorechat.ui.chat.OnboardingScreen
 import org.dylanneve1.aicorechat.ui.chat.UnsupportedDeviceScreen

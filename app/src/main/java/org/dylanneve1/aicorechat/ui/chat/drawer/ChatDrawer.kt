@@ -13,7 +13,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
-import org.dylanneve1.aicorechat.data.ChatSessionMeta
+import org.dylanneve1.aicorechat.data.chat.model.ChatSessionMeta
 
 @Composable
 fun DrawerHeader(onNewChat: () -> Unit) {

@@ -2,6 +2,7 @@ package org.dylanneve1.aicorechat.data
 
 import android.content.Context
 import androidx.test.core.app.ApplicationProvider
+import org.dylanneve1.aicorechat.data.chat.model.ChatMessage
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue

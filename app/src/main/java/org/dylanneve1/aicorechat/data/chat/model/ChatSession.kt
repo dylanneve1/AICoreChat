@@ -1,4 +1,4 @@
-package org.dylanneve1.aicorechat.data
+package org.dylanneve1.aicorechat.data.chat.model
 
 data class ChatSession(
     val id: Long,
