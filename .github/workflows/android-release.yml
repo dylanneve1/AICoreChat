@@ -113,6 +113,6 @@ jobs:
             _Debug build generated automatically via GitHub Actions run ${{ github.run_id }}._
           draft: false
           prerelease: false
-          makeLatest: false
+          makeLatest: true
           artifacts: artifacts/AICoreChat-${{ steps.version.outputs.version_name }}-debug.apk
           artifactContentType: application/octet-stream
