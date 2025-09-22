@@ -6,12 +6,12 @@ import android.util.Log
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
-import kotlinx.coroutines.launch
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.onCompletion
 import kotlinx.coroutines.flow.onStart
 import kotlinx.coroutines.flow.update
+import kotlinx.coroutines.launch
 import org.dylanneve1.aicorechat.data.chat.model.ChatMessage
 import org.dylanneve1.aicorechat.data.chat.model.ChatUiState
 import org.dylanneve1.aicorechat.data.chat.prompt.ChatPromptBuilder
@@ -145,7 +145,10 @@ class ChatGenerationManager(
 
                             if (!searchStartDetected && firstNonWhitespaceIndex != Int.MAX_VALUE) {
                                 val after = fullResponse.substring(firstNonWhitespaceIndex)
-                                if (after.isNotEmpty() && after.length < searchToken.length && searchToken.startsWith(after)) {
+                                if (after.isNotEmpty() && after.length < searchToken.length && searchToken.startsWith(
+                                        after,
+                                    )
+                                ) {
                                     searchStartDetected = true
                                     searchStartIndex = firstNonWhitespaceIndex
                                     state.update { current ->
@@ -219,7 +222,11 @@ class ChatGenerationManager(
                         }
 
                         val earliestIndex = stopTokens
-                            .map { token -> fullResponse.indexOf(token).let { idx -> if (idx >= 0) idx else Int.MAX_VALUE } }
+                            .map { token ->
+                                fullResponse.indexOf(
+                                    token,
+                                ).let { idx -> if (idx >= 0) idx else Int.MAX_VALUE }
+                            }
                             .minOrNull() ?: Int.MAX_VALUE
 
                         delay(35)
@@ -251,7 +258,10 @@ class ChatGenerationManager(
                     state.update {
                         it.copy(
                             isGenerating = false,
-                            messages = it.messages + ChatMessage(text = "Error: ${throwable.message}", isFromUser = false),
+                            messages = it.messages + ChatMessage(
+                                text = "Error: ${throwable.message}",
+                                isFromUser = false,
+                            ),
                         )
                     }
                     persistMessages()
@@ -325,7 +335,11 @@ class ChatGenerationManager(
                         return@collect
                     }
                     val earliestIndex = stopTokens
-                        .map { token -> fullResponse.indexOf(token).let { idx -> if (idx >= 0) idx else Int.MAX_VALUE } }
+                        .map { token ->
+                            fullResponse.indexOf(
+                                token,
+                            ).let { idx -> if (idx >= 0) idx else Int.MAX_VALUE }
+                        }
                         .minOrNull() ?: Int.MAX_VALUE
                     delay(35)
                     state.update { currentState ->

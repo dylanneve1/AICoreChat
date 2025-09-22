@@ -37,11 +37,7 @@ class ChatSessionManager(private val repository: ChatRepository) {
         )
     }
 
-    fun selectSession(
-        sessionId: Long,
-        previousSessionId: Long?,
-        previousMessages: List<ChatMessage>,
-    ): SessionState? {
+    fun selectSession(sessionId: Long, previousSessionId: Long?, previousMessages: List<ChatMessage>): SessionState? {
         var sessions = repository.loadSessions()
         val selected = sessions.find { it.id == sessionId } ?: return null
 

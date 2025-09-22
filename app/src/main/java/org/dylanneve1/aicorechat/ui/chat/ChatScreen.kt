@@ -29,7 +29,6 @@ import androidx.core.content.ContextCompat
 import androidx.core.content.FileProvider
 import kotlinx.coroutines.launch
 import org.dylanneve1.aicorechat.data.chat.ChatViewModel
-import org.dylanneve1.aicorechat.ui.chat.SettingsDestination
 import java.io.File
 import java.text.SimpleDateFormat
 import java.util.Date
