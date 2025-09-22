@@ -1,0 +1,88 @@
+name: Android Release
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  build-and-release:
+    name: Build and Publish Release
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 17
+          cache: gradle
+
+      - name: Configure Android SDK environment
+        run: |
+          echo "ANDROID_SDK_ROOT=/usr/local/lib/android/sdk" >> "$GITHUB_ENV"
+          echo "ANDROID_HOME=/usr/local/lib/android/sdk" >> "$GITHUB_ENV"
+          echo "PATH=$PATH:/usr/local/lib/android/sdk/platform-tools:/usr/local/lib/android/sdk/cmdline-tools/latest/bin" >> "$GITHUB_ENV"
+
+      - name: Accept Android SDK licenses
+        run: |
+          set +e
+          yes | sdkmanager --licenses > /dev/null
+          status=$?
+          if [ $status -ne 0 ] && [ $status -ne 141 ]; then
+            exit $status
+          fi
+
+      - name: Ensure required Android packages are installed
+        run: |
+          set +e
+          yes | sdkmanager \
+            "platforms;android-36" \
+            "platform-tools" \
+            "build-tools;36.0.0" > /dev/null
+          status=$?
+          if [ $status -ne 0 ] && [ $status -ne 141 ]; then
+            exit $status
+          fi
+
+      - name: Prepare Gradle caching
+        uses: gradle/actions/setup-gradle@v3
+
+      - name: Make Gradle wrapper executable
+        run: chmod +x gradlew
+
+      - name: Build release artifacts (retry up to 3 times)
+        run: |
+          attempts=0
+          until [ "$attempts" -ge 3 ]; do
+            if ./gradlew --no-daemon clean assembleRelease bundleRelease; then
+              break
+            fi
+            attempts=$((attempts + 1))
+            if [ "$attempts" -ge 3 ]; then
+              echo "Gradle build failed after $attempts attempts"
+              exit 1
+            fi
+            echo "Gradle build failed (attempt $attempts). Retrying in 20 seconds..."
+            sleep 20
+          done
+
+      - name: Publish GitHub release
+        uses: ncipollo/release-action@v1
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          tag: auto-${{ github.ref_name }}-${{ github.run_number }}
+          name: AICoreChat build ${{ github.run_number }}
+          body: |
+            Automated release for commit ${{ github.sha }}.
+            Message: ${{ github.event.head_commit.message }}
+          draft: false
+          prerelease: false
+          makeLatest: true
+          artifacts: app/build/outputs/apk/release/app-release.apk,app/build/outputs/bundle/release/app-release.aab
+          artifactContentType: application/octet-stream
