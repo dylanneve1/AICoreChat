@@ -72,17 +72,54 @@ jobs:
             sleep 20
           done
 
+      - name: Extract app version
+        id: version
+        run: |
+          VERSION_NAME=$(sed -n 's/^[[:space:]]*versionName = "\(.*\)"/\1/p' app/build.gradle.kts | head -1)
+          VERSION_CODE=$(sed -n 's/^[[:space:]]*versionCode = \([0-9]*\)/\1/p' app/build.gradle.kts | head -1)
+          if [ -z "$VERSION_NAME" ]; then
+            echo "Failed to determine versionName" >&2
+            exit 1
+          fi
+          echo "version_name=$VERSION_NAME" >> "$GITHUB_OUTPUT"
+          echo "version_code=${VERSION_CODE:-unknown}" >> "$GITHUB_OUTPUT"
+
+      - name: Prepare release artifacts
+        env:
+          VERSION_NAME: ${{ steps.version.outputs.version_name }}
+        run: |
+          APK_PATH=app/build/outputs/apk/release/app-release-unsigned.apk
+          AAB_PATH=app/build/outputs/bundle/release/app-release.aab
+          if [ ! -f "$APK_PATH" ]; then
+            echo "Expected APK not found at $APK_PATH" >&2
+            find app/build/outputs -maxdepth 3 -type f || true
+            exit 1
+          fi
+          if [ ! -f "$AAB_PATH" ]; then
+            echo "Expected AAB not found at $AAB_PATH" >&2
+            find app/build/outputs -maxdepth 3 -type f || true
+            exit 1
+          fi
+          mkdir -p artifacts
+          cp "$APK_PATH" "artifacts/AICoreChat-${VERSION_NAME}-unsigned.apk"
+          cp "$AAB_PATH" "artifacts/AICoreChat-${VERSION_NAME}.aab"
+
       - name: Publish GitHub release
         uses: ncipollo/release-action@v1
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
-          tag: auto-${{ github.ref_name }}-${{ github.run_number }}
-          name: AICoreChat build ${{ github.run_number }}
+          tag: v${{ steps.version.outputs.version_name }}-build-${{ github.run_number }}
+          name: AICoreChat v${{ steps.version.outputs.version_name }} (build ${{ github.run_number }})
           body: |
-            Automated release for commit ${{ github.sha }}.
-            Message: ${{ github.event.head_commit.message }}
+            ## Build Info
+            - Version: v${{ steps.version.outputs.version_name }} (code ${{ steps.version.outputs.version_code }})
+            - Commit: ${{ github.sha }}
+            - Message: ${{ github.event.head_commit.message }}
+            - Triggered by: ${{ github.actor }} on `${{ github.ref_name }}`
+
+            _Generated automatically via GitHub Actions run ${{ github.run_id }}._
           draft: false
           prerelease: false
           makeLatest: true
-          artifacts: app/build/outputs/apk/release/app-release.apk,app/build/outputs/bundle/release/app-release.aab
+          artifacts: artifacts/AICoreChat-${{ steps.version.outputs.version_name }}-unsigned.apk,artifacts/AICoreChat-${{ steps.version.outputs.version_name }}.aab
           artifactContentType: application/octet-stream
