@@ -13,12 +13,15 @@ plugins {
     alias(libs.plugins.kotlin.compose) apply false
     alias(libs.plugins.spotless) apply false
     alias(libs.plugins.detekt) apply false
+    alias(libs.plugins.versions) apply false
 }
 
 val catalogs = extensions.getByType<VersionCatalogsExtension>()
 val libsCatalog = catalogs.named("libs")
 val ktlintVersion = libsCatalog.findVersion("ktlint").get().requiredVersion
 val detektVersion = libsCatalog.findVersion("detekt").get().requiredVersion
+
+apply(plugin = "com.github.ben-manes.versions")
 
 subprojects {
     apply(plugin = "com.diffplug.spotless")
