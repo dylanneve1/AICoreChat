@@ -735,12 +735,16 @@ class ChatViewModel(application: Application) : AndroidViewModel(application) {
                 }
 
                 val history = _uiState.value.messages.takeLast(10)
-                history.forEach { message ->
-                    if (message.id == userMessage.id) return@forEach
-                    if (message.isFromUser) {
-                        promptBuilder.append("[USER]\n${message.text}\n[/USER]\n")
-                    } else {
-                        promptBuilder.append("[ASSISTANT]\n${message.text}\n[/ASSISTANT]\n")
+                val priorMessages = history.filter { it.id != userMessage.id }
+                if (priorMessages.isEmpty()) {
+                    promptBuilder.append(PromptTemplates.emptyHistoryNotice())
+                } else {
+                    priorMessages.forEach { message ->
+                        if (message.isFromUser) {
+                            promptBuilder.append("[USER]\n${message.text}\n[/USER]\n")
+                        } else {
+                            promptBuilder.append("[ASSISTANT]\n${message.text}\n[/ASSISTANT]\n")
+                        }
                     }
                 }
                 promptBuilder.append("[USER]\n$prompt\n[/USER]\n")
