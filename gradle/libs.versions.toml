@@ -19,7 +19,7 @@ mlkitImageDescription = "1.0.0-beta1"
 coroutines = "1.10.2"
 coil = "2.7.0"
 robolectric = "4.16"
-benManesVersions = "0.51.0"
+benManesVersions = "0.52.0"
 
 [libraries]
 androidx-core-ktx = { group = "androidx.core", name = "core-ktx", version.ref = "coreKtx" }

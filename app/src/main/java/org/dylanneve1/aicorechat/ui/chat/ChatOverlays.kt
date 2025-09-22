@@ -33,6 +33,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import org.dylanneve1.aicorechat.data.BioInformation
 import org.dylanneve1.aicorechat.data.MemoryEntry
@@ -58,7 +59,13 @@ fun ChatOverlays(
     if (uiState.isTitleGenerating) {
         AlertDialog(
             onDismissRequest = {},
-            title = { Text("Generating title") },
+            title = {
+                Text(
+                    "Generating title",
+                    modifier = Modifier.fillMaxWidth(),
+                    textAlign = TextAlign.Center,
+                )
+            },
             text = {
                 LoadingRow(label = "Using chat context…")
             },
@@ -70,7 +77,13 @@ fun ChatOverlays(
     if (uiState.isBulkTitleGenerating) {
         AlertDialog(
             onDismissRequest = {},
-            title = { Text("Generating titles") },
+            title = {
+                Text(
+                    "Generating titles",
+                    modifier = Modifier.fillMaxWidth(),
+                    textAlign = TextAlign.Center,
+                )
+            },
             text = {
                 LoadingRow(label = "Processing all chats…")
             },
@@ -316,8 +329,15 @@ fun ChatSettingsSheet(
 
 @Composable
 private fun LoadingRow(label: String) {
-    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+    Column(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalAlignment = Alignment.CenterHorizontally,
+    ) {
         CircularProgressIndicator()
-        Text(label, modifier = Modifier.padding(top = 12.dp))
+        Text(
+            label,
+            modifier = Modifier.padding(top = 12.dp),
+            textAlign = TextAlign.Center,
+        )
     }
 }

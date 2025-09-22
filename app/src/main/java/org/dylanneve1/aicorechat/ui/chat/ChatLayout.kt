@@ -7,6 +7,7 @@ import androidx.compose.animation.slideInVertically
 import androidx.compose.animation.slideOutVertically
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Spacer
@@ -82,35 +83,42 @@ fun ChatLayout(
         gesturesEnabled = true,
         drawerContent = {
             ModalDrawerSheet {
-                DrawerHeader(
-                    onNewChat = {
-                        onNewChat()
-                        onDrawerClose()
-                    },
-                )
-                LazyColumn(
-                    state = drawerListState,
-                    modifier = Modifier.fillMaxHeight().padding(bottom = 8.dp),
-                    contentPadding = PaddingValues(vertical = 8.dp),
-                ) {
-                    items(uiState.sessions, key = { it.id }) { meta ->
-                        SessionItem(
-                            meta = meta,
-                            isSelected = meta.id == uiState.currentSessionId,
-                            onClick = {
-                                onSelectChat(meta.id)
+                Box(modifier = Modifier.fillMaxHeight()) {
+                    Column(modifier = Modifier.fillMaxSize()) {
+                        DrawerHeader(
+                            onNewChat = {
+                                onNewChat()
                                 onDrawerClose()
                             },
-                            onLongPress = { onShowRenameOptions(meta.id, meta.name) },
                         )
+                        LazyColumn(
+                            state = drawerListState,
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(bottom = 8.dp),
+                            contentPadding = PaddingValues(top = 8.dp, bottom = 96.dp),
+                        ) {
+                            items(uiState.sessions, key = { it.id }) { meta ->
+                                SessionItem(
+                                    meta = meta,
+                                    isSelected = meta.id == uiState.currentSessionId,
+                                    onClick = {
+                                        onSelectChat(meta.id)
+                                        onDrawerClose()
+                                    },
+                                    onLongPress = { onShowRenameOptions(meta.id, meta.name) },
+                                )
+                            }
+                        }
                     }
+                    FilledTonalButton(
+                        onClick = onGenerateTitlesForAllChats,
+                        modifier = Modifier
+                            .align(Alignment.BottomCenter)
+                            .padding(16.dp)
+                            .fillMaxWidth(),
+                    ) { Text("Generate titles for all chats") }
                 }
-                FilledTonalButton(
-                    onClick = onGenerateTitlesForAllChats,
-                    modifier = Modifier
-                        .padding(16.dp)
-                        .fillMaxWidth(),
-                ) { Text("Generate titles for all chats") }
             }
         },
     ) {
