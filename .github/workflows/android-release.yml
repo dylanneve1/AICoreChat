@@ -7,7 +7,7 @@ on:
 
 jobs:
   build-and-release:
-    name: Build and Publish Release
+    name: Build and Publish Debug Artifact
     runs-on: ubuntu-latest
     permissions:
       contents: write
@@ -56,11 +56,11 @@ jobs:
       - name: Make Gradle wrapper executable
         run: chmod +x gradlew
 
-      - name: Build release artifacts (retry up to 3 times)
+      - name: Build debug artifact (retry up to 3 times)
         run: |
           attempts=0
           until [ "$attempts" -ge 3 ]; do
-            if ./gradlew --no-daemon clean assembleRelease bundleRelease; then
+            if ./gradlew --no-daemon clean assembleDebug; then
               break
             fi
             attempts=$((attempts + 1))
@@ -88,28 +88,21 @@ jobs:
         env:
           VERSION_NAME: ${{ steps.version.outputs.version_name }}
         run: |
-          APK_PATH=app/build/outputs/apk/release/app-release-unsigned.apk
-          AAB_PATH=app/build/outputs/bundle/release/app-release.aab
+          APK_PATH=app/build/outputs/apk/debug/app-debug.apk
           if [ ! -f "$APK_PATH" ]; then
             echo "Expected APK not found at $APK_PATH" >&2
             find app/build/outputs -maxdepth 3 -type f || true
             exit 1
           fi
-          if [ ! -f "$AAB_PATH" ]; then
-            echo "Expected AAB not found at $AAB_PATH" >&2
-            find app/build/outputs -maxdepth 3 -type f || true
-            exit 1
-          fi
           mkdir -p artifacts
-          cp "$APK_PATH" "artifacts/AICoreChat-${VERSION_NAME}-unsigned.apk"
-          cp "$AAB_PATH" "artifacts/AICoreChat-${VERSION_NAME}.aab"
+          cp "$APK_PATH" "artifacts/AICoreChat-${VERSION_NAME}-debug.apk"
 
       - name: Publish GitHub release
         uses: ncipollo/release-action@v1
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
-          tag: v${{ steps.version.outputs.version_name }}-build-${{ github.run_number }}
-          name: AICoreChat v${{ steps.version.outputs.version_name }} (build ${{ github.run_number }})
+          tag: v${{ steps.version.outputs.version_name }}-debug-build-${{ github.run_number }}
+          name: AICoreChat v${{ steps.version.outputs.version_name }} Debug (build ${{ github.run_number }})
           body: |
             ## Build Info
             - Version: v${{ steps.version.outputs.version_name }} (code ${{ steps.version.outputs.version_code }})
@@ -117,9 +110,9 @@ jobs:
             - Message: ${{ github.event.head_commit.message }}
             - Triggered by: ${{ github.actor }} on `${{ github.ref_name }}`
 
-            _Generated automatically via GitHub Actions run ${{ github.run_id }}._
+            _Debug build generated automatically via GitHub Actions run ${{ github.run_id }}._
           draft: false
           prerelease: false
-          makeLatest: true
-          artifacts: artifacts/AICoreChat-${{ steps.version.outputs.version_name }}-unsigned.apk,artifacts/AICoreChat-${{ steps.version.outputs.version_name }}.aab
+          makeLatest: false
+          artifacts: artifacts/AICoreChat-${{ steps.version.outputs.version_name }}-debug.apk
           artifactContentType: application/octet-stream
