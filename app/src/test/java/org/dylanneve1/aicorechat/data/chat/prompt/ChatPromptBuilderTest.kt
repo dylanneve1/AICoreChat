@@ -18,7 +18,8 @@ class ChatPromptBuilderTest {
         val builder = ChatPromptBuilder(FakePersonalContextProvider(personalContext))
         val priorUser = ChatMessage(id = 1L, text = "Hello", isFromUser = true)
         val priorAssistant = ChatMessage(id = 2L, text = "Hi there", isFromUser = false)
-        val describedMessage = ChatMessage(id = 3L, text = "See image", isFromUser = true, imageDescription = "A cloudy skyline")
+        val describedMessage =
+            ChatMessage(id = 3L, text = "See image", isFromUser = true, imageDescription = "A cloudy skyline")
         val userMessage = ChatMessage(id = 4L, text = "Plan a weekend getaway", isFromUser = true)
         val state = ChatUiState(
             messages = listOf(priorUser, priorAssistant, describedMessage, userMessage),
