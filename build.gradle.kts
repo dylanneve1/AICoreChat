@@ -24,6 +24,9 @@ val detektVersion = libsCatalog.findVersion("detekt").get().requiredVersion
 apply(plugin = "com.github.ben-manes.versions")
 
 subprojects {
+    val detektAutoCorrectEnabled = findProperty("detekt.autoCorrect")?.toString()?.toBoolean() ?: false
+    val detektIgnoreFailures = findProperty("detekt.ignoreFailures")?.toString()?.toBoolean() ?: false
+
     apply(plugin = "com.diffplug.spotless")
     apply(plugin = "io.gitlab.arturbosch.detekt")
 
@@ -65,7 +68,7 @@ subprojects {
         toolVersion = detektVersion
         config.setFrom(files("${rootDir}/config/detekt/detekt.yml"))
         buildUponDefaultConfig = true
-        autoCorrect = false
+        autoCorrect = detektAutoCorrectEnabled
         baseline = file("${rootDir}/config/detekt/baseline.xml")
     }
 
@@ -74,6 +77,9 @@ subprojects {
         setSource(files("src"))
         include("**/*.kt")
         exclude("**/build/**")
+        if (detektIgnoreFailures) {
+            ignoreFailures = true
+        }
         reports {
             html.required.set(true)
             xml.required.set(true)

@@ -23,14 +23,7 @@ jobs:
         uses: ./.github/actions/setup-android
 
       - name: Run detekt auto-correct
-        run: |
-          set +e
-          ./gradlew --no-daemon detekt -Pdetekt.autoCorrect=true
-          status=$?
-          set -e
-          if [ "$status" -ne 0 ]; then
-            echo "::warning::detekt reported issues (exit code $status); continuing to apply auto-corrected changes."
-          fi
+        run: ./gradlew --no-daemon detekt -Pdetekt.autoCorrect=true -Pdetekt.ignoreFailures=true
 
       - name: Apply formatting after detekt fixes
         run: ./gradlew --no-daemon spotlessApply
