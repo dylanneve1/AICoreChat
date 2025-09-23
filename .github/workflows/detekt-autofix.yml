@@ -19,45 +19,8 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: Set up Java
-        uses: actions/setup-java@v4
-        with:
-          distribution: temurin
-          java-version: 17
-          cache: gradle
-
-      - name: Configure Android SDK environment
-        run: |
-          echo "ANDROID_SDK_ROOT=/usr/local/lib/android/sdk" >> "$GITHUB_ENV"
-          echo "ANDROID_HOME=/usr/local/lib/android/sdk" >> "$GITHUB_ENV"
-          echo "PATH=$PATH:/usr/local/lib/android/sdk/platform-tools:/usr/local/lib/android/sdk/cmdline-tools/latest/bin" >> "$GITHUB_ENV"
-
-      - name: Accept Android SDK licenses
-        run: |
-          set +e
-          yes | sdkmanager --licenses > /dev/null
-          status=$?
-          if [ $status -ne 0 ] && [ $status -ne 141 ]; then
-            exit $status
-          fi
-
-      - name: Ensure required Android packages are installed
-        run: |
-          set +e
-          yes | sdkmanager \
-            "platforms;android-36" \
-            "platform-tools" \
-            "build-tools;36.0.0" > /dev/null
-          status=$?
-          if [ $status -ne 0 ] && [ $status -ne 141 ]; then
-            exit $status
-          fi
-
-      - name: Prepare Gradle caching
-        uses: gradle/actions/setup-gradle@v3
-
-      - name: Make Gradle wrapper executable
-        run: chmod +x gradlew
+      - name: Prepare Android toolchain
+        uses: ./.github/actions/setup-android
 
       - name: Run detekt auto-correct
         run: ./gradlew --no-daemon detekt -Pdetekt.autoCorrect=true

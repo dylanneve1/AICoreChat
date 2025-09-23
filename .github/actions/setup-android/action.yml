@@ -1,0 +1,81 @@
+name: Setup Android Environment
+
+description: Configure Java, Android SDK, and Gradle caching for Android builds.
+
+inputs:
+  java-version:
+    description: Java version to install
+    required: false
+    default: '17'
+  build-tools-version:
+    description: Android build-tools version to ensure is installed
+    required: false
+    default: '36.0.0'
+  platform-version:
+    description: Android platform version to ensure is installed
+    required: false
+    default: 'android-36'
+  additional-packages:
+    description: Newline-separated list of additional sdkmanager packages to install
+    required: false
+    default: ''
+
+runs:
+  using: composite
+  steps:
+    - name: Set up Java
+      uses: actions/setup-java@v4
+      with:
+        distribution: temurin
+        java-version: ${{ inputs.java-version }}
+        cache: gradle
+
+    - name: Configure Android SDK environment
+      shell: bash
+      run: |
+        echo "ANDROID_SDK_ROOT=/usr/local/lib/android/sdk" >> "$GITHUB_ENV"
+        echo "ANDROID_HOME=/usr/local/lib/android/sdk" >> "$GITHUB_ENV"
+        echo "PATH=$PATH:/usr/local/lib/android/sdk/platform-tools:/usr/local/lib/android/sdk/cmdline-tools/latest/bin" >> "$GITHUB_ENV"
+
+    - name: Accept Android SDK licenses
+      shell: bash
+      run: |
+        set +e
+        yes | sdkmanager --licenses > /dev/null
+        status=$?
+        if [ $status -ne 0 ] && [ $status -ne 141 ]; then
+          exit $status
+        fi
+
+    - name: Ensure required Android packages are installed
+      shell: bash
+      run: |
+        set +e
+        packages=(
+          "platforms;${{ inputs.platform-version }}"
+          "platform-tools"
+          "build-tools;${{ inputs.build-tools-version }}"
+        )
+
+        if [ -n "${{ inputs.additional-packages }}" ]; then
+          while IFS= read -r pkg; do
+            pkg="${pkg#${pkg%%[![:space:]]*}}"   # trim leading whitespace
+            pkg="${pkg%${pkg##*[![:space:]]}}"   # trim trailing whitespace
+            if [ -n "$pkg" ]; then
+              packages+=("$pkg")
+            fi
+          done <<< "${{ inputs.additional-packages }}"
+        fi
+
+        yes | sdkmanager "${packages[@]}" > /dev/null
+        status=$?
+        if [ $status -ne 0 ] && [ $status -ne 141 ]; then
+          exit $status
+        fi
+
+    - name: Prepare Gradle caching
+      uses: gradle/actions/setup-gradle@v3
+
+    - name: Make Gradle wrapper executable
+      shell: bash
+      run: chmod +x gradlew
