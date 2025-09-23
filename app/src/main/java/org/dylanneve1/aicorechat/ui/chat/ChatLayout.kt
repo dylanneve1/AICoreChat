@@ -36,15 +36,14 @@ import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBarScrollBehavior
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.Stable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.ColorFilter
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.dp
-import androidx.compose.runtime.Stable
 import org.dylanneve1.aicorechat.R
-import org.dylanneve1.aicorechat.data.chat.model.ChatMessage
 import org.dylanneve1.aicorechat.data.chat.model.ChatUiState
 import org.dylanneve1.aicorechat.ui.chat.drawer.DrawerHeader
 import org.dylanneve1.aicorechat.ui.chat.drawer.SessionItem
@@ -88,11 +87,7 @@ fun ChatLayout(
 }
 
 @Composable
-private fun ChatDrawerContent(
-    uiState: ChatUiState,
-    drawerListState: LazyListState,
-    actions: ChatLayoutCallbacks,
-) {
+private fun ChatDrawerContent(uiState: ChatUiState, drawerListState: LazyListState, actions: ChatLayoutCallbacks) {
     ModalDrawerSheet {
         Box(modifier = Modifier.fillMaxHeight()) {
             Column(modifier = Modifier.fillMaxSize()) {
@@ -175,11 +170,7 @@ private fun ChatScaffold(
 }
 
 @Composable
-private fun ChatTopBar(
-    uiState: ChatUiState,
-    scrollBehavior: TopAppBarScrollBehavior,
-    actions: ChatLayoutCallbacks,
-) {
+private fun ChatTopBar(uiState: ChatUiState, scrollBehavior: TopAppBarScrollBehavior, actions: ChatLayoutCallbacks) {
     AICoreChatTopAppBar(
         scrollBehavior = scrollBehavior,
         isChatNotEmpty = uiState.messages.isNotEmpty(),
@@ -204,10 +195,7 @@ private fun ChatTopBar(
 }
 
 @Composable
-private fun ChatInputBar(
-    uiState: ChatUiState,
-    actions: ChatLayoutCallbacks,
-) {
+private fun ChatInputBar(uiState: ChatUiState, actions: ChatLayoutCallbacks) {
     MessageInput(
         onSendMessage = actions.onSendMessage,
         onStop = actions.onStopGeneration,
@@ -234,10 +222,7 @@ private fun ChatInputBar(
 }
 
 @Composable
-private fun ScrollToBottomFab(
-    showScrollToBottom: Boolean,
-    onScrollToBottom: () -> Unit,
-) {
+private fun ScrollToBottomFab(showScrollToBottom: Boolean, onScrollToBottom: () -> Unit) {
     AnimatedVisibility(
         visible = showScrollToBottom,
         enter = fadeIn() + slideInVertically { it },

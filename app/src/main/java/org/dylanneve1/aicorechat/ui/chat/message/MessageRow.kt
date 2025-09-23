@@ -49,12 +49,12 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.scale
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.ClipboardManager
 import androidx.compose.ui.platform.LocalClipboardManager
 import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.graphics.Color
 import androidx.core.net.toUri
 import coil.compose.AsyncImage
 import org.dylanneve1.aicorechat.data.chat.model.ChatMessage
@@ -207,11 +207,7 @@ private fun MessageBubbleWithActions(
 }
 
 @Composable
-private fun MessageTextContent(
-    message: ChatMessage,
-    contentColor: Color,
-    isSearching: Boolean,
-) {
+private fun MessageTextContent(message: ChatMessage, contentColor: Color, isSearching: Boolean) {
     Column(
         modifier = Modifier
             .widthIn(max = 320.dp)
