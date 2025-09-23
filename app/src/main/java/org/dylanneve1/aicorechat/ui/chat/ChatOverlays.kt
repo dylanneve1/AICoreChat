@@ -19,6 +19,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.MaterialTheme
@@ -67,7 +68,19 @@ fun ChatOverlays(
                 )
             },
             text = {
-                LoadingRow(label = "Using chat context…")
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 8.dp),
+                    contentAlignment = Alignment.Center,
+                ) {
+                    LoadingRow(
+                        label = "Using chat context…",
+                        modifier = Modifier
+                            .widthIn(max = 280.dp)
+                            .padding(horizontal = 8.dp),
+                    )
+                }
             },
             confirmButton = {},
             dismissButton = {},
@@ -85,7 +98,19 @@ fun ChatOverlays(
                 )
             },
             text = {
-                LoadingRow(label = "Processing all chats…")
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 8.dp),
+                    contentAlignment = Alignment.Center,
+                ) {
+                    LoadingRow(
+                        label = "Processing all chats…",
+                        modifier = Modifier
+                            .widthIn(max = 280.dp)
+                            .padding(horizontal = 8.dp),
+                    )
+                }
             },
             confirmButton = {},
             dismissButton = {},
@@ -328,9 +353,12 @@ fun ChatSettingsSheet(
 }
 
 @Composable
-private fun LoadingRow(label: String) {
+private fun LoadingRow(
+    label: String,
+    modifier: Modifier = Modifier,
+) {
     Column(
-        modifier = Modifier.fillMaxWidth(),
+        modifier = modifier.padding(vertical = 12.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
     ) {
         CircularProgressIndicator()
