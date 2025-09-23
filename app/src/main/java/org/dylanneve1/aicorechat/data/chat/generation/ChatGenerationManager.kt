@@ -3,6 +3,7 @@ package org.dylanneve1.aicorechat.data.chat.generation
 import android.app.Application
 import android.os.SystemClock
 import android.util.Log
+import com.google.ai.edge.aicore.GenerativeModel
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
@@ -37,8 +38,6 @@ class ChatGenerationManager(
     }
 
     fun sendMessage(promptText: String) {
-        generationJob?.cancel()
-
         val model = modelManager.getModel()
         if (model == null) {
             state.update { it.copy(modelError = "Model is not initialized yet.") }
@@ -66,13 +65,33 @@ class ChatGenerationManager(
             sessionManager.appendMessage(sessionId, userMessage)
         }
 
+        launchAssistantResponse(model, userMessage, promptText)
+    }
+
+    fun regenerateFromUserMessage(userMessage: ChatMessage) {
+        val model = modelManager.getModel()
+        if (model == null) {
+            state.update { it.copy(modelError = "Model is not initialized yet.") }
+            return
+        }
+
+        launchAssistantResponse(model, userMessage, userMessage.text)
+    }
+
+    private fun launchAssistantResponse(
+        model: GenerativeModel,
+        userMessage: ChatMessage,
+        userPrompt: String,
+    ) {
+        generationJob?.cancel()
+
         generationJob = scope.launch {
             try {
                 val allowSearch = state.value.webSearchEnabled && webSearchService.isOnline()
                 val offlineNotice = state.value.webSearchEnabled && !allowSearch
                 val prompt = promptBuilder.buildInitialPrompt(
                     state = state.value,
-                    userPrompt = promptText,
+                    userPrompt = userPrompt,
                     userMessage = userMessage,
                     allowSearch = allowSearch,
                     offlineNotice = offlineNotice,
@@ -145,10 +164,7 @@ class ChatGenerationManager(
 
                             if (!searchStartDetected && firstNonWhitespaceIndex != Int.MAX_VALUE) {
                                 val after = fullResponse.substring(firstNonWhitespaceIndex)
-                                if (after.isNotEmpty() && after.length < searchToken.length && searchToken.startsWith(
-                                        after,
-                                    )
-                                ) {
+                                if (after.isNotEmpty() && after.length < searchToken.length && searchToken.startsWith(after)) {
                                     searchStartDetected = true
                                     searchStartIndex = firstNonWhitespaceIndex
                                     state.update { current ->
@@ -223,9 +239,7 @@ class ChatGenerationManager(
 
                         val earliestIndex = stopTokens
                             .map { token ->
-                                fullResponse.indexOf(
-                                    token,
-                                ).let { idx -> if (idx >= 0) idx else Int.MAX_VALUE }
+                                fullResponse.indexOf(token).let { idx -> if (idx >= 0) idx else Int.MAX_VALUE }
                             }
                             .minOrNull() ?: Int.MAX_VALUE
 

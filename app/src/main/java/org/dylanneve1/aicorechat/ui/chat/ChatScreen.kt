@@ -7,11 +7,16 @@ import androidx.activity.result.contract.ActivityResultContracts
 import androidx.activity.result.contract.ActivityResultContracts.PickVisualMedia
 import androidx.activity.result.contract.ActivityResultContracts.TakePicture
 import androidx.compose.animation.core.MutableTransitionState
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.lazy.rememberLazyListState
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.DrawerValue
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.SnackbarHostState
+import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
+import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.material3.rememberDrawerState
 import androidx.compose.runtime.Composable
@@ -23,12 +28,14 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.core.content.ContextCompat
 import androidx.core.content.FileProvider
 import kotlinx.coroutines.launch
 import org.dylanneve1.aicorechat.data.chat.ChatViewModel
+import org.dylanneve1.aicorechat.data.chat.model.ChatMessage
 import java.io.File
 import java.text.SimpleDateFormat
 import java.util.Date
@@ -57,6 +64,7 @@ fun ChatScreen(viewModel: ChatViewModel) {
     var renameDialogState by remember { mutableStateOf<Pair<Long, String>?>(null) }
     var deleteDialogId by remember { mutableStateOf<Long?>(null) }
     var renameTitleDialog by remember { mutableStateOf(false) }
+    var messageToEdit by remember { mutableStateOf<ChatMessage?>(null) }
 
     val context = LocalContext.current
     val focusManager = LocalFocusManager.current
@@ -178,6 +186,8 @@ fun ChatScreen(viewModel: ChatViewModel) {
         onDrawerOpen = openDrawer,
         onDrawerClose = closeDrawer,
         onSendMessage = viewModel::sendMessage,
+        onRegenerateMessage = viewModel::regenerateAssistantResponse,
+        onEditMessage = { message -> if (message.isFromUser) messageToEdit = message },
         onStopGeneration = viewModel::stopGeneration,
         onPickImage = onPickImage,
         onTakePhoto = onTakePhoto,
@@ -251,4 +261,40 @@ fun ChatScreen(viewModel: ChatViewModel) {
         onSaveBio = viewModel::saveBioInformation,
         onDeleteBio = viewModel::deleteBioInformation,
     )
+
+    messageToEdit?.let { editingMessage ->
+        var editedText by remember(editingMessage) { mutableStateOf(editingMessage.text) }
+        val isConfirmEnabled = editedText.trim().isNotEmpty() && editedText != editingMessage.text
+        AlertDialog(
+            onDismissRequest = { messageToEdit = null },
+            title = { Text("Edit message") },
+            text = {
+                OutlinedTextField(
+                    value = editedText,
+                    onValueChange = { editedText = it },
+                    label = { Text("Message") },
+                    minLines = 3,
+                    modifier = Modifier.fillMaxWidth(),
+                )
+            },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        val sanitized = editedText.trim()
+                        viewModel.editUserMessage(editingMessage.id, sanitized)
+                        messageToEdit = null
+                        showSnackbar("Message updated")
+                    },
+                    enabled = isConfirmEnabled,
+                ) {
+                    Text("Save")
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { messageToEdit = null }) {
+                    Text("Cancel")
+                }
+            },
+        )
+    }
 }

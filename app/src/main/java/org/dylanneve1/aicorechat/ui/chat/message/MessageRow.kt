@@ -26,8 +26,13 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Search
+import androidx.compose.material.icons.outlined.ContentCopy
+import androidx.compose.material.icons.outlined.Edit
 import androidx.compose.material.icons.outlined.Person
+import androidx.compose.material.icons.outlined.Refresh
 import androidx.compose.material.icons.outlined.SmartToy
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.Icon
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
@@ -35,6 +40,9 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
@@ -51,8 +59,15 @@ import org.dylanneve1.aicorechat.data.chat.model.ChatMessage
 
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
-fun MessageRow(message: ChatMessage, onCopy: (String) -> Unit, isSearching: Boolean = false) {
+fun MessageRow(
+    message: ChatMessage,
+    onCopy: (String) -> Unit,
+    onRegenerate: (Long) -> Unit = {},
+    onEdit: (ChatMessage) -> Unit = {},
+    isSearching: Boolean = false,
+) {
     val clipboard: ClipboardManager = LocalClipboardManager.current
+    var showActions by remember(message.id) { mutableStateOf(false) }
 
     Row(
         modifier = Modifier.fillMaxWidth(),
@@ -95,38 +110,29 @@ fun MessageRow(message: ChatMessage, onCopy: (String) -> Unit, isSearching: Bool
                 }
             }
 
-            MessageBubble(
-                isFromUser = message.isFromUser,
-                backgroundColor = bubbleColor,
-                modifier = Modifier
-                    .widthIn(max = 320.dp)
-                    .animateContentSize()
-                    .combinedClickable(
-                        onClick = {},
-                        onLongClick = {
-                            if (message.text.isNotBlank()) {
-                                clipboard.setText(AnnotatedString(message.text))
-                                onCopy(message.text)
-                            }
-                        },
-                    ),
-            ) {
-                Column(
+            Box {
+                MessageBubble(
+                    isFromUser = message.isFromUser,
+                    backgroundColor = bubbleColor,
                     modifier = Modifier
                         .widthIn(max = 320.dp)
-                        .padding(horizontal = 12.dp, vertical = 8.dp),
+                        .animateContentSize()
+                        .combinedClickable(
+                            enabled = !message.isStreaming,
+                            onClick = {},
+                            onLongClick = {
+                                showActions = true
+                            },
+                        ),
                 ) {
-                    val contentModifier = Modifier.wrapContentWidth()
-                    if (message.isStreaming && message.text.isBlank()) {
-                        if (isSearching) SearchingIndicator(contentColor) else TypingIndicator(contentColor)
-                    } else {
-                        if (message.isFromUser) {
-                            Text(
-                                text = message.text,
-                                color = contentColor,
-                                style = MaterialTheme.typography.bodyLarge,
-                                modifier = contentModifier,
-                            )
+                    Column(
+                        modifier = Modifier
+                            .widthIn(max = 320.dp)
+                            .padding(horizontal = 12.dp, vertical = 8.dp),
+                    ) {
+                        val contentModifier = Modifier.wrapContentWidth()
+                        if (message.isStreaming && message.text.isBlank()) {
+                            if (isSearching) SearchingIndicator(contentColor) else TypingIndicator(contentColor)
                         } else {
                             Text(
                                 text = message.text,
@@ -135,6 +141,60 @@ fun MessageRow(message: ChatMessage, onCopy: (String) -> Unit, isSearching: Bool
                                 modifier = contentModifier,
                             )
                         }
+                    }
+                }
+
+                DropdownMenu(
+                    expanded = showActions,
+                    onDismissRequest = { showActions = false },
+                ) {
+                    DropdownMenuItem(
+                        text = { Text("Copy") },
+                        leadingIcon = {
+                            Icon(
+                                imageVector = Icons.Outlined.ContentCopy,
+                                contentDescription = null,
+                            )
+                        },
+                        enabled = message.text.isNotBlank(),
+                        onClick = {
+                            showActions = false
+                            if (message.text.isNotBlank()) {
+                                clipboard.setText(AnnotatedString(message.text))
+                                onCopy(message.text)
+                            }
+                        },
+                    )
+
+                    if (message.isFromUser) {
+                        DropdownMenuItem(
+                            text = { Text("Edit") },
+                            leadingIcon = {
+                                Icon(
+                                    imageVector = Icons.Outlined.Edit,
+                                    contentDescription = null,
+                                )
+                            },
+                            onClick = {
+                                showActions = false
+                                onEdit(message)
+                            },
+                        )
+                    } else {
+                        DropdownMenuItem(
+                            text = { Text("Regenerate") },
+                            leadingIcon = {
+                                Icon(
+                                    imageVector = Icons.Outlined.Refresh,
+                                    contentDescription = null,
+                                )
+                            },
+                            enabled = !message.isStreaming,
+                            onClick = {
+                                showActions = false
+                                onRegenerate(message.id)
+                            },
+                        )
                     }
                 }
             }

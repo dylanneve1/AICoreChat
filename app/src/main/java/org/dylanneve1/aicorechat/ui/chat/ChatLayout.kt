@@ -43,6 +43,7 @@ import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.dp
 import org.dylanneve1.aicorechat.R
+import org.dylanneve1.aicorechat.data.chat.model.ChatMessage
 import org.dylanneve1.aicorechat.data.chat.model.ChatUiState
 import org.dylanneve1.aicorechat.ui.chat.drawer.DrawerHeader
 import org.dylanneve1.aicorechat.ui.chat.drawer.SessionItem
@@ -71,6 +72,8 @@ fun ChatLayout(
     onDrawerOpen: () -> Unit,
     onDrawerClose: () -> Unit,
     onSendMessage: (String) -> Unit,
+    onRegenerateMessage: (Long) -> Unit,
+    onEditMessage: (ChatMessage) -> Unit,
     onStopGeneration: () -> Unit,
     onPickImage: () -> Unit,
     onTakePhoto: () -> Unit,
@@ -208,6 +211,8 @@ fun ChatLayout(
                                 val display = "Copied: \"$shortText${if (copiedText.length > 40) "…" else ""}\""
                                 showSnackbar(display)
                             },
+                            onRegenerate = onRegenerateMessage,
+                            onEdit = onEditMessage,
                             isSearching = isLast && message.isStreaming && uiState.isSearchInProgress,
                         )
                     }

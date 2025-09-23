@@ -344,6 +344,79 @@ class ChatViewModel(application: Application) : AndroidViewModel(application) {
         generationManager.sendMessage(prompt)
     }
 
+    fun regenerateAssistantResponse(messageId: Long) {
+        viewModelScope.launch {
+            val stateSnapshot = _uiState.value
+            val index = stateSnapshot.messages.indexOfFirst { it.id == messageId }
+            if (index == -1) return@launch
+
+            val targetMessage = stateSnapshot.messages[index]
+            if (targetMessage.isFromUser) return@launch
+
+            generationManager.stopGeneration()
+
+            val retainedMessages = stateSnapshot.messages.take(index)
+            val userMessage = retainedMessages.lastOrNull()
+            if (userMessage == null || !userMessage.isFromUser) {
+                _uiState.update { it.copy(modelError = "Cannot regenerate without a preceding user message.") }
+                return@launch
+            }
+
+            _uiState.update {
+                it.copy(
+                    messages = retainedMessages,
+                    isGenerating = false,
+                    isSearchInProgress = false,
+                    currentSearchQuery = null,
+                    modelError = null,
+                )
+            }
+
+            stateSnapshot.currentSessionId?.let { sessionId ->
+                sessionManager.replaceMessages(sessionId, retainedMessages)
+            }
+
+            generationManager.regenerateFromUserMessage(userMessage)
+        }
+    }
+
+    fun editUserMessage(messageId: Long, newText: String) {
+        val sanitized = newText.trim()
+        if (sanitized.isBlank()) return
+
+        viewModelScope.launch {
+            val stateSnapshot = _uiState.value
+            val index = stateSnapshot.messages.indexOfFirst { it.id == messageId }
+            if (index == -1) return@launch
+
+            val original = stateSnapshot.messages[index]
+            if (!original.isFromUser) return@launch
+
+            generationManager.stopGeneration()
+
+            val updatedUserMessage = original.copy(text = sanitized, timestamp = System.currentTimeMillis())
+            val retainedMessages = stateSnapshot.messages.take(index + 1).toMutableList().apply {
+                this[index] = updatedUserMessage
+            }.toList()
+
+            _uiState.update {
+                it.copy(
+                    messages = retainedMessages,
+                    isGenerating = false,
+                    isSearchInProgress = false,
+                    currentSearchQuery = null,
+                    modelError = null,
+                )
+            }
+
+            stateSnapshot.currentSessionId?.let { sessionId ->
+                sessionManager.replaceMessages(sessionId, retainedMessages)
+            }
+
+            generationManager.regenerateFromUserMessage(updatedUserMessage)
+        }
+    }
+
     fun stopGeneration() = generationManager.stopGeneration()
 
     fun generateChatTitle() = titleManager.generateCurrentChatTitle()
