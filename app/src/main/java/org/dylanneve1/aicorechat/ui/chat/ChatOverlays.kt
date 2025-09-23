@@ -311,10 +311,7 @@ fun ChatSettingsSheet(
 }
 
 @Composable
-private fun GeneratingDialog(
-    title: String,
-    loadingLabel: String,
-) {
+private fun GeneratingDialog(title: String, loadingLabel: String) {
     Dialog(
         onDismissRequest = {},
         properties = DialogProperties(
