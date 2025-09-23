@@ -23,7 +23,7 @@ jobs:
         uses: ./.github/actions/setup-android
 
       - name: Run detekt auto-correct
-        run: ./gradlew --no-daemon detekt -Pdetekt.autoCorrect=true -Pdetekt.ignoreFailures=true
+        run: ./gradlew --no-daemon detekt -Pdetekt.autoCorrect=true
 
       - name: Apply formatting after detekt fixes
         run: ./gradlew --no-daemon spotlessApply
