@@ -11,6 +11,7 @@ import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.combinedClickable
+import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -68,6 +69,7 @@ fun MessageRow(
 ) {
     val clipboard: ClipboardManager = LocalClipboardManager.current
     var showActions by remember(message.id) { mutableStateOf(false) }
+    val interactionSource = remember { MutableInteractionSource() }
 
     Row(
         modifier = Modifier.fillMaxWidth(),
@@ -119,6 +121,8 @@ fun MessageRow(
                         .animateContentSize()
                         .combinedClickable(
                             enabled = !message.isStreaming,
+                            interactionSource = interactionSource,
+                            indication = null,
                             onClick = {},
                             onLongClick = {
                                 showActions = true
