@@ -169,6 +169,7 @@ private fun ChatScaffold(
     }
 }
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun ChatTopBar(uiState: ChatUiState, scrollBehavior: TopAppBarScrollBehavior, actions: ChatLayoutCallbacks) {
     AICoreChatTopAppBar(

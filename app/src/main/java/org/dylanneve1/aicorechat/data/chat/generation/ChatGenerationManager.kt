@@ -108,7 +108,9 @@ class ChatGenerationManager(
                     .onStart { handler.onStart() }
                     .onCompletion { handler.onCompletion() }
                     .catch { handler.onStreamError(it) }
-                    .collect { handler.onChunk(it.text) }
+                    .collect { chunk ->
+                        chunk.text?.let { handler.onChunk(it) }
+                    }
             } catch (throwable: Exception) {
                 handleGenerationFailure(throwable)
             }
@@ -238,6 +240,9 @@ class ChatGenerationManager(
             return true
         }
 
+        private fun firstNonWhitespaceIndex(text: String): Int =
+            text.indexOfFirst { !it.isWhitespace() }.let { if (it < 0) Int.MAX_VALUE else it }
+
         private fun tryDetectPartialToken(firstIndex: Int): Boolean {
             if (firstIndex == Int.MAX_VALUE) return false
             val after = fullResponse.substring(firstIndex)
@@ -320,9 +325,6 @@ class ChatGenerationManager(
         }
     }
 
-    private fun firstNonWhitespaceIndex(text: String): Int =
-        text.indexOfFirst { !it.isWhitespace() }.let { if (it < 0) Int.MAX_VALUE else it }
-
     private suspend fun continueWithSearchResults(userMessage: ChatMessage, query: String) {
         try {
             val model = modelManager.getModel() ?: return
@@ -382,7 +384,8 @@ class ChatGenerationManager(
                     }
                 }
                 .collect { chunk ->
-                    fullResponse += chunk.text
+                    val text = chunk.text ?: return@collect
+                    fullResponse += text
                     val elapsed = SystemClock.elapsedRealtime() - streamStartMs
                     if (elapsed < 300 && fullResponse.length < 24) {
                         return@collect
