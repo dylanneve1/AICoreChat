@@ -2,11 +2,11 @@ package org.dylanneve1.aicorechat.data.chat.prompt
 
 import org.dylanneve1.aicorechat.data.chat.model.ChatMessage
 import org.dylanneve1.aicorechat.data.chat.model.ChatUiState
-import org.dylanneve1.aicorechat.data.context.PersonalContextBuilder
+import org.dylanneve1.aicorechat.data.context.PersonalContextProvider
 import org.dylanneve1.aicorechat.data.prompt.PromptTemplates
 
 class ChatPromptBuilder(
-    private val personalContextBuilder: PersonalContextBuilder,
+    private val personalContextProvider: PersonalContextProvider,
 ) {
 
     suspend fun buildInitialPrompt(
@@ -29,7 +29,7 @@ class ChatPromptBuilder(
         }
 
         if (state.personalContextEnabled) {
-            builder.append(personalContextBuilder.build(state.userName))
+            builder.append(personalContextProvider.build(state.userName))
         }
 
         if (state.memoryContextEnabled) {

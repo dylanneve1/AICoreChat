@@ -43,6 +43,7 @@ play-services-location = { group = "com.google.android.gms", name = "play-servic
 mlkit-image-description = { group = "com.google.mlkit", name = "genai-image-description", version.ref = "mlkitImageDescription" }
 coroutines-play-services = { group = "org.jetbrains.kotlinx", name = "kotlinx-coroutines-play-services", version.ref = "coroutines" }
 coroutines-guava = { group = "org.jetbrains.kotlinx", name = "kotlinx-coroutines-guava", version.ref = "coroutines" }
+coroutines-test = { group = "org.jetbrains.kotlinx", name = "kotlinx-coroutines-test", version.ref = "coroutines" }
 coil-compose = { group = "io.coil-kt", name = "coil-compose", version.ref = "coil" }
 material-icons-extended = { group = "androidx.compose.material", name = "material-icons-extended" }
 robolectric = { group = "org.robolectric", name = "robolectric", version.ref = "robolectric" }

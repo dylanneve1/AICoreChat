@@ -17,10 +17,18 @@ import java.util.Date
 import java.util.Locale
 
 /**
+ * Abstraction for exposing personal context snippets. Extracted so tests can
+ * supply lightweight stubs without depending on Android system services.
+ */
+interface PersonalContextProvider {
+    suspend fun build(userName: String): String
+}
+
+/**
  * PersonalContextBuilder gathers on-device context (time, device, locale,
  * battery, storage, network summary, and coarse location if permitted).
  */
-class PersonalContextBuilder(private val app: Application) {
+class PersonalContextBuilder(private val app: Application) : PersonalContextProvider {
     private fun getBatteryPercent(): Int? {
         val bm = app.getSystemService(Context.BATTERY_SERVICE) as BatteryManager
         val level = bm.getIntProperty(BatteryManager.BATTERY_PROPERTY_CAPACITY)
@@ -69,7 +77,7 @@ class PersonalContextBuilder(private val app: Application) {
         return if (loc == null) "(not granted)" else "${"%.5f".format(loc.latitude)}, ${"%.5f".format(loc.longitude)}"
     }
 
-    suspend fun build(userName: String): String {
+    override suspend fun build(userName: String): String {
         val now = SimpleDateFormat("EEE, d MMM yyyy HH:mm z", Locale.getDefault()).format(Date())
         val device = "${Build.MANUFACTURER} ${Build.MODEL} (Android ${Build.VERSION.RELEASE})"
         val locale = Locale.getDefault().toString()
