@@ -84,204 +84,244 @@ class ChatGenerationManager(
         generationJob = scope.launch {
             try {
                 val allowSearch = state.value.webSearchEnabled && webSearchService.isOnline()
-                val offlineNotice = state.value.webSearchEnabled && !allowSearch
                 val prompt = promptBuilder.buildInitialPrompt(
                     state = state.value,
                     userPrompt = userPrompt,
                     userMessage = userMessage,
                     allowSearch = allowSearch,
-                    offlineNotice = offlineNotice,
+                    offlineNotice = state.value.webSearchEnabled && !allowSearch,
                 )
 
                 debugLog("Sending prompt:\n$prompt")
 
-                var fullResponse = ""
-                val stopTokens = listOf("[/ASSISTANT]", "[ASSISTANT]", "[/USER]", "[USER]")
-                var searchTriggered = false
-                var searchStartDetected = false
-                var searchStartIndex = -1
-                val streamStartMs = SystemClock.elapsedRealtime()
+                val handler = StreamHandler(
+                    allowSearch = allowSearch,
+                    userMessage = userMessage,
+                    triggerSearch = { query ->
+                        scope.launch { continueWithSearchResults(userMessage, query) }
+                    },
+                    stopGeneration = ::stopGeneration,
+                    persistMessages = ::persistMessages,
+                )
 
                 model.generateContentStream(prompt)
-                    .onStart {
-                        state.update {
-                            it.copy(
-                                isGenerating = true,
-                                modelError = null,
-                                messages = it.messages + ChatMessage(text = "", isFromUser = false, isStreaming = true),
-                            )
-                        }
-                    }
-                    .onCompletion {
-                        if (searchStartDetected && !searchTriggered) {
-                            state.update { it.copy(isSearchInProgress = false, currentSearchQuery = null) }
-                        }
-                        if (!searchTriggered) {
-                            state.update { currentState ->
-                                val updated = currentState.messages.toMutableList()
-                                if (updated.isNotEmpty() && updated.last().isStreaming) {
-                                    val finalText = AssistantResponseFormatter.finalizeAssistantDisplayText(
-                                        fullResponse,
-                                        updated.last().text,
-                                    )
-                                    updated[updated.lastIndex] = updated.last().copy(
-                                        text = finalText,
-                                        isStreaming = false,
-                                    )
-                                }
-                                currentState.copy(isGenerating = false, messages = updated)
-                            }
-                            persistMessages()
-                        }
-                    }
-                    .catch { throwable ->
-                        Log.e(TAG, "Error generating content", throwable)
-                        state.update { currentState ->
-                            val updated = currentState.messages.toMutableList()
-                            if (updated.isNotEmpty() && updated.last().isStreaming) {
-                                val errorText = "Error: ${throwable.message}"
-                                val finalText = AssistantResponseFormatter.finalizeAssistantDisplayText(
-                                    errorText,
-                                    updated.last().text,
-                                )
-                                updated[updated.lastIndex] = updated.last().copy(text = finalText, isStreaming = false)
-                            }
-                            currentState.copy(isGenerating = false, messages = updated)
-                        }
-                        persistMessages()
-                    }
-                    .collect { chunk ->
-                        fullResponse += chunk.text
-
-                        if (allowSearch) {
-                            val searchToken = "[SEARCH]"
-                            val firstNonWhitespaceIndex = fullResponse.indexOfFirst { !it.isWhitespace() }
-                                .let { if (it < 0) Int.MAX_VALUE else it }
-
-                            if (!searchStartDetected && firstNonWhitespaceIndex != Int.MAX_VALUE) {
-                                val after = fullResponse.substring(firstNonWhitespaceIndex)
-                                if (after.isNotEmpty() && after.length < searchToken.length && searchToken.startsWith(
-                                        after,
-                                    )
-                                ) {
-                                    searchStartDetected = true
-                                    searchStartIndex = firstNonWhitespaceIndex
-                                    state.update { current ->
-                                        val updated = current.messages.toMutableList()
-                                        if (updated.isNotEmpty() && updated.last().isStreaming) {
-                                            updated[updated.lastIndex] = updated.last().copy(text = "")
-                                        }
-                                        current.copy(
-                                            isSearchInProgress = true,
-                                            currentSearchQuery = "",
-                                            messages = updated,
-                                        )
-                                    }
-                                    return@collect
-                                }
-                            }
-
-                            val explicitIndex = fullResponse.indexOf(searchToken)
-                            if (!searchStartDetected && explicitIndex >= 0 && explicitIndex == firstNonWhitespaceIndex) {
-                                searchStartDetected = true
-                                searchStartIndex = explicitIndex
-                                val partialQuery = if (fullResponse.length >= explicitIndex + searchToken.length) {
-                                    fullResponse.substring(explicitIndex + searchToken.length)
-                                        .substringBefore("[/SEARCH]")
-                                        .trim()
-                                } else {
-                                    ""
-                                }
-                                state.update { current ->
-                                    val updated = current.messages.toMutableList()
-                                    if (updated.isNotEmpty() && updated.last().isStreaming) {
-                                        updated[updated.lastIndex] = updated.last().copy(text = "")
-                                    }
-                                    current.copy(
-                                        isSearchInProgress = true,
-                                        currentSearchQuery = partialQuery,
-                                        messages = updated,
-                                    )
-                                }
-                            }
-
-                            if (searchStartDetected) {
-                                val tokenEndBase = searchStartIndex + searchToken.length
-                                val partialQuery = if (fullResponse.length > tokenEndBase) {
-                                    fullResponse.substring(tokenEndBase).substringBefore("[/SEARCH]").trim()
-                                } else {
-                                    ""
-                                }
-                                state.update { it.copy(currentSearchQuery = partialQuery) }
-                                val endIndex = if (fullResponse.length > tokenEndBase) {
-                                    fullResponse.indexOf("[/SEARCH]", tokenEndBase)
-                                } else {
-                                    -1
-                                }
-                                if (endIndex != -1 && !searchTriggered) {
-                                    searchTriggered = true
-                                    val query = fullResponse.substring(tokenEndBase, endIndex).trim()
-                                    scope.launch {
-                                        continueWithSearchResults(userMessage, query)
-                                    }
-                                    stopGeneration()
-                                    return@collect
-                                }
-                                return@collect
-                            }
-                        }
-
-                        val elapsed = SystemClock.elapsedRealtime() - streamStartMs
-                        if (!searchStartDetected && elapsed < 300 && fullResponse.length < 24) {
-                            return@collect
-                        }
-
-                        val earliestIndex = stopTokens
-                            .map { token ->
-                                fullResponse.indexOf(token).let { idx -> if (idx >= 0) idx else Int.MAX_VALUE }
-                            }
-                            .minOrNull() ?: Int.MAX_VALUE
-
-                        delay(35)
-                        state.update { currentState ->
-                            val updated = currentState.messages.toMutableList()
-                            if (updated.isNotEmpty() && updated.last().isStreaming) {
-                                val displayTextRaw = if (earliestIndex != Int.MAX_VALUE) {
-                                    fullResponse.substring(0, earliestIndex)
-                                } else {
-                                    trimTrailingPartialStopToken(fullResponse, stopTokens)
-                                }
-                                val displayText = AssistantResponseFormatter.sanitizeAssistantText(displayTextRaw)
-                                val previousText = updated.last().text
-                                val stableText = if (displayText.length < previousText.length) previousText else displayText
-                                updated[updated.lastIndex] = updated.last().copy(text = stableText)
-                            }
-                            currentState.copy(messages = updated)
-                        }
-
-                        if (earliestIndex != Int.MAX_VALUE) {
-                            stopGeneration()
-                        }
-                    }
+                    .onStart { handler.onStart() }
+                    .onCompletion { handler.onCompletion() }
+                    .catch { handler.onStreamError(it) }
+                    .collect { handler.onChunk(it.text) }
             } catch (throwable: Exception) {
-                if (throwable is kotlinx.coroutines.CancellationException) {
-                    debugLog("Generation cancelled")
-                } else {
-                    Log.e(TAG, "Exception during generation", throwable)
-                    state.update {
-                        it.copy(
-                            isGenerating = false,
-                            messages = it.messages + ChatMessage(
-                                text = "Error: ${throwable.message}",
-                                isFromUser = false,
-                            ),
-                        )
-                    }
-                    persistMessages()
-                }
+                handleGenerationFailure(throwable)
             }
         }
     }
+
+    private fun handleGenerationFailure(throwable: Exception) {
+        if (throwable is kotlinx.coroutines.CancellationException) {
+            debugLog("Generation cancelled")
+            return
+        }
+        Log.e(TAG, "Exception during generation", throwable)
+        state.update {
+            it.copy(
+                isGenerating = false,
+                messages = it.messages + ChatMessage(
+                    text = "Error: ${throwable.message}",
+                    isFromUser = false,
+                ),
+            )
+        }
+        persistMessages()
+    }
+
+    private inner class StreamHandler(
+        private val allowSearch: Boolean,
+        private val userMessage: ChatMessage,
+        private val triggerSearch: (String) -> Unit,
+        private val stopGeneration: () -> Unit,
+        private val persistMessages: () -> Unit,
+    ) {
+        private val stopTokens = listOf("[/ASSISTANT]", "[ASSISTANT]", "[/USER]", "[USER]")
+        private val searchToken = "[SEARCH]"
+        private val searchEndToken = "[/SEARCH]"
+
+        private var fullResponse: String = ""
+        private var searchTriggered = false
+        private var searchStartDetected = false
+        private var searchStartIndex = -1
+        private var streamStartMs: Long = 0L
+
+        fun onStart() {
+            streamStartMs = SystemClock.elapsedRealtime()
+            state.update {
+                it.copy(
+                    isGenerating = true,
+                    modelError = null,
+                    messages = it.messages + ChatMessage(text = "", isFromUser = false, isStreaming = true),
+                )
+            }
+        }
+
+        fun onCompletion() {
+            if (searchStartDetected && !searchTriggered) {
+                state.update { it.copy(isSearchInProgress = false, currentSearchQuery = null) }
+            }
+            if (searchTriggered) return
+
+            state.update { currentState ->
+                val updated = currentState.messages.toMutableList()
+                if (updated.isNotEmpty() && updated.last().isStreaming) {
+                    val finalText = AssistantResponseFormatter.finalizeAssistantDisplayText(
+                        fullResponse,
+                        updated.last().text,
+                    )
+                    updated[updated.lastIndex] = updated.last().copy(text = finalText, isStreaming = false)
+                }
+                currentState.copy(isGenerating = false, messages = updated)
+            }
+            persistMessages()
+        }
+
+        fun onStreamError(throwable: Throwable) {
+            Log.e(TAG, "Error generating content", throwable)
+            state.update { currentState ->
+                val updated = currentState.messages.toMutableList()
+                if (updated.isNotEmpty() && updated.last().isStreaming) {
+                    val errorText = "Error: ${throwable.message}"
+                    val finalText = AssistantResponseFormatter.finalizeAssistantDisplayText(
+                        errorText,
+                        updated.last().text,
+                    )
+                    updated[updated.lastIndex] = updated.last().copy(text = finalText, isStreaming = false)
+                }
+                currentState.copy(isGenerating = false, messages = updated)
+            }
+            persistMessages()
+        }
+
+        suspend fun onChunk(text: String) {
+            fullResponse += text
+
+            if (allowSearch && handleSearchTokens()) {
+                return
+            }
+
+            if (shouldSkipEarlyUpdate()) return
+
+            val earliestIndex = earliestStopTokenIndex()
+            delay(STREAM_UPDATE_DELAY_MS)
+            updateStreamingMessage(earliestIndex)
+
+            if (earliestIndex != Int.MAX_VALUE) {
+                stopGeneration()
+            }
+        }
+
+        private fun handleSearchTokens(): Boolean {
+            if (!allowSearch) return false
+
+            val firstIndex = firstNonWhitespaceIndex(fullResponse)
+            if (!searchStartDetected) {
+                if (tryDetectPartialToken(firstIndex)) return true
+                if (tryDetectExplicitToken(firstIndex)) return true
+            }
+
+            if (!searchStartDetected) return false
+
+            updatePartialQuery()
+            val endIndex = fullResponse.indexOf(searchEndToken, searchStartIndex + searchToken.length)
+            if (endIndex == -1 || searchTriggered) return true
+
+            val query = fullResponse.substring(searchStartIndex + searchToken.length, endIndex).trim()
+            searchTriggered = true
+            triggerSearch(query)
+            stopGeneration()
+            return true
+        }
+
+        private fun tryDetectPartialToken(firstIndex: Int): Boolean {
+            if (firstIndex == Int.MAX_VALUE) return false
+            val after = fullResponse.substring(firstIndex)
+            if (after.isEmpty() || after.length >= searchToken.length || !searchToken.startsWith(after)) {
+                return false
+            }
+            startSearch(firstIndex, initialQuery = "")
+            return true
+        }
+
+        private fun tryDetectExplicitToken(firstIndex: Int): Boolean {
+            val explicitIndex = fullResponse.indexOf(searchToken)
+            if (explicitIndex < 0 || explicitIndex != firstIndex) return false
+            val partialQuery = if (fullResponse.length >= explicitIndex + searchToken.length) {
+                fullResponse.substring(explicitIndex + searchToken.length)
+                    .substringBefore(searchEndToken)
+                    .trim()
+            } else {
+                ""
+            }
+            startSearch(explicitIndex, partialQuery)
+            return true
+        }
+
+        private fun startSearch(startIndex: Int, initialQuery: String) {
+            searchStartDetected = true
+            searchStartIndex = startIndex
+            state.update { current ->
+                val updated = current.messages.toMutableList()
+                if (updated.isNotEmpty() && updated.last().isStreaming) {
+                    updated[updated.lastIndex] = updated.last().copy(text = "")
+                }
+                current.copy(
+                    isSearchInProgress = true,
+                    currentSearchQuery = initialQuery,
+                    messages = updated,
+                )
+            }
+        }
+
+        private fun updatePartialQuery() {
+            val tokenEndBase = searchStartIndex + searchToken.length
+            val partialQuery = if (fullResponse.length > tokenEndBase) {
+                fullResponse.substring(tokenEndBase).substringBefore(searchEndToken).trim()
+            } else {
+                ""
+            }
+            state.update { it.copy(currentSearchQuery = partialQuery) }
+        }
+
+        private fun shouldSkipEarlyUpdate(): Boolean {
+            val elapsed = SystemClock.elapsedRealtime() - streamStartMs
+            return !searchStartDetected &&
+                elapsed < MIN_ELAPSED_BEFORE_RENDER_MS &&
+                fullResponse.length < MIN_CHARS_BEFORE_RENDER
+        }
+
+        private fun earliestStopTokenIndex(): Int = stopTokens
+            .map { token ->
+                fullResponse.indexOf(token).let { idx -> if (idx >= 0) idx else Int.MAX_VALUE }
+            }
+            .minOrNull() ?: Int.MAX_VALUE
+
+        private fun updateStreamingMessage(earliestIndex: Int) {
+            state.update { currentState ->
+                val updated = currentState.messages.toMutableList()
+                if (updated.isNotEmpty() && updated.last().isStreaming) {
+                    val displayTextRaw = if (earliestIndex != Int.MAX_VALUE) {
+                        fullResponse.substring(0, earliestIndex)
+                    } else {
+                        trimTrailingPartialStopToken(fullResponse, stopTokens)
+                    }
+                    val displayText = AssistantResponseFormatter.sanitizeAssistantText(displayTextRaw)
+                    val previousText = updated.last().text
+                    val stableText = if (displayText.length < previousText.length) previousText else displayText
+                    updated[updated.lastIndex] = updated.last().copy(text = stableText)
+                }
+                currentState.copy(messages = updated)
+            }
+        }
+    }
+
+    private fun firstNonWhitespaceIndex(text: String): Int =
+        text.indexOfFirst { !it.isWhitespace() }.let { if (it < 0) Int.MAX_VALUE else it }
 
     private suspend fun continueWithSearchResults(userMessage: ChatMessage, query: String) {
         try {
@@ -396,5 +436,8 @@ class ChatGenerationManager(
 
     companion object {
         private const val TAG = "ChatGenerationManager"
+        private const val STREAM_UPDATE_DELAY_MS = 35L
+        private const val MIN_ELAPSED_BEFORE_RENDER_MS = 300L
+        private const val MIN_CHARS_BEFORE_RENDER = 24
     }
 }

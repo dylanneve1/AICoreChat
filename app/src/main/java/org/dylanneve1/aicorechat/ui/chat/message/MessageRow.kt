@@ -54,6 +54,7 @@ import androidx.compose.ui.platform.ClipboardManager
 import androidx.compose.ui.platform.LocalClipboardManager
 import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.graphics.Color
 import androidx.core.net.toUri
 import coil.compose.AsyncImage
 import org.dylanneve1.aicorechat.data.chat.model.ChatMessage
@@ -68,8 +69,6 @@ fun MessageRow(
     isSearching: Boolean = false,
 ) {
     val clipboard: ClipboardManager = LocalClipboardManager.current
-    var showActions by remember(message.id) { mutableStateOf(false) }
-    val interactionSource = remember { MutableInteractionSource() }
 
     Row(
         modifier = Modifier.fillMaxWidth(),
@@ -92,121 +91,211 @@ fun MessageRow(
             MaterialTheme.colorScheme.onSurface
         }
 
-        // Stack the (optional) image above the bubble for user messages
-        Column(horizontalAlignment = Alignment.End) {
-            if (message.isFromUser && message.imageUri != null) {
-                Surface(
-                    shape = RoundedCornerShape(12.dp),
-                    tonalElevation = 2.dp,
-                    color = MaterialTheme.colorScheme.surfaceVariant,
-                    modifier = Modifier
-                        .size(154.dp)
-                        .padding(bottom = 8.dp),
-                ) {
-                    AsyncImage(
-                        model = message.imageUri.toUri(),
-                        contentDescription = null,
-                        contentScale = ContentScale.Crop,
-                        modifier = Modifier.fillMaxWidth(),
-                    )
-                }
-            }
-
-            Box {
-                MessageBubble(
-                    isFromUser = message.isFromUser,
-                    backgroundColor = bubbleColor,
-                    modifier = Modifier
-                        .widthIn(max = 320.dp)
-                        .animateContentSize()
-                        .combinedClickable(
-                            enabled = !message.isStreaming,
-                            interactionSource = interactionSource,
-                            indication = null,
-                            onClick = {},
-                            onLongClick = {
-                                showActions = true
-                            },
-                        ),
-                ) {
-                    Column(
-                        modifier = Modifier
-                            .widthIn(max = 320.dp)
-                            .padding(horizontal = 12.dp, vertical = 8.dp),
-                    ) {
-                        val contentModifier = Modifier.wrapContentWidth()
-                        if (message.isStreaming && message.text.isBlank()) {
-                            if (isSearching) SearchingIndicator(contentColor) else TypingIndicator(contentColor)
-                        } else {
-                            Text(
-                                text = message.text,
-                                color = contentColor,
-                                style = MaterialTheme.typography.bodyLarge,
-                                modifier = contentModifier,
-                            )
-                        }
-                    }
-                }
-
-                DropdownMenu(
-                    expanded = showActions,
-                    onDismissRequest = { showActions = false },
-                ) {
-                    DropdownMenuItem(
-                        text = { Text("Copy") },
-                        leadingIcon = {
-                            Icon(
-                                imageVector = Icons.Outlined.ContentCopy,
-                                contentDescription = null,
-                            )
-                        },
-                        enabled = message.text.isNotBlank(),
-                        onClick = {
-                            showActions = false
-                            if (message.text.isNotBlank()) {
-                                clipboard.setText(AnnotatedString(message.text))
-                                onCopy(message.text)
-                            }
-                        },
-                    )
-
-                    if (message.isFromUser) {
-                        DropdownMenuItem(
-                            text = { Text("Edit") },
-                            leadingIcon = {
-                                Icon(
-                                    imageVector = Icons.Outlined.Edit,
-                                    contentDescription = null,
-                                )
-                            },
-                            onClick = {
-                                showActions = false
-                                onEdit(message)
-                            },
-                        )
-                    } else {
-                        DropdownMenuItem(
-                            text = { Text("Regenerate") },
-                            leadingIcon = {
-                                Icon(
-                                    imageVector = Icons.Outlined.Refresh,
-                                    contentDescription = null,
-                                )
-                            },
-                            enabled = !message.isStreaming,
-                            onClick = {
-                                showActions = false
-                                onRegenerate(message.id)
-                            },
-                        )
-                    }
-                }
-            }
-        }
+        MessageContent(
+            message = message,
+            bubbleColor = bubbleColor,
+            contentColor = contentColor,
+            clipboard = clipboard,
+            onCopy = onCopy,
+            onRegenerate = onRegenerate,
+            onEdit = onEdit,
+            isSearching = isSearching,
+        )
 
         if (message.isFromUser) {
             Spacer(Modifier.width(8.dp))
             UserAvatar()
+        }
+    }
+}
+
+@Composable
+private fun MessageContent(
+    message: ChatMessage,
+    bubbleColor: Color,
+    contentColor: Color,
+    clipboard: ClipboardManager,
+    onCopy: (String) -> Unit,
+    onRegenerate: (Long) -> Unit,
+    onEdit: (ChatMessage) -> Unit,
+    isSearching: Boolean,
+) {
+    Column(horizontalAlignment = Alignment.End) {
+        if (message.isFromUser && message.imageUri != null) {
+            AttachedImagePreview(uri = message.imageUri)
+        }
+
+        MessageBubbleWithActions(
+            message = message,
+            bubbleColor = bubbleColor,
+            contentColor = contentColor,
+            clipboard = clipboard,
+            onCopy = onCopy,
+            onRegenerate = onRegenerate,
+            onEdit = onEdit,
+            isSearching = isSearching,
+        )
+    }
+}
+
+@Composable
+private fun AttachedImagePreview(uri: String) {
+    Surface(
+        shape = RoundedCornerShape(12.dp),
+        tonalElevation = 2.dp,
+        color = MaterialTheme.colorScheme.surfaceVariant,
+        modifier = Modifier
+            .size(154.dp)
+            .padding(bottom = 8.dp),
+    ) {
+        AsyncImage(
+            model = uri.toUri(),
+            contentDescription = null,
+            contentScale = ContentScale.Crop,
+            modifier = Modifier.fillMaxWidth(),
+        )
+    }
+}
+
+@OptIn(ExperimentalFoundationApi::class)
+@Composable
+private fun MessageBubbleWithActions(
+    message: ChatMessage,
+    bubbleColor: Color,
+    contentColor: Color,
+    clipboard: ClipboardManager,
+    onCopy: (String) -> Unit,
+    onRegenerate: (Long) -> Unit,
+    onEdit: (ChatMessage) -> Unit,
+    isSearching: Boolean,
+) {
+    var showActions by remember(message.id) { mutableStateOf(false) }
+    val interactionSource = remember { MutableInteractionSource() }
+
+    Box {
+        MessageBubble(
+            isFromUser = message.isFromUser,
+            backgroundColor = bubbleColor,
+            modifier = Modifier
+                .widthIn(max = 320.dp)
+                .animateContentSize()
+                .combinedClickable(
+                    enabled = !message.isStreaming,
+                    interactionSource = interactionSource,
+                    indication = null,
+                    onClick = {},
+                    onLongClick = { showActions = true },
+                ),
+        ) {
+            MessageTextContent(
+                message = message,
+                contentColor = contentColor,
+                isSearching = isSearching,
+            )
+        }
+
+        MessageDropdownMenu(
+            message = message,
+            expanded = showActions,
+            clipboard = clipboard,
+            onCopy = onCopy,
+            onRegenerate = onRegenerate,
+            onEdit = onEdit,
+            onDismiss = { showActions = false },
+        )
+    }
+}
+
+@Composable
+private fun MessageTextContent(
+    message: ChatMessage,
+    contentColor: Color,
+    isSearching: Boolean,
+) {
+    Column(
+        modifier = Modifier
+            .widthIn(max = 320.dp)
+            .padding(horizontal = 12.dp, vertical = 8.dp),
+    ) {
+        val contentModifier = Modifier.wrapContentWidth()
+        if (message.isStreaming && message.text.isBlank()) {
+            if (isSearching) {
+                SearchingIndicator(contentColor)
+            } else {
+                TypingIndicator(contentColor)
+            }
+        } else {
+            Text(
+                text = message.text,
+                color = contentColor,
+                style = MaterialTheme.typography.bodyLarge,
+                modifier = contentModifier,
+            )
+        }
+    }
+}
+
+@Composable
+private fun MessageDropdownMenu(
+    message: ChatMessage,
+    expanded: Boolean,
+    clipboard: ClipboardManager,
+    onCopy: (String) -> Unit,
+    onRegenerate: (Long) -> Unit,
+    onEdit: (ChatMessage) -> Unit,
+    onDismiss: () -> Unit,
+) {
+    DropdownMenu(
+        expanded = expanded,
+        onDismissRequest = onDismiss,
+    ) {
+        DropdownMenuItem(
+            text = { Text("Copy") },
+            leadingIcon = {
+                Icon(
+                    imageVector = Icons.Outlined.ContentCopy,
+                    contentDescription = null,
+                )
+            },
+            enabled = message.text.isNotBlank(),
+            onClick = {
+                onDismiss()
+                if (message.text.isNotBlank()) {
+                    clipboard.setText(AnnotatedString(message.text))
+                    onCopy(message.text)
+                }
+            },
+        )
+
+        if (message.isFromUser) {
+            DropdownMenuItem(
+                text = { Text("Edit") },
+                leadingIcon = {
+                    Icon(
+                        imageVector = Icons.Outlined.Edit,
+                        contentDescription = null,
+                    )
+                },
+                onClick = {
+                    onDismiss()
+                    onEdit(message)
+                },
+            )
+        } else {
+            DropdownMenuItem(
+                text = { Text("Regenerate") },
+                leadingIcon = {
+                    Icon(
+                        imageVector = Icons.Outlined.Refresh,
+                        contentDescription = null,
+                    )
+                },
+                enabled = !message.isStreaming,
+                onClick = {
+                    onDismiss()
+                    onRegenerate(message.id)
+                },
+            )
         }
     }
 }
@@ -248,7 +337,7 @@ private fun UserAvatar() {
 }
 
 @Composable
-private fun SearchingIndicator(tint: androidx.compose.ui.graphics.Color) {
+private fun SearchingIndicator(tint: Color) {
     val infiniteTransition = rememberInfiniteTransition(label = "search_animation")
 
     val scale by infiniteTransition.animateFloat(
@@ -314,7 +403,7 @@ private fun SearchingIndicator(tint: androidx.compose.ui.graphics.Color) {
 }
 
 @Composable
-private fun TypingIndicator(tint: androidx.compose.ui.graphics.Color) {
+private fun TypingIndicator(tint: Color) {
     val infiniteTransition = rememberInfiniteTransition(label = "typing_animation")
 
     Row(

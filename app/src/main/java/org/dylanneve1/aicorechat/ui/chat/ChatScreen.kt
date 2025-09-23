@@ -172,28 +172,30 @@ fun ChatScreen(viewModel: ChatViewModel) {
         snackbarHostState = snackbarHostState,
         scrollBehavior = scrollBehavior,
         showScrollToBottom = showScrollToBottom,
-        onNewChat = viewModel::newChat,
-        onSelectChat = viewModel::selectChat,
-        onShowRenameOptions = { id, name -> renameDialogState = id to name },
-        onGenerateTitlesForAllChats = viewModel::generateTitlesForAllChats,
-        onClearChatRequested = { showClearDialog = true },
-        onOpenSettings = {
-            focusManager.clearFocus(force = true)
-            showSettingsSheet = true
-        },
-        onTitleClick = viewModel::generateChatTitle,
-        onTitleLongPress = { renameTitleDialog = true },
-        onDrawerOpen = openDrawer,
-        onDrawerClose = closeDrawer,
-        onSendMessage = viewModel::sendMessage,
-        onRegenerateMessage = viewModel::regenerateAssistantResponse,
-        onEditMessage = { message -> if (message.isFromUser) messageToEdit = message },
-        onStopGeneration = viewModel::stopGeneration,
-        onPickImage = onPickImage,
-        onTakePhoto = onTakePhoto,
-        onRemoveImage = viewModel::clearPendingImage,
-        onScrollToBottom = scrollToBottom,
-        showSnackbar = showSnackbar,
+        actions = ChatLayoutCallbacks(
+            onNewChat = viewModel::newChat,
+            onSelectChat = viewModel::selectChat,
+            onShowRenameOptions = { id, name -> renameDialogState = id to name },
+            onGenerateTitlesForAllChats = viewModel::generateTitlesForAllChats,
+            onClearChatRequested = { showClearDialog = true },
+            onOpenSettings = {
+                focusManager.clearFocus(force = true)
+                showSettingsSheet = true
+            },
+            onTitleClick = viewModel::generateChatTitle,
+            onTitleLongPress = { renameTitleDialog = true },
+            onDrawerOpen = openDrawer,
+            onDrawerClose = closeDrawer,
+            onSendMessage = viewModel::sendMessage,
+            onRegenerateMessage = viewModel::regenerateAssistantResponse,
+            onEditMessage = { message -> if (message.isFromUser) messageToEdit = message },
+            onStopGeneration = viewModel::stopGeneration,
+            onPickImage = onPickImage,
+            onTakePhoto = onTakePhoto,
+            onRemoveImage = viewModel::clearPendingImage,
+            onScrollToBottom = scrollToBottom,
+            showSnackbar = showSnackbar,
+        ),
     )
 
     ChatOverlays(
