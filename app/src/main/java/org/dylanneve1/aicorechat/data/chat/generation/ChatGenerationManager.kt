@@ -78,11 +78,7 @@ class ChatGenerationManager(
         launchAssistantResponse(model, userMessage, userMessage.text)
     }
 
-    private fun launchAssistantResponse(
-        model: GenerativeModel,
-        userMessage: ChatMessage,
-        userPrompt: String,
-    ) {
+    private fun launchAssistantResponse(model: GenerativeModel, userMessage: ChatMessage, userPrompt: String) {
         generationJob?.cancel()
 
         generationJob = scope.launch {
@@ -164,7 +160,10 @@ class ChatGenerationManager(
 
                             if (!searchStartDetected && firstNonWhitespaceIndex != Int.MAX_VALUE) {
                                 val after = fullResponse.substring(firstNonWhitespaceIndex)
-                                if (after.isNotEmpty() && after.length < searchToken.length && searchToken.startsWith(after)) {
+                                if (after.isNotEmpty() && after.length < searchToken.length && searchToken.startsWith(
+                                        after,
+                                    )
+                                ) {
                                     searchStartDetected = true
                                     searchStartIndex = firstNonWhitespaceIndex
                                     state.update { current ->
