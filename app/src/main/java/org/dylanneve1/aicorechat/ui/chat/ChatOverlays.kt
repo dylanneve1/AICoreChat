@@ -37,6 +37,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
+import androidx.compose.ui.window.DialogProperties
 import org.dylanneve1.aicorechat.data.BioInformation
 import org.dylanneve1.aicorechat.data.MemoryEntry
 import org.dylanneve1.aicorechat.data.chat.model.ChatUiState
@@ -325,17 +326,20 @@ private fun LoadingRow(label: String, modifier: Modifier = Modifier) {
 
 @Composable
 private fun LoadingDialog(title: String, label: String) {
-    Dialog(onDismissRequest = {}) {
+    Dialog(
+        onDismissRequest = {},
+        properties = DialogProperties(usePlatformDefaultWidth = false),
+    ) {
         Surface(
+            modifier = Modifier.widthIn(min = 200.dp, max = 260.dp),
             shape = MaterialTheme.shapes.medium,
             tonalElevation = 6.dp,
             shadowElevation = 6.dp,
         ) {
             Column(
-                modifier = Modifier
-                    .widthIn(min = 220.dp, max = 320.dp)
-                    .padding(horizontal = 24.dp, vertical = 20.dp),
+                modifier = Modifier.padding(horizontal = 20.dp, vertical = 18.dp),
                 horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.spacedBy(12.dp),
             ) {
                 Text(
                     title,
@@ -345,7 +349,7 @@ private fun LoadingDialog(title: String, label: String) {
                 )
                 LoadingRow(
                     label = label,
-                    modifier = Modifier.padding(top = 16.dp),
+                    modifier = Modifier.padding(top = 8.dp),
                 )
             }
         }
