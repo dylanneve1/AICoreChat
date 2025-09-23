@@ -17,8 +17,11 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.MaterialTheme
@@ -35,6 +38,8 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.window.Dialog
+import androidx.compose.ui.window.DialogProperties
 import org.dylanneve1.aicorechat.data.BioInformation
 import org.dylanneve1.aicorechat.data.MemoryEntry
 import org.dylanneve1.aicorechat.data.chat.model.ChatUiState
@@ -57,38 +62,16 @@ fun ChatOverlays(
     onClearDismiss: () -> Unit,
 ) {
     if (uiState.isTitleGenerating) {
-        AlertDialog(
-            onDismissRequest = {},
-            title = {
-                Text(
-                    "Generating title",
-                    modifier = Modifier.fillMaxWidth(),
-                    textAlign = TextAlign.Center,
-                )
-            },
-            text = {
-                LoadingRow(label = "Using chat context…")
-            },
-            confirmButton = {},
-            dismissButton = {},
+        GeneratingDialog(
+            title = "Generating title",
+            loadingLabel = "Using chat context…",
         )
     }
 
     if (uiState.isBulkTitleGenerating) {
-        AlertDialog(
-            onDismissRequest = {},
-            title = {
-                Text(
-                    "Generating titles",
-                    modifier = Modifier.fillMaxWidth(),
-                    textAlign = TextAlign.Center,
-                )
-            },
-            text = {
-                LoadingRow(label = "Processing all chats…")
-            },
-            confirmButton = {},
-            dismissButton = {},
+        GeneratingDialog(
+            title = "Generating titles",
+            loadingLabel = "Processing all chats…",
         )
     }
 
@@ -328,16 +311,56 @@ fun ChatSettingsSheet(
 }
 
 @Composable
-private fun LoadingRow(label: String) {
-    Column(
-        modifier = Modifier.fillMaxWidth(),
-        horizontalAlignment = Alignment.CenterHorizontally,
+private fun GeneratingDialog(
+    title: String,
+    loadingLabel: String,
+) {
+    Dialog(
+        onDismissRequest = {},
+        properties = DialogProperties(
+            dismissOnBackPress = false,
+            dismissOnClickOutside = false,
+            usePlatformDefaultWidth = false,
+        ),
     ) {
-        CircularProgressIndicator()
+        Surface(
+            tonalElevation = 6.dp,
+            shape = MaterialTheme.shapes.large,
+            modifier = Modifier
+                .padding(horizontal = 24.dp)
+                .widthIn(max = 340.dp),
+        ) {
+            Column(
+                modifier = Modifier.padding(horizontal = 20.dp, vertical = 20.dp),
+                horizontalAlignment = Alignment.CenterHorizontally,
+            ) {
+                Text(
+                    title,
+                    modifier = Modifier.fillMaxWidth(),
+                    textAlign = TextAlign.Center,
+                    style = MaterialTheme.typography.titleMedium,
+                )
+                Spacer(modifier = Modifier.height(16.dp))
+                LoadingRow(label = loadingLabel)
+            }
+        }
+    }
+}
+
+@Composable
+private fun LoadingRow(label: String) {
+    Row(
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(12.dp),
+    ) {
+        CircularProgressIndicator(
+            modifier = Modifier.size(22.dp),
+            strokeWidth = 2.5.dp,
+        )
         Text(
             label,
-            modifier = Modifier.padding(top = 12.dp),
-            textAlign = TextAlign.Center,
+            textAlign = TextAlign.Start,
+            style = MaterialTheme.typography.bodyMedium,
         )
     }
 }
