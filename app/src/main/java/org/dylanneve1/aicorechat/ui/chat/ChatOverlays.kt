@@ -36,6 +36,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.window.Dialog
 import org.dylanneve1.aicorechat.data.BioInformation
 import org.dylanneve1.aicorechat.data.MemoryEntry
 import org.dylanneve1.aicorechat.data.chat.model.ChatUiState
@@ -58,62 +59,16 @@ fun ChatOverlays(
     onClearDismiss: () -> Unit,
 ) {
     if (uiState.isTitleGenerating) {
-        AlertDialog(
-            onDismissRequest = {},
-            title = {
-                Text(
-                    "Generating title",
-                    modifier = Modifier.fillMaxWidth(),
-                    textAlign = TextAlign.Center,
-                )
-            },
-            text = {
-                Box(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(horizontal = 8.dp),
-                    contentAlignment = Alignment.Center,
-                ) {
-                    LoadingRow(
-                        label = "Using chat context…",
-                        modifier = Modifier
-                            .widthIn(max = 280.dp)
-                            .padding(horizontal = 8.dp),
-                    )
-                }
-            },
-            confirmButton = {},
-            dismissButton = {},
+        LoadingDialog(
+            title = "Generating title",
+            label = "Using chat context…",
         )
     }
 
     if (uiState.isBulkTitleGenerating) {
-        AlertDialog(
-            onDismissRequest = {},
-            title = {
-                Text(
-                    "Generating titles",
-                    modifier = Modifier.fillMaxWidth(),
-                    textAlign = TextAlign.Center,
-                )
-            },
-            text = {
-                Box(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(horizontal = 8.dp),
-                    contentAlignment = Alignment.Center,
-                ) {
-                    LoadingRow(
-                        label = "Processing all chats…",
-                        modifier = Modifier
-                            .widthIn(max = 280.dp)
-                            .padding(horizontal = 8.dp),
-                    )
-                }
-            },
-            confirmButton = {},
-            dismissButton = {},
+        LoadingDialog(
+            title = "Generating titles",
+            label = "Processing all chats…",
         )
     }
 
@@ -353,19 +308,46 @@ fun ChatSettingsSheet(
 }
 
 @Composable
-private fun LoadingRow(
-    label: String,
-    modifier: Modifier = Modifier,
-) {
+private fun LoadingRow(label: String, modifier: Modifier = Modifier) {
     Column(
-        modifier = modifier.padding(vertical = 12.dp),
+        modifier = modifier,
         horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.spacedBy(12.dp),
     ) {
         CircularProgressIndicator()
         Text(
             label,
-            modifier = Modifier.padding(top = 12.dp),
             textAlign = TextAlign.Center,
+            style = MaterialTheme.typography.bodyMedium,
         )
+    }
+}
+
+@Composable
+private fun LoadingDialog(title: String, label: String) {
+    Dialog(onDismissRequest = {}) {
+        Surface(
+            shape = MaterialTheme.shapes.medium,
+            tonalElevation = 6.dp,
+            shadowElevation = 6.dp,
+        ) {
+            Column(
+                modifier = Modifier
+                    .widthIn(min = 220.dp, max = 320.dp)
+                    .padding(horizontal = 24.dp, vertical = 20.dp),
+                horizontalAlignment = Alignment.CenterHorizontally,
+            ) {
+                Text(
+                    title,
+                    modifier = Modifier.fillMaxWidth(),
+                    textAlign = TextAlign.Center,
+                    style = MaterialTheme.typography.titleMedium,
+                )
+                LoadingRow(
+                    label = label,
+                    modifier = Modifier.padding(top = 16.dp),
+                )
+            }
+        }
     }
 }
