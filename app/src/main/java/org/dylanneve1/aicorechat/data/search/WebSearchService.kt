@@ -5,6 +5,9 @@ import android.content.Context
 import android.net.ConnectivityManager
 import android.net.NetworkCapabilities
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.async
+import kotlinx.coroutines.awaitAll
+import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.withContext
 import org.jsoup.Jsoup
 import org.jsoup.nodes.Document
@@ -73,75 +76,92 @@ class WebSearchService(private val app: Application) {
                 val items = itemRegex.findAll(html).take(SEARCH_RESULT_LIMIT).map { it.value }.toList()
                 if (items.isEmpty()) return@use "No results"
 
-                val lines = mutableListOf<String>()
-                for ((idx, block) in items.withIndex()) {
-                    val rawTitle = titleRegex.find(block)?.groupValues?.get(1).orEmpty()
-                    val rawHref = hrefRegex.find(block)?.groupValues?.get(1).orEmpty()
-                    val rawSnippet = snippetRegex.find(block)?.groupValues?.get(1).orEmpty()
-                    val ddgTime = ddgTimeRegex.find(block)?.groupValues?.get(1)?.let { htmlDecode(it).trim() }.orEmpty()
-                    val realUrl = decodeDuckRedirect(htmlDecode(rawHref))
-                    if (!realUrl.startsWith("http")) continue
+                suspend fun processResult(index: Int, block: String): String? {
+                    return try {
+                        val rawTitle = titleRegex.find(block)?.groupValues?.get(1).orEmpty()
+                        val rawHref = hrefRegex.find(block)?.groupValues?.get(1).orEmpty()
+                        val rawSnippet = snippetRegex.find(block)?.groupValues?.get(1).orEmpty()
+                        val ddgTime = ddgTimeRegex.find(block)?.groupValues?.get(1)?.let { htmlDecode(it).trim() }.orEmpty()
+                        val realUrl = decodeDuckRedirect(htmlDecode(rawHref))
+                        if (!realUrl.startsWith("http")) return null
 
-                    val host = hostname(realUrl)
-                    var title = htmlDecode(rawTitle.replace(TAG_REGEX, "").trim())
-                    var summary = htmlDecode(
-                        rawSnippet
-                            .replace(TAG_REGEX, " ")
-                            .replace("\n", " ")
-                            .replace(MULTISPACE_REGEX, " ")
-                            .trim(),
-                    )
-
-                    var dateIso: String? = null
-                    if (ddgTime.isNotBlank() && !ddgTime.contains("ago", ignoreCase = true)) {
-                        dateIso = parseDateToIso(ddgTime)
-                    }
-
-                    val snapshot = scrapePage(realUrl)
-                    if (snapshot != null) {
-                        if (title.isBlank() && !snapshot.title.isNullOrBlank()) {
-                            title = snapshot.title
-                        }
-                        if ((summary.isBlank() || summary.length < MIN_SNIPPET_LENGTH) && !snapshot.summary.isNullOrBlank()) {
-                            summary = snapshot.summary
-                        }
-                        if (dateIso.isNullOrBlank() && !snapshot.published.isNullOrBlank()) {
-                            dateIso = snapshot.published
-                        }
-                    }
-
-                    val content = snapshot?.content
-                    if (title.isBlank() && summary.isBlank() && content.isNullOrBlank()) continue
-
-                    val header = buildString {
-                        if (!dateIso.isNullOrBlank()) {
-                            append(dateIso)
-                            append(" — ")
-                        }
-                        append(host)
-                        if (title.isNotBlank()) {
-                            append(" — ")
-                            append(title)
-                        }
-                    }.ifBlank { host }
-
-                    val entry = buildString {
-                        append("${idx + 1}. ")
-                        append(header)
+                        val host = hostname(realUrl)
+                        var title = htmlDecode(rawTitle.replace(TAG_REGEX, "").trim())
+                        var summary = htmlDecode(
+                            rawSnippet
+                                .replace(TAG_REGEX, " ")
+                                .replace("\n", " ")
+                                .replace(MULTISPACE_REGEX, " ")
+                                .trim(),
+                        )
                         if (summary.isNotBlank()) {
-                            append("\n- Summary: ")
-                            append(summary)
+                            summary = clampSummary(summary)
                         }
-                        if (!content.isNullOrBlank()) {
-                            append("\n- Content:\n")
-                            append(content)
+
+                        var dateIso: String? = null
+                        if (ddgTime.isNotBlank() && !ddgTime.contains("ago", ignoreCase = true)) {
+                            dateIso = parseDateToIso(ddgTime)
                         }
-                        append("\n- URL: ")
-                        append(realUrl)
+
+                        val snapshot = scrapePage(realUrl)
+                        if (snapshot != null) {
+                            if (title.isBlank() && !snapshot.title.isNullOrBlank()) {
+                                title = snapshot.title
+                            }
+                            val snapshotSummary = snapshot.summary
+                                ?.let { collapseWhitespace(it) }
+                                ?.takeIf { it.isNotBlank() }
+                                ?.let(::clampSummary)
+                            if ((summary.isBlank() || summary.length < MIN_SNIPPET_LENGTH) && snapshotSummary != null) {
+                                summary = snapshotSummary
+                            }
+                            if (dateIso.isNullOrBlank() && !snapshot.published.isNullOrBlank()) {
+                                dateIso = snapshot.published
+                            }
+                        }
+
+                        val content = snapshot?.content
+                        if (title.isBlank() && summary.isBlank() && content.isNullOrBlank()) return null
+
+                        val header = buildString {
+                            if (!dateIso.isNullOrBlank()) {
+                                append(dateIso)
+                                append(" — ")
+                            }
+                            append(host)
+                            if (title.isNotBlank()) {
+                                append(" — ")
+                                append(title)
+                            }
+                        }.ifBlank { host }
+
+                        val entry = buildString {
+                            append("${index + 1}. ")
+                            append(header)
+                            if (summary.isNotBlank()) {
+                                append("\n- Summary: ")
+                                append(summary)
+                            }
+                            if (!content.isNullOrBlank()) {
+                                append("\n- Content:\n")
+                                append(content)
+                            }
+                            append("\n- URL: ")
+                            append(realUrl)
+                        }
+                        entry.trimEnd()
+                    } catch (_: Exception) {
+                        null
                     }
-                    lines.add(entry.trimEnd())
                 }
-                if (lines.isEmpty()) "No results" else lines.joinToString("\n\n")
+
+                val entries = coroutineScope {
+                    items.mapIndexed { index, block ->
+                        async { processResult(index, block) }
+                    }.awaitAll()
+                }.filterNotNull()
+
+                if (entries.isEmpty()) "No results" else entries.joinToString("\n\n")
             }
         } catch (e: Exception) {
             "No results (error: ${e.message})"
@@ -348,6 +368,16 @@ class WebSearchService(private val app: Application) {
         return cleaned.joinToString("\n\n")
     }
 
+    private fun clampSummary(text: String, maxChars: Int = SUMMARY_CHAR_LIMIT): String {
+        if (text.length <= maxChars) return text
+        val cut = text.substring(0, maxChars)
+        val split = cut.lastIndexOf(' ')
+        val candidate = if (split >= maxChars / 2) cut.substring(0, split) else cut
+        val normalized = candidate.trimEnd()
+        val base = if (normalized.isNotEmpty()) normalized else cut.trimEnd()
+        return if (base.endsWith("...")) base else "$base..."
+    }
+
     private fun clampContent(text: String, maxChars: Int = PAGE_CONTENT_LIMIT): String {
         if (text.length <= maxChars) return text
         val cut = text.substring(0, maxChars)
@@ -380,6 +410,7 @@ class WebSearchService(private val app: Application) {
         private const val MIN_CONTENT_CHARS = 180
         private const val MAX_PARAGRAPHS = 24
         private const val MIN_SNIPPET_LENGTH = 80
+        private const val SUMMARY_CHAR_LIMIT = 320
         private const val USER_AGENT = "Mozilla/5.0 (Linux; Android 14; Mobile) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/123.0.0.0 Mobile Safari/537.36"
         private val TAG_REGEX = Regex("<.*?>")
         private val MULTISPACE_REGEX = Regex("\\s+")
