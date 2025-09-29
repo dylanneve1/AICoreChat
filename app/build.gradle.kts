@@ -49,6 +49,9 @@ android {
         explainIssues = true
         checkReleaseBuilds = true
         baseline = file("lint-baseline.xml")
+        // Pin jsoup to the latest Android-compatible release and suppress dependency update reminders.
+        disable.add("NewerVersionAvailable")
+        disable.add("GradleDependency")
     }
 }
 
