@@ -21,6 +21,7 @@ coroutines = "1.10.2"
 coil = "2.7.0"
 robolectric = "4.16"
 benManesVersions = "0.52.0"
+jsoup = "1.18.1"
 
 [libraries]
 androidx-core-ktx = { group = "androidx.core", name = "core-ktx", version.ref = "coreKtx" }
@@ -47,6 +48,7 @@ coroutines-test = { group = "org.jetbrains.kotlinx", name = "kotlinx-coroutines-
 coil-compose = { group = "io.coil-kt", name = "coil-compose", version.ref = "coil" }
 material-icons-extended = { group = "androidx.compose.material", name = "material-icons-extended", version = "1.7.8" }
 robolectric = { group = "org.robolectric", name = "robolectric", version.ref = "robolectric" }
+jsoup = { group = "org.jsoup", name = "jsoup", version.ref = "jsoup" }
 
 [plugins]
 android-application = { id = "com.android.application", version.ref = "agp" }

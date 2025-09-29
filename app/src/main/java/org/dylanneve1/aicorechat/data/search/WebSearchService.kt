@@ -6,6 +6,9 @@ import android.net.ConnectivityManager
 import android.net.NetworkCapabilities
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
+import org.jsoup.Jsoup
+import org.jsoup.nodes.Document
+import org.jsoup.nodes.Element
 import java.net.HttpURLConnection
 import java.net.URL
 import java.net.URLDecoder
@@ -16,7 +19,7 @@ import java.util.TimeZone
 
 /**
  * WebSearchService encapsulates connectivity checks and retrieval of high-signal
- * search context (titles, snippets, dates) suitable for LLM prompts.
+ * search context (titles, snippets, dates, and scraped page content) suitable for LLM prompts.
  */
 class WebSearchService(private val app: Application) {
     fun isOnline(): Boolean {
@@ -35,6 +38,116 @@ class WebSearchService(private val app: Application) {
         }
     }
 
+    suspend fun search(query: String): String = withContext(Dispatchers.IO) {
+        try {
+            val encoded = URLEncoder.encode(query, "UTF-8")
+            val url = URL("https://duckduckgo.com/html/?q=$encoded&kl=us-en")
+            val conn = (url.openConnection() as HttpURLConnection).apply {
+                requestMethod = "GET"
+                setRequestProperty("User-Agent", USER_AGENT)
+                connectTimeout = SEARCH_TIMEOUT_MS
+                readTimeout = SEARCH_TIMEOUT_MS
+            }
+            conn.inputStream.bufferedReader().use { reader ->
+                val html = reader.readText()
+                val itemRegex = Regex(
+                    """<div class="result.*?</a>.*?</div>""",
+                    setOf(RegexOption.DOT_MATCHES_ALL, RegexOption.IGNORE_CASE),
+                )
+                val titleRegex = Regex(
+                    """<a[^>]*class="result__a[^"]*"[^>]*>(.*?)</a>""",
+                    RegexOption.IGNORE_CASE,
+                )
+                val hrefRegex = Regex(
+                    """<a[^>]*class="result__a[^"]*"[^>]*href="(.*?)"""",
+                    RegexOption.IGNORE_CASE,
+                )
+                val snippetRegex = Regex(
+                    """(?:class="result__snippet[^"]*"[^>]*>(.*?)</(?:a|span|div)>)""",
+                    setOf(RegexOption.IGNORE_CASE, RegexOption.DOT_MATCHES_ALL),
+                )
+                val ddgTimeRegex = Regex(
+                    """class="result__timestamp"[^>]*>(.*?)<""",
+                    RegexOption.IGNORE_CASE,
+                )
+                val items = itemRegex.findAll(html).take(SEARCH_RESULT_LIMIT).map { it.value }.toList()
+                if (items.isEmpty()) return@use "No results"
+
+                val lines = mutableListOf<String>()
+                for ((idx, block) in items.withIndex()) {
+                    val rawTitle = titleRegex.find(block)?.groupValues?.get(1).orEmpty()
+                    val rawHref = hrefRegex.find(block)?.groupValues?.get(1).orEmpty()
+                    val rawSnippet = snippetRegex.find(block)?.groupValues?.get(1).orEmpty()
+                    val ddgTime = ddgTimeRegex.find(block)?.groupValues?.get(1)?.let { htmlDecode(it).trim() }.orEmpty()
+                    val realUrl = decodeDuckRedirect(htmlDecode(rawHref))
+                    if (!realUrl.startsWith("http")) continue
+
+                    val host = hostname(realUrl)
+                    var title = htmlDecode(rawTitle.replace(TAG_REGEX, "").trim())
+                    var summary = htmlDecode(
+                        rawSnippet
+                            .replace(TAG_REGEX, " ")
+                            .replace("\n", " ")
+                            .replace(MULTISPACE_REGEX, " ")
+                            .trim(),
+                    )
+
+                    var dateIso: String? = null
+                    if (ddgTime.isNotBlank() && !ddgTime.contains("ago", ignoreCase = true)) {
+                        dateIso = parseDateToIso(ddgTime)
+                    }
+
+                    val snapshot = scrapePage(realUrl)
+                    if (snapshot != null) {
+                        if (title.isBlank() && !snapshot.title.isNullOrBlank()) {
+                            title = snapshot.title
+                        }
+                        if ((summary.isBlank() || summary.length < MIN_SNIPPET_LENGTH) && !snapshot.summary.isNullOrBlank()) {
+                            summary = snapshot.summary
+                        }
+                        if (dateIso.isNullOrBlank() && !snapshot.published.isNullOrBlank()) {
+                            dateIso = snapshot.published
+                        }
+                    }
+
+                    val content = snapshot?.content
+                    if (title.isBlank() && summary.isBlank() && content.isNullOrBlank()) continue
+
+                    val header = buildString {
+                        if (!dateIso.isNullOrBlank()) {
+                            append(dateIso)
+                            append(" — ")
+                        }
+                        append(host)
+                        if (title.isNotBlank()) {
+                            append(" — ")
+                            append(title)
+                        }
+                    }.ifBlank { host }
+
+                    val entry = buildString {
+                        append("${idx + 1}. ")
+                        append(header)
+                        if (summary.isNotBlank()) {
+                            append("\n- Summary: ")
+                            append(summary)
+                        }
+                        if (!content.isNullOrBlank()) {
+                            append("\n- Content:\n")
+                            append(content)
+                        }
+                        append("\n- URL: ")
+                        append(realUrl)
+                    }
+                    lines.add(entry.trimEnd())
+                }
+                if (lines.isEmpty()) "No results" else lines.joinToString("\n\n")
+            }
+        } catch (e: Exception) {
+            "No results (error: ${e.message})"
+        }
+    }
+
     private fun htmlDecode(input: String): String {
         var s = input
             .replace("&amp;", "&")
@@ -43,12 +156,12 @@ class WebSearchService(private val app: Application) {
             .replace("&lt;", "<")
             .replace("&gt;", ">")
             .replace("&nbsp;", " ")
-        val dec = Regex("&#(\\d+);")
+        val dec = Regex("""&#(\d+);""")
         s = dec.replace(s) { m ->
             val code = m.groupValues[1].toIntOrNull() ?: return@replace m.value
             code.toChar().toString()
         }
-        val hex = Regex("&#x([0-9a-fA-F]+);")
+        val hex = Regex("""&#x([0-9a-fA-F]+);""")
         s = hex.replace(s) { m ->
             val code = m.groupValues[1].toIntOrNull(16) ?: return@replace m.value
             code.toChar().toString()
@@ -90,18 +203,24 @@ class WebSearchService(private val app: Application) {
         val candidates = listOf(
             "yyyy-MM-dd'T'HH:mm:ss'Z'",
             "yyyy-MM-dd'T'HH:mm:ssXXX",
+            "yyyy-MM-dd'T'HH:mm:ss.SSS'Z'",
+            "yyyy-MM-dd'T'HH:mm:ss.SSSXXX",
             "EEE, dd MMM yyyy HH:mm:ss zzz",
             "EEE, d MMM yyyy HH:mm:ss zzz",
             "EEE, d MMM yyyy HH:mm zzz",
+            "yyyy-MM-dd HH:mm:ss",
             "yyyy-MM-dd",
             "dd MMM yyyy",
             "d MMM yyyy",
             "MMM d, yyyy",
             "MMMM d, yyyy",
+            "yyyy/MM/dd",
+            "MM/dd/yyyy",
         )
         for (p in candidates) {
             try {
                 val fmt = SimpleDateFormat(p, Locale.US)
+                fmt.isLenient = true
                 if (p.contains("'Z'")) fmt.timeZone = TimeZone.getTimeZone("UTC")
                 val d = fmt.parse(dateRaw)
                 if (d != null) {
@@ -109,132 +228,160 @@ class WebSearchService(private val app: Application) {
                     out.timeZone = TimeZone.getTimeZone("UTC")
                     return out.format(d)
                 }
-            } catch (_: Exception) { }
+            } catch (_: Exception) {
+            }
         }
         return null
     }
 
-    private suspend fun fetchMeta(targetUrl: String): Triple<String?, String?, String?> = withContext(Dispatchers.IO) {
-        return@withContext try {
-            val u = URL(targetUrl)
-            val c = (u.openConnection() as HttpURLConnection).apply {
-                requestMethod = "GET"
-                setRequestProperty("User-Agent", "Mozilla/5.0")
-                connectTimeout = 4000
-                readTimeout = 4000
-            }
-            val sb = StringBuilder()
-            c.inputStream.buffered().use { input ->
-                val buf = ByteArray(8192)
-                var total = 0
-                while (true) {
-                    val n = input.read(buf)
-                    if (n <= 0) break
-                    sb.append(String(buf, 0, n))
-                    total += n
-                    if (total > 48_000) break
-                }
-            }
-            val html = sb.toString()
-            val title = Regex("<title>(.*?)</title>", RegexOption.IGNORE_CASE).find(html)?.groupValues?.get(1)
-            val metaDesc = Regex(
-                """<meta[^>]*name="description"[^>]*content="(.*?)"[^>]*>""",
-                RegexOption.IGNORE_CASE,
-            ).find(html)?.groupValues?.get(1)
-                ?: Regex(
-                    """<meta[^>]*property="og:description"[^>]*content="(.*?)"[^>]*>""",
-                    RegexOption.IGNORE_CASE,
-                ).find(html)?.groupValues?.get(1)
-            val metaDate = Regex(
-                """<meta[^>]*property="article:published_time"[^>]*content="(.*?)"[^>]*>""",
-                RegexOption.IGNORE_CASE,
-            ).find(html)?.groupValues?.get(1)
-                ?: Regex(
-                    """<meta[^>]*name="pubdate"[^>]*content="(.*?)"[^>]*>""",
-                    RegexOption.IGNORE_CASE,
-                ).find(html)?.groupValues?.get(1)
-                ?: Regex(
-                    """<meta[^>]*name="date"[^>]*content="(.*?)"[^>]*>""",
-                    RegexOption.IGNORE_CASE,
-                ).find(html)?.groupValues?.get(1)
-                ?: Regex(
-                    """<meta[^>]*itemprop="datePublished"[^>]*content="(.*?)"[^>]*>""",
-                    RegexOption.IGNORE_CASE,
-                ).find(html)?.groupValues?.get(1)
-                ?: Regex(
-                    """<meta[^>]*property="og:updated_time"[^>]*content="(.*?)"[^>]*>""",
-                    RegexOption.IGNORE_CASE,
-                ).find(html)?.groupValues?.get(1)
-            Triple(
-                title?.let { htmlDecode(it.replace(Regex("<.*?>"), "").trim()) },
-                metaDesc?.let { htmlDecode(it.trim()) },
-                metaDate?.let { parseDateToIso(it.trim()) },
-            )
-        } catch (e: Exception) {
-            Triple(null, null, null)
+    private fun scrapePage(targetUrl: String): PageSnapshot? {
+        val document = fetchDocument(targetUrl) ?: return null
+        val title = document.title().trim().takeIf { it.isNotEmpty() }
+        val summary = sequenceOf(
+            document.selectFirst("meta[name=description]")?.attr("content"),
+            document.selectFirst("meta[property=og:description]")?.attr("content"),
+            document.selectFirst("meta[name=twitter:description]")?.attr("content"),
+        ).mapNotNull { it?.trim()?.takeIf { value -> value.isNotEmpty() } }
+            .firstOrNull()
+        val published = extractPublishedDate(document)
+        val content = extractReadableContent(document)?.let { clampContent(it) }
+        return if (title == null && summary == null && published == null && content == null) {
+            null
+        } else {
+            PageSnapshot(title, summary, published, content)
         }
     }
 
-    suspend fun search(query: String): String = withContext(Dispatchers.IO) {
-        try {
-            val encoded = URLEncoder.encode(query, "UTF-8")
-            val url = URL("https://duckduckgo.com/html/?q=$encoded&kl=us-en")
-            val conn = (url.openConnection() as HttpURLConnection).apply {
-                requestMethod = "GET"
-                setRequestProperty("User-Agent", "Mozilla/5.0")
-                connectTimeout = 8000
-                readTimeout = 8000
-            }
-            conn.inputStream.bufferedReader().use { reader ->
-                val html = reader.readText()
-                val itemRegex =
-                    Regex(
-                        """<div class="result.*?</a>.*?</div>""",
-                        setOf(RegexOption.DOT_MATCHES_ALL, RegexOption.IGNORE_CASE),
-                    )
-                val titleRegex = Regex("""<a[^>]*class="result__a[^"]*"[^>]*>(.*?)</a>""", RegexOption.IGNORE_CASE)
-                val hrefRegex = Regex("""<a[^>]*class="result__a[^"]*"[^>]*href="(.*?)"""", RegexOption.IGNORE_CASE)
-                val snippetRegex =
-                    Regex(
-                        """(?:class="result__snippet[^"]*"[^>]*>(.*?)</(?:a|span|div)>)""",
-                        setOf(RegexOption.IGNORE_CASE, RegexOption.DOT_MATCHES_ALL),
-                    )
-                val ddgTimeRegex = Regex("""class="result__timestamp"[^>]*>(.*?)<""", RegexOption.IGNORE_CASE)
-                val items = itemRegex.findAll(html).take(5).map { it.value }.toList()
-                if (items.isEmpty()) return@use "No results"
-                val lines = mutableListOf<String>()
-                for ((idx, block) in items.withIndex()) {
-                    val rawTitle = titleRegex.find(block)?.groupValues?.get(1).orEmpty()
-                    val rawHref = hrefRegex.find(block)?.groupValues?.get(1).orEmpty()
-                    val rawSnippet = snippetRegex.find(block)?.groupValues?.get(1).orEmpty()
-                    val ddgTime = ddgTimeRegex.find(block)?.groupValues?.get(1)?.let { htmlDecode(it).trim() }.orEmpty()
-                    val realUrl = decodeDuckRedirect(htmlDecode(rawHref))
-                    val host = hostname(realUrl)
-                    var title = htmlDecode(rawTitle.replace(Regex("<.*?>"), "").trim())
-                    var snippet =
-                        htmlDecode(
-                            rawSnippet.replace(
-                                Regex("<.*?>"),
-                                " ",
-                            ).replace("\n", " ").replace(" +".toRegex(), " ").trim(),
-                        )
-                    var dateIso: String? = null
-                    val (t, d, metaDate) = fetchMeta(realUrl)
-                    if (!d.isNullOrBlank() && (snippet.isBlank() || snippet.length < 48)) snippet = d
-                    if (!t.isNullOrBlank() && title.isBlank()) title = t
-                    if (!metaDate.isNullOrBlank()) {
-                        dateIso = metaDate
-                    } else {
-                        if (!ddgTime.contains("ago", ignoreCase = true)) parseDateToIso(ddgTime)?.let { dateIso = it }
-                    }
-                    if (title.isBlank() && snippet.isBlank()) continue
-                    val header = if (!dateIso.isNullOrBlank()) "$dateIso — $host — $title" else "$host — $title"
-                    lines.add("${idx + 1}. ${header}\n- $snippet")
-                }
-                if (lines.isEmpty()) "No results" else lines.joinToString("\n\n")
-            }
+    private fun fetchDocument(targetUrl: String): Document? {
+        return try {
+            Jsoup.connect(targetUrl)
+                .userAgent(USER_AGENT)
+                .timeout(PAGE_TIMEOUT_MS)
+                .followRedirects(true)
+                .ignoreContentType(true)
+                .maxBodySize(0)
+                .get()
         } catch (e: Exception) {
-            "No results (error: ${e.message})"
+            null
         }
+    }
+
+    private fun extractPublishedDate(doc: Document): String? {
+        val candidates = mutableListOf<String>()
+        val selectors = listOf(
+            "meta[property=article:published_time]",
+            "meta[name=pubdate]",
+            "meta[name=date]",
+            "meta[itemprop=datePublished]",
+            "meta[property=og:updated_time]",
+            "meta[name=dc.date]",
+            "meta[name=dc.date.issued]",
+            "meta[name=DC.date.issued]",
+            "meta[name=OriginalPublicationDate]",
+        )
+        for (selector in selectors) {
+            doc.select(selector).forEach { element ->
+                val value = element.attr("content").trim()
+                if (value.isNotEmpty()) candidates.add(value)
+            }
+        }
+        doc.select("time[datetime]").forEach { element ->
+            val value = element.attr("datetime").trim()
+            if (value.isNotEmpty()) candidates.add(value)
+        }
+        doc.select("time").forEach { element ->
+            val value = element.text().trim()
+            if (value.isNotEmpty()) candidates.add(value)
+        }
+        return candidates.asSequence()
+            .mapNotNull { parseDateToIso(it) }
+            .firstOrNull()
+    }
+
+    private fun extractReadableContent(doc: Document): String? {
+        val selectors = listOf(
+            "article",
+            "main",
+            "[role=main]",
+            "div[itemprop=articleBody]",
+            "section[itemprop=articleBody]",
+            "div[data-component=\"articleBody\"]",
+            "div[data-testid=\"article-body\"]",
+            "div[class*=article-body]",
+            "section[class*=article-body]",
+            "div[class*=post-content]",
+            "#content",
+        )
+        for (selector in selectors) {
+            val element = doc.selectFirst(selector) ?: continue
+            val text = elementParagraphText(element)
+            if (!text.isNullOrBlank() && text.length >= MIN_CONTENT_CHARS) {
+                return text
+            }
+        }
+        val paragraphs = doc.select("p")
+            .mapNotNull { p ->
+                val text = collapseWhitespace(p.text())
+                if (text.length >= MIN_PARAGRAPH_CHARS) text else null
+            }
+            .take(MAX_PARAGRAPHS)
+        return sanitizeParagraphs(paragraphs)
+    }
+
+    private fun elementParagraphText(element: Element): String? {
+        val paragraphs = element.select("p")
+            .mapNotNull { p ->
+                val text = collapseWhitespace(p.text())
+                if (text.length >= MIN_PARAGRAPH_CHARS) text else null
+            }
+            .take(MAX_PARAGRAPHS)
+        val joined = sanitizeParagraphs(paragraphs)
+        if (!joined.isNullOrBlank()) return joined
+        val text = collapseWhitespace(element.text())
+        return if (text.length >= MIN_CONTENT_CHARS) text else null
+    }
+
+    private fun sanitizeParagraphs(paragraphs: List<String>): String? {
+        if (paragraphs.isEmpty()) return null
+        val cleaned = paragraphs.map { it.trim() }.filter { it.isNotEmpty() }
+        if (cleaned.isEmpty()) return null
+        return cleaned.joinToString("\n\n")
+    }
+
+    private fun clampContent(text: String, maxChars: Int = PAGE_CONTENT_LIMIT): String {
+        if (text.length <= maxChars) return text
+        val cut = text.substring(0, maxChars)
+        val candidate = sequenceOf(
+            cut.lastIndexOf(". "),
+            cut.lastIndexOf('\n'),
+        ).filter { it >= maxChars / 2 }.maxOrNull() ?: cut.length
+        val safe = cut.substring(0, candidate).trimEnd()
+        val fallback = if (safe.isNotEmpty()) safe else cut.trimEnd()
+        return "$fallback..."
+    }
+
+    private fun collapseWhitespace(value: String): String {
+        return MULTISPACE_REGEX.replace(value.replace('\u00A0', ' '), " ").trim()
+    }
+
+    private data class PageSnapshot(
+        val title: String?,
+        val summary: String?,
+        val published: String?,
+        val content: String?,
+    )
+
+    private companion object {
+        private const val SEARCH_RESULT_LIMIT = 5
+        private const val SEARCH_TIMEOUT_MS = 8000
+        private const val PAGE_TIMEOUT_MS = 12_000
+        private const val PAGE_CONTENT_LIMIT = 2400
+        private const val MIN_PARAGRAPH_CHARS = 40
+        private const val MIN_CONTENT_CHARS = 180
+        private const val MAX_PARAGRAPHS = 24
+        private const val MIN_SNIPPET_LENGTH = 80
+        private const val USER_AGENT = "Mozilla/5.0 (Linux; Android 14; Mobile) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/123.0.0.0 Mobile Safari/537.36"
+        private val TAG_REGEX = Regex("<.*?>")
+        private val MULTISPACE_REGEX = Regex("\\s+")
     }
 }

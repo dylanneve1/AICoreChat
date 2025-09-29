@@ -78,6 +78,7 @@ dependencies {
 
     // Image loading for Compose
     implementation(libs.coil.compose)
+    implementation(libs.jsoup)
 
     testImplementation(libs.junit)
     testImplementation(libs.androidx.test.core)
